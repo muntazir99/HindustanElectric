@@ -1,0 +1,12 @@
+streamlit
+
+pymongo
+
+python-dotenv
+flask-cors
+bcrypt
+flask-jwt-extended
+flask-marshmallow
+flask-limiter
+pymongo[srv]
+python-dotenv
