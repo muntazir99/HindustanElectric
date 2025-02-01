@@ -43,6 +43,7 @@
 import os
 from dotenv import load_dotenv
 from app import create_app
+from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
@@ -50,6 +51,7 @@ from flask_limiter.util import get_remote_address
 load_dotenv()
 
 app = create_app()
+CORS(app, resources={r"/*": {"origins": "https://hindustanelectric-frontend.vercel.app"}})
 
 # Apply rate limiting
 limiter = Limiter(

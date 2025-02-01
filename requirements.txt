@@ -6,6 +6,7 @@ bcrypt
 flask-jwt-extended
 flask-marshmallow
 flask-limiter
+flask-cors
 pymongo[srv]
 python-dotenv
 gunicorn
