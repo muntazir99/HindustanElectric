@@ -10,3 +10,5 @@ flask-cors
 pymongo[srv]
 python-dotenv
 gunicorn
+prophet
+pandas

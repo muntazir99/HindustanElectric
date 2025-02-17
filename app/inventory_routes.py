@@ -1,10 +1,12 @@
-
 import logging
+import uuid
 from flask import Blueprint, request, jsonify
 from .db_config import get_db
 from datetime import datetime, date
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import Schema, fields, validate
+import random
+
 
 inventory_bp = Blueprint('inventory', __name__)
 logger = logging.getLogger(__name__)
@@ -250,14 +252,7 @@ def get_dashboard_data():
         logger.error(f"Dashboard data retrieval error: {str(e)}")
         return jsonify({"success": False, "message": "Failed to retrieve dashboard data"}), 500
 
-from flask import Blueprint, request, jsonify, current_app
-from .db_config import get_db
-from datetime import datetime, date
-from flask_jwt_extended import jwt_required
-import logging
-import json
 
-logger = logging.getLogger(__name__)
 
 def convert_dates(obj):
     """Recursively convert datetime/date objects to ISO formatted strings."""
@@ -403,13 +398,20 @@ def sell_multiple_items():
         messages = []
         for sale in sales:
             # Extract and normalize fields.
-            item_name = sale.get("item_name").strip().lower()
-            company = sale.get("company").strip().lower()
-            quantity = sale.get("quantity")
-            buyer = sale.get("buyer").strip()
-            price = sale.get("price")
+            item_name = sale.get("item_name", "").strip().lower()
+            company = sale.get("company", "").strip().lower()
+            quantity = int(sale.get("quantity", 0))
+            buyer = sale.get("buyer", "").strip()
+            price = float(sale.get("price", 0))
+            taxPercentage = float(sale.get("taxPercentage", 0))
+            taxIncluded = bool(sale.get("taxIncluded", False))
             
-            # Check for item existence and stock
+            # Validate required fields.
+            if not item_name or not company or quantity <= 0 or price <= 0 or not buyer:
+                messages.append(f"Sale entry missing required fields for {item_name} from {company}.")
+                continue
+
+            # Check for item existence and stock.
             item = stock_collection.find_one({"name": item_name, "company": company})
             if not item:
                 messages.append(f"Item {item_name} from {company} not found.")
@@ -418,25 +420,37 @@ def sell_multiple_items():
                 messages.append(f"Insufficient stock for {item_name} from {company}.")
                 continue
 
-            # Deduct the sold quantity.
+            # Deduct the sold quantity from inventory.
             stock_collection.update_one(
                 {"name": item_name, "company": company},
                 {"$inc": {"quantity": -quantity}}
             )
 
-            # Insert a sell log.
+            # Calculate base amount.
+            baseAmount = quantity * price
+            # If tax is excluded, calculate additional tax.
+            if not taxIncluded:
+                taxAmount = baseAmount * (taxPercentage / 100)
+            else:
+                taxAmount = 0.0
+            finalAmount = baseAmount + taxAmount
+
+            # Insert a sell log with tax and final amount details.
             log_entry = {
                 "item_name": item_name,
                 "company": company,
                 "quantity_sold": quantity,
                 "buyer": buyer,
                 "price": price,
+                "taxPercentage": taxPercentage,
+                "taxIncluded": taxIncluded,
+                "final_amount": finalAmount,
                 "timestamp": datetime.utcnow(),
                 "action": "sell",
                 "performed_by": current_user
             }
             log_collection.insert_one(log_entry)
-            messages.append(f"Sold {quantity} of {item_name} from {company} to {buyer}")
+            messages.append(f"Sold {quantity} of {item_name} from {company} to {buyer} (Final Amount: ₹{finalAmount:.2f})")
         
         if messages:
             return jsonify({"success": True, "message": " | ".join(messages)}), 200
@@ -446,12 +460,119 @@ def sell_multiple_items():
         logger.error(f"Sell multiple items error: {str(e)}")
         return jsonify({"success": False, "message": "Failed to process multiple sales"}), 500
 
+
+@inventory_bp.route('/generate-invoice', methods=['POST'])
+@jwt_required()
+def generate_invoice():
+    """
+    Expects a JSON payload with the following structure:
+    {
+      "supplier": {"name": "...", "gstin": "...", "address": "..."},
+      "recipient": {"name": "...", "gstin": "...", "address": "..."},  // optional
+      "date_of_issuance": "YYYY-MM-DD",
+      "items": [
+          {
+              "item_name": "example",
+              "company": "example",
+              "quantity": 10,
+              "price": 100.0,
+              "taxPercentage": 18,
+              "taxIncluded": false,
+              "discount": 0,              // optional
+              "hsn_code": ""              // optional
+          },
+          ...
+      ],
+      "billing_address": "...",
+      "shipping_address": "...",
+      "charge_type": "forward",         // or "reverse"
+      "signature": "Digital Signature or Name"
+    }
+    """
+    try:
+        data = request.json
+
+        # Validate supplier details (required)
+        supplier = data.get("supplier")
+        if not supplier or not supplier.get("name") or not supplier.get("gstin") or not supplier.get("address"):
+            return jsonify({"success": False, "message": "Incomplete supplier information."}), 400
+
+        # Recipient info is optional
+        recipient = data.get("recipient", {})
+
+        date_str = data.get("date_of_issuance")
+        if not date_str:
+            return jsonify({"success": False, "message": "Date of issuance is required."}), 400
+        try:
+            date_of_issuance = datetime.strptime(date_str, "%Y-%m-%d")
+        except Exception as e:
+            return jsonify({"success": False, "message": "Invalid date format for issuance. Expected YYYY-MM-DD."}), 400
+
+        items = data.get("items", [])
+        if not items:
+            return jsonify({"success": False, "message": "No items provided for the invoice."}), 400
+
+        billing_address = data.get("billing_address", "")
+        shipping_address = data.get("shipping_address", "")
+        charge_type = data.get("charge_type", "forward")
+        signature = data.get("signature", "")
+
+        invoice_total = 0
+        for item in items:
+            qty = float(item.get("quantity", 0))
+            price = float(item.get("price", 0))
+            base_total = qty * price
+            tax_percentage = float(item.get("taxPercentage", 0))
+            tax_included = bool(item.get("taxIncluded", False))
+            tax_amount = 0
+            if not tax_included:
+                tax_amount = base_total * (tax_percentage / 100)
+            item_total = base_total + tax_amount - float(item.get("discount", 0))
+            item["total"] = item_total
+            invoice_total += item_total
+
+        # Generate a unique invoice number (16 digits maximum)
+        invoice_number = str(random.randint(10**15, 10**16 - 1))
+
+        db = get_db()
+        invoices_collection = db["invoices"]
+        current_user = get_jwt_identity()
+
+        invoice_data = {
+            "invoice_number": invoice_number,
+            "supplier": supplier,
+            "recipient": recipient,
+            "date_of_issuance": date_of_issuance,
+            "items": items,
+            "invoice_total": invoice_total,
+            "billing_address": billing_address,
+            "shipping_address": shipping_address,
+            "charge_type": charge_type,
+            "signature": signature,
+            "created_at": datetime.utcnow(),
+            "created_by": current_user
+        }
+
+        invoices_collection.insert_one(invoice_data)
+
+        logger.info(f"Invoice {invoice_number} generated by user {current_user}")
+        return jsonify({
+            "success": True,
+            "message": "Invoice generated successfully.",
+            "invoice": invoice_data
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error generating invoice: {str(e)}")
+        return jsonify({"success": False, "message": "Failed to generate invoice."}), 500
+
+    
+
 @inventory_bp.route('/names', methods=['GET'])
 def get_item_names():
     try:
         db = get_db()
         collection = db["stock"]
-        # Get distinct names from the stock collection.
         names = collection.distinct("name")
         return jsonify({"success": True, "data": names}), 200
     except Exception as e:
