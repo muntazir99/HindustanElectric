@@ -23,3 +23,4 @@ def get_db():
     except PyMongoError as e:
         logging.error(f"MongoDB Error: {e}")
         raise
+
