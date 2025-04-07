@@ -2,7 +2,7 @@
     "buildCommand": "python3 -m pip install -r requirements.txt",
     "functions": {
       "api/run.py": {
-        "runtime": "python"
+        "runtime": "python@3.9.17"
       }
     },
     "routes": [
