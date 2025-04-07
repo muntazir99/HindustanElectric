@@ -52,9 +52,9 @@ from flask_limiter.util import get_remote_address
 load_dotenv()
 
 app = create_app()
-# CORS(app, resources={r"/*": {"origins": "https://hindustanelectric-frontend.vercel.app"}})
-# CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
-CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}}, supports_credentials=True)
+CORS(app, resources={r"/*": {"origins": "https://hindustanelectric.vercel.app"}})
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+# CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}}, supports_credentials=True)
 
 @app.route("/")
 def home():
