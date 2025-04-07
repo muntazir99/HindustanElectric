@@ -52,8 +52,10 @@ from flask_limiter.util import get_remote_address
 load_dotenv()
 
 app = create_app()
-# CORS(app, resources={r"/*": {"origins": "https://hindustanelectric-frontend.vercel.app"}})
+CORS(app, resources={r"/*": {"origins": "https://hindustanelectric-frontend.vercel.app"}})
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+# CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}}, supports_credentials=True)
+
 @app.route("/")
 def home():
     return "Hello, Hindustan Electric!"
@@ -61,7 +63,7 @@ def home():
 limiter = Limiter(
     app=app,
     key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"]
+    default_limits=["2000 per day", "500 per hour"]
 )
 
 if __name__ == "__main__":

@@ -21,6 +21,8 @@ class InventorySchema(Schema):
     date_of_addition = fields.Date(required=True)
     category = fields.Str()
     minimum_stock = fields.Int()
+    hsn_code = fields.Str(required=True, validate=validate.Length(min=1))
+    image = fields.Str()
 
 @inventory_bp.route('/', methods=['GET'])
 @jwt_required()
@@ -82,6 +84,8 @@ def add_item():
 
         category = data.get("category")
         minimum_stock = data.get("minimum_stock")
+        hsn_code = data.get("hsn_code")  # required field
+        image = data.get("image")
 
         db = get_db()
         stock_collection = db["stock"]
@@ -96,6 +100,8 @@ def add_item():
                 "company": company,
                 "category": category,
                 "minimum_stock": minimum_stock,
+                "hsn_code": hsn_code,
+                "image": image,
                 "created_at": datetime.utcnow(),
                 "created_by": current_user
             },
@@ -119,6 +125,7 @@ def add_item():
             "unit_price": unit_price,
             "total_value": quantity * unit_price,
             "category": category,
+            "hsn_code": hsn_code,
             "timestamp": datetime.utcnow(),
             "action": "add_inventory",
             "performed_by": current_user
@@ -491,7 +498,9 @@ def generate_invoice():
         charge_type = data.get("charge_type", "forward")
         signature = data.get("signature", "")
 
+        db = get_db()
         invoice_total = 0
+        # For each item, calculate totals and check for HSN code.
         for item in items:
             qty = float(item.get("quantity", 0))
             price = float(item.get("price", 0))
@@ -506,10 +515,18 @@ def generate_invoice():
             item["total"] = item_total
             invoice_total += item_total
 
-        invoice_number = str(random.randint(10**15, 10**16 - 1))
+            # If HSN code is missing, look it up in the inventory.
+            if not item.get("hsn_code"):
+                inv_item = db["stock"].find_one({
+                    "name": item.get("item_name").strip().lower(),
+                    "company": item.get("company").strip().lower()
+                })
+                if inv_item and "hsn_code" in inv_item and inv_item["hsn_code"]:
+                    item["hsn_code"] = inv_item["hsn_code"]
+                else:
+                    item["hsn_code"] = ""  # or leave as empty string if not found
 
-        db = get_db()
-        invoices_collection = db["invoices"]
+        invoice_number = str(random.randint(10**15, 10**16 - 1))
         current_user = get_jwt_identity()
 
         invoice_data = {
@@ -527,7 +544,7 @@ def generate_invoice():
             "created_by": current_user
         }
 
-        result = invoices_collection.insert_one(invoice_data)
+        result = db["invoices"].insert_one(invoice_data)
         invoice_data["invoice_id"] = str(result.inserted_id)
         if "_id" in invoice_data:
             del invoice_data["_id"]
@@ -542,43 +559,18 @@ def generate_invoice():
     except Exception as e:
         logger.error(f"Error generating invoice: {str(e)}")
         return jsonify({"success": False, "message": "Failed to generate invoice."}), 500
+
+
 # @inventory_bp.route('/generate-invoice', methods=['POST'])
 # @jwt_required()
 # def generate_invoice():
-#     """
-#     Expects a JSON payload with the following structure:
-#     {
-#       "supplier": {"name": "...", "gstin": "...", "address": "..."},
-#       "recipient": {"name": "...", "gstin": "...", "address": "..."},  // optional
-#       "date_of_issuance": "YYYY-MM-DD",
-#       "items": [
-#           {
-#               "item_name": "example",
-#               "company": "example",
-#               "quantity": 10,
-#               "price": 100.0,
-#               "taxPercentage": 18,
-#               "taxIncluded": false,
-#               "discount": 0,              // optional
-#               "hsn_code": ""              // optional
-#           },
-#           ...
-#       ],
-#       "billing_address": "...",
-#       "shipping_address": "...",
-#       "charge_type": "forward",         // or "reverse"
-#       "signature": "Digital Signature or Name"
-#     }
-#     """
 #     try:
 #         data = request.json
 
-#         # Validate supplier details (required)
 #         supplier = data.get("supplier")
 #         if not supplier or not supplier.get("name") or not supplier.get("gstin") or not supplier.get("address"):
 #             return jsonify({"success": False, "message": "Incomplete supplier information."}), 400
 
-#         # Recipient info is optional
 #         recipient = data.get("recipient", {})
 
 #         date_str = data.get("date_of_issuance")
@@ -605,14 +597,14 @@ def generate_invoice():
 #             base_total = qty * price
 #             tax_percentage = float(item.get("taxPercentage", 0))
 #             tax_included = bool(item.get("taxIncluded", False))
+#             discount = float(item.get("discount", 0))
 #             tax_amount = 0
 #             if not tax_included:
 #                 tax_amount = base_total * (tax_percentage / 100)
-#             item_total = base_total + tax_amount - float(item.get("discount", 0))
+#             item_total = base_total + tax_amount - discount
 #             item["total"] = item_total
 #             invoice_total += item_total
 
-#         # Generate a unique invoice number (16 digits maximum)
 #         invoice_number = str(random.randint(10**15, 10**16 - 1))
 
 #         db = get_db()
@@ -634,7 +626,10 @@ def generate_invoice():
 #             "created_by": current_user
 #         }
 
-#         invoices_collection.insert_one(invoice_data)
+#         result = invoices_collection.insert_one(invoice_data)
+#         invoice_data["invoice_id"] = str(result.inserted_id)
+#         if "_id" in invoice_data:
+#             del invoice_data["_id"]
 
 #         logger.info(f"Invoice {invoice_number} generated by user {current_user}")
 #         return jsonify({
@@ -647,7 +642,6 @@ def generate_invoice():
 #         logger.error(f"Error generating invoice: {str(e)}")
 #         return jsonify({"success": False, "message": "Failed to generate invoice."}), 500
 
-    
 
 @inventory_bp.route('/names', methods=['GET'])
 def get_item_names():
@@ -659,3 +653,53 @@ def get_item_names():
     except Exception as e:
         logger.error(f"Error fetching item names: {str(e)}")
         return jsonify({"success": False, "message": "Failed to fetch item names"}), 500
+
+
+# @inventory_bp.route('/hsn', methods=['GET'])
+# def get_hsn_code():
+#     try:
+#         item_name = request.args.get("name", "").strip().lower()
+#         db = get_db()
+#         inv_item = db["stock"].find_one({"name": item_name})
+#         if inv_item and "hsn_code" in inv_item:
+#             return jsonify({"success": True, "data": {"hsn_code": inv_item["hsn_code"]}}), 200
+#         else:
+#             return jsonify({"success": True, "data": {"hsn_code": ""}}), 200
+#     except Exception as e:
+#         logger.error(f"Error fetching HSN code: {str(e)}")
+#         return jsonify({"success": False, "message": "Failed to fetch HSN code"}), 500
+
+
+# @inventory_bp.route('/details', methods=['GET'])
+# @jwt_required(optional=True)
+# def get_inventory_details():
+#     try:
+#         # Get the item name from query parameters and normalize it.
+#         item_name = request.args.get("name", "").strip().lower()
+#         db = get_db()
+#         # Find the item in the stock collection.
+#         inv_item = db["stock"].find_one({"name": item_name})
+#         if inv_item:
+#             details = {
+#                 "available_quantity": inv_item.get("quantity", 0),
+#                 "unit_price": inv_item.get("unit_price", 0),
+#                 "image": inv_item.get("image", ""),       # URL or empty string if not available
+#                 "hsn_code": inv_item.get("hsn_code", ""),
+#                 "company": inv_item.get("company", "")
+#             }
+#             return jsonify({"success": True, "data": details}), 200
+#         else:
+#             # If no item is found, return default values.
+#             return jsonify({
+#                 "success": True,
+#                 "data": {
+#                     "available_quantity": 0,
+#                     "unit_price": 0,
+#                     "image": "",
+#                     "hsn_code": "",
+#                     "company": ""
+#                 }
+#             }), 200
+#     except Exception as e:
+#         logger.error(f"Error fetching item details: {str(e)}")
+#         return jsonify({"success": False, "message": "Failed to fetch item details"}), 500
