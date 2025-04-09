@@ -7,14 +7,15 @@ from dotenv import load_dotenv
 # Load environment variables from .env
 load_dotenv()
 
+
 def get_db():
     try:
         mongo_uri = os.getenv("MONGO_URI")
         if not mongo_uri:
             raise ValueError("MONGO_URI environment variable not set")
-        
+
         client = MongoClient(mongo_uri)
-        client.admin.command('ismaster')  # Test connection
+        client.admin.command("ismaster")  # Test connection
         db = client["hindustanelectric"]
         return db
     except ConnectionFailure:
@@ -23,4 +24,3 @@ def get_db():
     except PyMongoError as e:
         logging.error(f"MongoDB Error: {e}")
         raise
-

@@ -1,4 +1,3 @@
-
 import logging
 import uuid
 from flask import Blueprint, request, jsonify
@@ -9,8 +8,9 @@ from marshmallow import Schema, fields, validate
 import random
 
 
-inventory_bp = Blueprint('inventory', __name__)
+inventory_bp = Blueprint("inventory", __name__)
 logger = logging.getLogger(__name__)
+
 
 # Schema for inventory validation (with company)
 class InventorySchema(Schema):
@@ -24,42 +24,55 @@ class InventorySchema(Schema):
     hsn_code = fields.Str(required=True, validate=validate.Length(min=1))
     image = fields.Str()
 
-@inventory_bp.route('/', methods=['GET'])
+
+@inventory_bp.route("/", methods=["GET"])
 @jwt_required()
 def get_inventory():
     try:
-        page = int(request.args.get('page', 1))
-        per_page = int(request.args.get('per_page', 10))
-        search = request.args.get('search', '')
+        page = int(request.args.get("page", 1))
+        per_page = int(request.args.get("per_page", 10))
+        search = request.args.get("search", "")
 
         db = get_db()
         collection = db["stock"]
 
         query = {}
         if search:
-            query['name'] = {'$regex': search, '$options': 'i'}
+            query["name"] = {"$regex": search, "$options": "i"}
 
         total = collection.count_documents(query)
-        inventory = list(collection.find(query, {'_id': 0})
-                         .skip((page - 1) * per_page).limit(per_page))
+        inventory = list(
+            collection.find(query, {"_id": 0})
+            .skip((page - 1) * per_page)
+            .limit(per_page)
+        )
         for item in inventory:
-            item['total_value'] = item['quantity'] * item['unit_price']
+            item["total_value"] = item["quantity"] * item["unit_price"]
 
-        return jsonify({
-            "success": True,
-            "data": inventory,
-            "pagination": {
-                "page": page,
-                "per_page": per_page,
-                "total": total,
-                "pages": (total + per_page - 1) // per_page
-            }
-        }), 200
+        return (
+            jsonify(
+                {
+                    "success": True,
+                    "data": inventory,
+                    "pagination": {
+                        "page": page,
+                        "per_page": per_page,
+                        "total": total,
+                        "pages": (total + per_page - 1) // per_page,
+                    },
+                }
+            ),
+            200,
+        )
     except Exception as e:
         logger.error(f"Inventory retrieval error: {str(e)}")
-        return jsonify({"success": False, "message": "Failed to retrieve inventory"}), 500
+        return (
+            jsonify({"success": False, "message": "Failed to retrieve inventory"}),
+            500,
+        )
 
-@inventory_bp.route('/add', methods=['POST'])
+
+@inventory_bp.route("/add", methods=["POST"])
 @jwt_required()
 def add_item():
     try:
@@ -67,23 +80,37 @@ def add_item():
         schema = InventorySchema()
         errors = schema.validate(request.json)
         if errors:
-            return jsonify({"success": False, "message": "Validation error", "errors": errors}), 400
+            return (
+                jsonify(
+                    {"success": False, "message": "Validation error", "errors": errors}
+                ),
+                400,
+            )
 
         data = request.json
         name = data.get("name").strip().lower()
         company = data.get("company").strip().lower()
         unit_price = data.get("unit_price")
         quantity = data.get("quantity")
-        
+
         # Parse the date string; expect format "YYYY-MM-DD"
         date_str = data.get("date_of_addition")
         try:
             date_of_addition = datetime.strptime(date_str, "%Y-%m-%d")
         except Exception as parse_err:
-            return jsonify({"success": False, "message": "Invalid date format. Expected YYYY-MM-DD."}), 400
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "message": "Invalid date format. Expected YYYY-MM-DD.",
+                    }
+                ),
+                400,
+            )
 
         category = data.get("category")
         minimum_stock = data.get("minimum_stock")
+        barcode = data.get("barcode")
         hsn_code = data.get("hsn_code")  # required field
         image = data.get("image")
 
@@ -100,22 +127,21 @@ def add_item():
                 "company": company,
                 "category": category,
                 "minimum_stock": minimum_stock,
+                "barcode": barcode,
                 "hsn_code": hsn_code,
                 "image": image,
                 "created_at": datetime.utcnow(),
-                "created_by": current_user
+                "created_by": current_user,
             },
             "$set": {
                 "updated_at": datetime.utcnow(),
                 "updated_by": current_user,
-                "date_of_addition": date_of_addition
-            }
+                "date_of_addition": date_of_addition,
+            },
         }
 
         stock_collection.update_one(
-            {"name": name, "company": company},
-            update_data,
-            upsert=True
+            {"name": name, "company": company}, update_data, upsert=True
         )
 
         log_entry = {
@@ -125,28 +151,41 @@ def add_item():
             "unit_price": unit_price,
             "total_value": quantity * unit_price,
             "category": category,
+            "barcode": barcode,
             "hsn_code": hsn_code,
             "timestamp": datetime.utcnow(),
             "action": "add_inventory",
-            "performed_by": current_user
+            "performed_by": current_user,
         }
         log_collection.insert_one(log_entry)
 
         item = stock_collection.find_one({"name": name, "company": company})
-        if item and item.get("minimum_stock") and item["quantity"] <= item["minimum_stock"]:
+        if (
+            item
+            and item.get("minimum_stock")
+            and item["quantity"] <= item["minimum_stock"]
+        ):
             logger.warning(f"Low stock alert for item: {name} from {company}")
 
-        logger.info(f"Item added: {name} from {company}, Quantity: {quantity}, Unit Price: {unit_price}")
-        return jsonify({
-            "success": True,
-            "message": f"Item '{name}' from {company} added/updated successfully"
-        }), 200
+        logger.info(
+            f"Item added: {name} from {company}, Quantity: {quantity}, Unit Price: {unit_price}"
+        )
+        return (
+            jsonify(
+                {
+                    "success": True,
+                    "message": f"Item '{name}' from {company} added/updated successfully",
+                }
+            ),
+            200,
+        )
 
     except Exception as e:
         logger.error(f"Item addition error: {str(e)}")
         return jsonify({"success": False, "message": "Failed to add item"}), 500
 
-@inventory_bp.route('/sell', methods=['POST'])
+
+@inventory_bp.route("/sell", methods=["POST"])
 @jwt_required()
 def sell_item():
     try:
@@ -158,7 +197,12 @@ def sell_item():
         price = data.get("price")
 
         if not item_name or not company:
-            return jsonify({"success": False, "message": "Item name and company are required"}), 400
+            return (
+                jsonify(
+                    {"success": False, "message": "Item name and company are required"}
+                ),
+                400,
+            )
 
         item_name = item_name.strip().lower()
         company = company.strip().lower()
@@ -174,8 +218,7 @@ def sell_item():
             return jsonify({"success": False, "message": "Insufficient stock"}), 400
 
         stock_collection.update_one(
-            {"name": item_name, "company": company},
-            {"$inc": {"quantity": -quantity}}
+            {"name": item_name, "company": company}, {"$inc": {"quantity": -quantity}}
         )
 
         log_entry = {
@@ -186,25 +229,36 @@ def sell_item():
             "price": price,
             "timestamp": datetime.utcnow(),
             "action": "sell",
-            "performed_by": get_jwt_identity()
+            "performed_by": get_jwt_identity(),
         }
         log_collection.insert_one(log_entry)
 
-        return jsonify({
-            "success": True,
-            "message": f"Sold {quantity} of {item_name} from {company} to {buyer}"
-        }), 200
+        return (
+            jsonify(
+                {
+                    "success": True,
+                    "message": f"Sold {quantity} of {item_name} from {company} to {buyer}",
+                }
+            ),
+            200,
+        )
     except Exception as e:
         logger.error(f"Item sale error: {str(e)}")
         return jsonify({"success": False, "message": "Failed to sell item"}), 500
 
-@inventory_bp.route('/delete', methods=['DELETE'])
+
+@inventory_bp.route("/delete", methods=["DELETE"])
 @jwt_required()
 def delete_item():
     try:
         data = request.get_json()
         if not data or "name" not in data or "company" not in data:
-            return jsonify({"success": False, "message": "Item name and company are required"}), 400
+            return (
+                jsonify(
+                    {"success": False, "message": "Item name and company are required"}
+                ),
+                400,
+            )
 
         name = data.get("name").strip().lower()
         company = data.get("company").strip().lower()
@@ -225,18 +279,27 @@ def delete_item():
             "action": "delete",
             "quantity_deleted": item.get("quantity", 0),
             "timestamp": datetime.utcnow(),
-            "performed_by": get_jwt_identity()
+            "performed_by": get_jwt_identity(),
         }
         log_collection.insert_one(log_entry)
 
         logger.info(f"Item deleted: {name} from {company}")
-        return jsonify({"success": True, "message": f"Item '{name}' from {company} deleted successfully"}), 200
+        return (
+            jsonify(
+                {
+                    "success": True,
+                    "message": f"Item '{name}' from {company} deleted successfully",
+                }
+            ),
+            200,
+        )
 
     except Exception as e:
         logger.error(f"Item deletion error: {str(e)}")
         return jsonify({"success": False, "message": "Failed to delete item"}), 500
 
-@inventory_bp.route('/dashboard', methods=['GET'])
+
+@inventory_bp.route("/dashboard", methods=["GET"])
 @jwt_required()
 def get_dashboard_data():
     try:
@@ -245,21 +308,32 @@ def get_dashboard_data():
         log_collection = db["logs"]
 
         total_items = stock_collection.count_documents({})
-        total_value = sum(item['quantity'] * item['unit_price'] for item in stock_collection.find({}))
-        recent_activities = list(log_collection.find({}, {"_id": 0}).sort("timestamp", -1).limit(10))
+        total_value = sum(
+            item["quantity"] * item["unit_price"] for item in stock_collection.find({})
+        )
+        recent_activities = list(
+            log_collection.find({}, {"_id": 0}).sort("timestamp", -1).limit(10)
+        )
 
-        return jsonify({
-            "success": True,
-            "data": {
-                "total_items": total_items,
-                "total_value": total_value,
-                "recent_activities": recent_activities
-            }
-        }), 200
+        return (
+            jsonify(
+                {
+                    "success": True,
+                    "data": {
+                        "total_items": total_items,
+                        "total_value": total_value,
+                        "recent_activities": recent_activities,
+                    },
+                }
+            ),
+            200,
+        )
     except Exception as e:
         logger.error(f"Dashboard data retrieval error: {str(e)}")
-        return jsonify({"success": False, "message": "Failed to retrieve dashboard data"}), 500
-
+        return (
+            jsonify({"success": False, "message": "Failed to retrieve dashboard data"}),
+            500,
+        )
 
 
 def convert_dates(obj):
@@ -272,13 +346,17 @@ def convert_dates(obj):
         return [convert_dates(item) for item in obj]
     return obj
 
-@inventory_bp.route('/by-date', methods=['GET'])
+
+@inventory_bp.route("/by-date", methods=["GET"])
 @jwt_required()
 def get_inventory_by_date():
     try:
         date_str = request.args.get("date")
         if not date_str:
-            return jsonify({"success": False, "message": "Date parameter is required"}), 400
+            return (
+                jsonify({"success": False, "message": "Date parameter is required"}),
+                400,
+            )
 
         # Parse incoming date string as a datetime (with time set to midnight)
         date_obj = datetime.strptime(date_str, "%Y-%m-%d")
@@ -292,16 +370,20 @@ def get_inventory_by_date():
         start_datetime = date_obj
         end_datetime = datetime.combine(date_obj.date(), datetime.max.time())
 
-        inventory_items = list(stock_collection.find(
-            {"date_of_addition": {"$gte": start_datetime, "$lte": end_datetime}},
-            {"_id": 0}
-        ))
+        inventory_items = list(
+            stock_collection.find(
+                {"date_of_addition": {"$gte": start_datetime, "$lte": end_datetime}},
+                {"_id": 0},
+            )
+        )
 
         # Query logs where the timestamp falls within the day.
-        logs = list(log_collection.find(
-            {"timestamp": {"$gte": start_datetime, "$lte": end_datetime}},
-            {"_id": 0}
-        ))
+        logs = list(
+            log_collection.find(
+                {"timestamp": {"$gte": start_datetime, "$lte": end_datetime}},
+                {"_id": 0},
+            )
+        )
 
         # Recursively convert any date/datetime objects in our results
         def convert_dates(obj):
@@ -316,19 +398,26 @@ def get_inventory_by_date():
         inventory_items = convert_dates(inventory_items)
         logs = convert_dates(logs)
 
-        return jsonify({
-            "success": True,
-            "data": {
-                "inventory": inventory_items,
-                "logs": logs
-            }
-        }), 200
+        return (
+            jsonify(
+                {"success": True, "data": {"inventory": inventory_items, "logs": logs}}
+            ),
+            200,
+        )
     except Exception as e:
         logger.error(f"Error in get_inventory_by_date: {str(e)}")
-        return jsonify({"success": False, "message": "Failed to fetch data for the selected date"}), 500
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "message": "Failed to fetch data for the selected date",
+                }
+            ),
+            500,
+        )
 
 
-@inventory_bp.route('/add-multiple', methods=['POST'])
+@inventory_bp.route("/add-multiple", methods=["POST"])
 @jwt_required()
 def add_multiple_items():
     try:
@@ -358,19 +447,17 @@ def add_multiple_items():
                     "category": category,
                     "minimum_stock": minimum_stock,
                     "created_at": datetime.utcnow(),
-                    "created_by": current_user
+                    "created_by": current_user,
                 },
                 "$set": {
                     "updated_at": datetime.utcnow(),
                     "updated_by": current_user,
-                    "date_of_addition": date_of_addition
-                }
+                    "date_of_addition": date_of_addition,
+                },
             }
 
             stock_collection.update_one(
-                {"name": name, "company": company},
-                update_data,
-                upsert=True
+                {"name": name, "company": company}, update_data, upsert=True
             )
 
             log_entry = {
@@ -382,17 +469,21 @@ def add_multiple_items():
                 "category": category,
                 "timestamp": datetime.utcnow(),
                 "action": "add_inventory",
-                "performed_by": current_user
+                "performed_by": current_user,
             }
             log_collection.insert_one(log_entry)
             messages.append(f"Item '{name}' from {company} added/updated successfully")
-        
+
         return jsonify({"success": True, "message": " | ".join(messages)}), 200
     except Exception as e:
         logger.error(f"Add multiple items error: {str(e)}")
-        return jsonify({"success": False, "message": "Failed to add multiple items"}), 500
+        return (
+            jsonify({"success": False, "message": "Failed to add multiple items"}),
+            500,
+        )
 
-@inventory_bp.route('/sell-multiple', methods=['POST'])
+
+@inventory_bp.route("/sell-multiple", methods=["POST"])
 @jwt_required()
 def sell_multiple_items():
     try:
@@ -413,10 +504,12 @@ def sell_multiple_items():
             price = float(sale.get("price", 0))
             taxPercentage = float(sale.get("taxPercentage", 0))
             taxIncluded = bool(sale.get("taxIncluded", False))
-            
+
             # Validate required fields.
             if not item_name or not company or quantity <= 0 or price <= 0 or not buyer:
-                messages.append(f"Sale entry missing required fields for {item_name} from {company}.")
+                messages.append(
+                    f"Sale entry missing required fields for {item_name} from {company}."
+                )
                 continue
 
             # Check for item existence and stock.
@@ -431,7 +524,7 @@ def sell_multiple_items():
             # Deduct the sold quantity from inventory.
             stock_collection.update_one(
                 {"name": item_name, "company": company},
-                {"$inc": {"quantity": -quantity}}
+                {"$inc": {"quantity": -quantity}},
             )
 
             # Calculate base amount.
@@ -455,43 +548,74 @@ def sell_multiple_items():
                 "final_amount": finalAmount,
                 "timestamp": datetime.utcnow(),
                 "action": "sell",
-                "performed_by": current_user
+                "performed_by": current_user,
             }
             log_collection.insert_one(log_entry)
-            messages.append(f"Sold {quantity} of {item_name} from {company} to {buyer} (Final Amount: ₹{finalAmount:.2f})")
-        
+            messages.append(
+                f"Sold {quantity} of {item_name} from {company} to {buyer} (Final Amount: ₹{finalAmount:.2f})"
+            )
+
         if messages:
             return jsonify({"success": True, "message": " | ".join(messages)}), 200
         else:
             return jsonify({"success": False, "message": "No sales processed"}), 400
     except Exception as e:
         logger.error(f"Sell multiple items error: {str(e)}")
-        return jsonify({"success": False, "message": "Failed to process multiple sales"}), 500
+        return (
+            jsonify({"success": False, "message": "Failed to process multiple sales"}),
+            500,
+        )
 
 
-@inventory_bp.route('/generate-invoice', methods=['POST'])
+@inventory_bp.route("/generate-invoice", methods=["POST"])
 @jwt_required()
 def generate_invoice():
     try:
         data = request.json
 
         supplier = data.get("supplier")
-        if not supplier or not supplier.get("name") or not supplier.get("gstin") or not supplier.get("address"):
-            return jsonify({"success": False, "message": "Incomplete supplier information."}), 400
+        if (
+            not supplier
+            or not supplier.get("name")
+            or not supplier.get("gstin")
+            or not supplier.get("address")
+        ):
+            return (
+                jsonify(
+                    {"success": False, "message": "Incomplete supplier information."}
+                ),
+                400,
+            )
 
         recipient = data.get("recipient", {})
 
         date_str = data.get("date_of_issuance")
         if not date_str:
-            return jsonify({"success": False, "message": "Date of issuance is required."}), 400
+            return (
+                jsonify({"success": False, "message": "Date of issuance is required."}),
+                400,
+            )
         try:
             date_of_issuance = datetime.strptime(date_str, "%Y-%m-%d")
         except Exception as e:
-            return jsonify({"success": False, "message": "Invalid date format for issuance. Expected YYYY-MM-DD."}), 400
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "message": "Invalid date format for issuance. Expected YYYY-MM-DD.",
+                    }
+                ),
+                400,
+            )
 
         items = data.get("items", [])
         if not items:
-            return jsonify({"success": False, "message": "No items provided for the invoice."}), 400
+            return (
+                jsonify(
+                    {"success": False, "message": "No items provided for the invoice."}
+                ),
+                400,
+            )
 
         billing_address = data.get("billing_address", "")
         shipping_address = data.get("shipping_address", "")
@@ -517,10 +641,12 @@ def generate_invoice():
 
             # If HSN code is missing, look it up in the inventory.
             if not item.get("hsn_code"):
-                inv_item = db["stock"].find_one({
-                    "name": item.get("item_name").strip().lower(),
-                    "company": item.get("company").strip().lower()
-                })
+                inv_item = db["stock"].find_one(
+                    {
+                        "name": item.get("item_name").strip().lower(),
+                        "company": item.get("company").strip().lower(),
+                    }
+                )
                 if inv_item and "hsn_code" in inv_item and inv_item["hsn_code"]:
                     item["hsn_code"] = inv_item["hsn_code"]
                 else:
@@ -541,7 +667,7 @@ def generate_invoice():
             "charge_type": charge_type,
             "signature": signature,
             "created_at": datetime.utcnow(),
-            "created_by": current_user
+            "created_by": current_user,
         }
 
         result = db["invoices"].insert_one(invoice_data)
@@ -550,15 +676,23 @@ def generate_invoice():
             del invoice_data["_id"]
 
         logger.info(f"Invoice {invoice_number} generated by user {current_user}")
-        return jsonify({
-            "success": True,
-            "message": "Invoice generated successfully.",
-            "invoice": invoice_data
-        }), 200
+        return (
+            jsonify(
+                {
+                    "success": True,
+                    "message": "Invoice generated successfully.",
+                    "invoice": invoice_data,
+                }
+            ),
+            200,
+        )
 
     except Exception as e:
         logger.error(f"Error generating invoice: {str(e)}")
-        return jsonify({"success": False, "message": "Failed to generate invoice."}), 500
+        return (
+            jsonify({"success": False, "message": "Failed to generate invoice."}),
+            500,
+        )
 
 
 # @inventory_bp.route('/generate-invoice', methods=['POST'])
@@ -643,16 +777,49 @@ def generate_invoice():
 #         return jsonify({"success": False, "message": "Failed to generate invoice."}), 500
 
 
-@inventory_bp.route('/names', methods=['GET'])
+@inventory_bp.route("/names", methods=["GET"])
 def get_item_names():
     try:
         db = get_db()
         collection = db["stock"]
-        names = collection.distinct("name")
-        return jsonify({"success": True, "data": names}), 200
+
+        pipeline = [
+            {"$group": {"_id": "$name", "object_id": {"$first": "$_id"}}},
+            {"$project": {"_id": 0, "name": "$_id", "object_id": 1}},
+        ]
+
+        results = list(collection.aggregate(pipeline))
+
+        for item in results:
+            item["object_id"] = str(item["object_id"])
+
+        return jsonify({"success": True, "data": results}), 200
+
     except Exception as e:
         logger.error(f"Error fetching item names: {str(e)}")
         return jsonify({"success": False, "message": "Failed to fetch item names"}), 500
+
+
+@inventory_bp.route("/item/<item_id>", methods=["GET"])
+def get_item_details(item_id):
+    try:
+        from bson import ObjectId
+
+        db = get_db()
+        collection = db["stock"]
+
+        item = collection.find_one({"_id": ObjectId(item_id)})
+
+        if not item:
+            return jsonify({"success": False, "message": "Item not found"}), 404
+
+        item["_id"] = str(item["_id"])
+
+        return jsonify({"success": True, "data": item}), 200
+
+    except Exception as e:
+        logger.error(f"Error fetching item details for {item_id}: {str(e)}")
+        return jsonify({"success": False, "message": "Failed to fetch item details"}), 500
 
 
 # @inventory_bp.route('/hsn', methods=['GET'])

@@ -26,3 +26,4 @@ def validate_password(password):
         return False
     
     return True
+
