@@ -5,6 +5,7 @@ from .db_config import get_db
 from datetime import datetime, date
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import Schema, fields, validate
+from .utils import upload_to_cloudinary
 import random
 
 
@@ -76,28 +77,19 @@ def get_inventory():
 @jwt_required()
 def add_item():
     try:
-        # Validate input with schema
-        schema = InventorySchema()
-        errors = schema.validate(request.json)
-        if errors:
-            return (
-                jsonify(
-                    {"success": False, "message": "Validation error", "errors": errors}
-                ),
-                400,
-            )
+        # Parse form data instead of JSON
+        form = request.form
+        file = request.files.get("file")
 
-        data = request.json
-        name = data.get("name").strip().lower()
-        company = data.get("company").strip().lower()
-        unit_price = data.get("unit_price")
-        quantity = data.get("quantity")
+        name = form.get("name", "").strip().lower()
+        company = form.get("company", "").strip().lower()
+        unit_price = float(form.get("unit_price", 0))
+        quantity = int(form.get("quantity", 0))
+        date_str = form.get("date_of_addition")
 
-        # Parse the date string; expect format "YYYY-MM-DD"
-        date_str = data.get("date_of_addition")
         try:
             date_of_addition = datetime.strptime(date_str, "%Y-%m-%d")
-        except Exception as parse_err:
+        except Exception:
             return (
                 jsonify(
                     {
@@ -108,11 +100,17 @@ def add_item():
                 400,
             )
 
-        category = data.get("category")
-        minimum_stock = data.get("minimum_stock")
-        barcode = data.get("barcode")
-        hsn_code = data.get("hsn_code")  # required field
-        image = data.get("image")
+        category = form.get("category")
+        minimum_stock = form.get("minimum_stock")
+        barcode = form.get("barcode")
+        hsn_code = form.get("hsn_code")
+
+        image_url = upload_to_cloudinary(file) if file else None
+        if not image_url:
+            return (
+                jsonify({"success": False, "message": "Image upload failed"}),
+                400,
+            )
 
         db = get_db()
         stock_collection = db["stock"]
@@ -126,10 +124,10 @@ def add_item():
                 "unit_price": unit_price,
                 "company": company,
                 "category": category,
-                "minimum_stock": minimum_stock,
+                "minimum_stock": int(minimum_stock) if minimum_stock else None,
                 "barcode": barcode,
                 "hsn_code": hsn_code,
-                "image": image,
+                "image": image_url,
                 "created_at": datetime.utcnow(),
                 "created_by": current_user,
             },
@@ -170,6 +168,7 @@ def add_item():
         logger.info(
             f"Item added: {name} from {company}, Quantity: {quantity}, Unit Price: {unit_price}"
         )
+
         return (
             jsonify(
                 {
@@ -536,6 +535,18 @@ def sell_multiple_items():
                 taxAmount = 0.0
             finalAmount = baseAmount + taxAmount
 
+            # Generate invoice number based on year & counter
+            current_year = datetime.utcnow().year
+            prefix = f"{current_year}HE"
+            counter_doc = db["counters"].find_one_and_update(
+                {"_id": prefix},
+                {"$inc": {"serial": 1}},
+                upsert=True,
+                return_document=True,
+            )
+            serial_no = counter_doc["serial"]
+            invoice_number = f"{prefix}{str(serial_no).zfill(5)}"
+
             # Insert a sell log with tax and final amount details.
             log_entry = {
                 "item_name": item_name,
@@ -556,7 +567,16 @@ def sell_multiple_items():
             )
 
         if messages:
-            return jsonify({"success": True, "message": " | ".join(messages)}), 200
+            return (
+                jsonify(
+                    {
+                        "success": True,
+                        "message": " | ".join(messages),
+                        "invoice_number": invoice_number,
+                    }
+                ),
+                200,
+            )
         else:
             return jsonify({"success": False, "message": "No sales processed"}), 400
     except Exception as e:
@@ -819,7 +839,10 @@ def get_item_details(item_id):
 
     except Exception as e:
         logger.error(f"Error fetching item details for {item_id}: {str(e)}")
-        return jsonify({"success": False, "message": "Failed to fetch item details"}), 500
+        return (
+            jsonify({"success": False, "message": "Failed to fetch item details"}),
+            500,
+        )
 
 
 # @inventory_bp.route('/hsn', methods=['GET'])
