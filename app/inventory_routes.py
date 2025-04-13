@@ -488,14 +488,45 @@ def sell_multiple_items():
     try:
         data = request.json
         sales = data.get("sales", [])
+        is_gst = data.get("is_gst", False)
+        recipient_gst = data.get("recipient_gst", "") if is_gst else None
+
         db = get_db()
         stock_collection = db["stock"]
         log_collection = db["logs"]
         current_user = get_jwt_identity()
 
+        # Validate recipient GST if is_gst is true
+        if is_gst and not recipient_gst:
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "message": "Recipient GSTIN required for GST invoices.",
+                    }
+                ),
+                400,
+            )
+
         messages = []
+        invoice_type = "GST" if is_gst else "NON_GST"
+
+        # Generate invoice number based on year & invoice type
+        current_year = datetime.utcnow().year
+        prefix = f"{current_year}HE"
+        counter_id = f"{prefix}_{invoice_type}"  # e.g., 2025HE_GST or 2025HE_NON_GST
+
+        counter_doc = db["counters"].find_one_and_update(
+            {"_id": counter_id},
+            {"$inc": {"serial": 1}},
+            upsert=True,
+            return_document=True,
+        )
+        serial_no = counter_doc["serial"]
+        invoice_number = f"{prefix}{str(serial_no).zfill(5)}"
+
         for sale in sales:
-            # Extract and normalize fields.
+            # Extract and normalize fields
             item_name = sale.get("item_name", "").strip().lower()
             company = sale.get("company", "").strip().lower()
             quantity = int(sale.get("quantity", 0))
@@ -503,15 +534,16 @@ def sell_multiple_items():
             price = float(sale.get("price", 0))
             taxPercentage = float(sale.get("taxPercentage", 0))
             taxIncluded = bool(sale.get("taxIncluded", False))
+            discount = float(sale.get("discount", 0))
 
-            # Validate required fields.
+            # Validate fields
             if not item_name or not company or quantity <= 0 or price <= 0 or not buyer:
                 messages.append(
                     f"Sale entry missing required fields for {item_name} from {company}."
                 )
                 continue
 
-            # Check for item existence and stock.
+            # Check for item existence and stock
             item = stock_collection.find_one({"name": item_name, "company": company})
             if not item:
                 messages.append(f"Item {item_name} from {company} not found.")
@@ -520,34 +552,18 @@ def sell_multiple_items():
                 messages.append(f"Insufficient stock for {item_name} from {company}.")
                 continue
 
-            # Deduct the sold quantity from inventory.
+            # Deduct from inventory
             stock_collection.update_one(
                 {"name": item_name, "company": company},
                 {"$inc": {"quantity": -quantity}},
             )
 
-            # Calculate base amount.
+            # Calculate amounts
             baseAmount = quantity * price
-            # If tax is excluded, calculate additional tax.
-            if not taxIncluded:
-                taxAmount = baseAmount * (taxPercentage / 100)
-            else:
-                taxAmount = 0.0
-            finalAmount = baseAmount + taxAmount
+            taxAmount = 0.0 if taxIncluded else baseAmount * (taxPercentage / 100)
+            finalAmount = baseAmount + taxAmount - discount
 
-            # Generate invoice number based on year & counter
-            current_year = datetime.utcnow().year
-            prefix = f"{current_year}HE"
-            counter_doc = db["counters"].find_one_and_update(
-                {"_id": prefix},
-                {"$inc": {"serial": 1}},
-                upsert=True,
-                return_document=True,
-            )
-            serial_no = counter_doc["serial"]
-            invoice_number = f"{prefix}{str(serial_no).zfill(5)}"
-
-            # Insert a sell log with tax and final amount details.
+            # Create log entry
             log_entry = {
                 "item_name": item_name,
                 "company": company,
@@ -556,11 +572,18 @@ def sell_multiple_items():
                 "price": price,
                 "taxPercentage": taxPercentage,
                 "taxIncluded": taxIncluded,
+                "discount": discount,
                 "final_amount": finalAmount,
                 "timestamp": datetime.utcnow(),
                 "action": "sell",
                 "performed_by": current_user,
+                "invoice_number": invoice_number,
+                "invoice_type": invoice_type,
             }
+
+            if is_gst:
+                log_entry["recipient_gst"] = recipient_gst
+
             log_collection.insert_one(log_entry)
             messages.append(
                 f"Sold {quantity} of {item_name} from {company} to {buyer} (Final Amount: ₹{finalAmount:.2f})"
@@ -579,6 +602,7 @@ def sell_multiple_items():
             )
         else:
             return jsonify({"success": False, "message": "No sales processed"}), 400
+
     except Exception as e:
         logger.error(f"Sell multiple items error: {str(e)}")
         return (
