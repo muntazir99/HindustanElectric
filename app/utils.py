@@ -6,6 +6,8 @@ import cloudinary.api
 import os
 from dotenv import load_dotenv
 from datetime import datetime
+from werkzeug.utils import secure_filename
+from werkzeug.datastructures import FileStorage
 
 load_dotenv()
 
@@ -64,21 +66,42 @@ def generate_invoice_number(is_gst: bool, db):
     return invoice_number
 
 
-def upload_to_cloudinary(file, folder="inventory_docs"):
+def upload_to_cloudinary(file: FileStorage, folder: str = "inventory_docs") -> str:
     try:
-        filename = file.filename.lower()
-        resource_type = "auto"
+        # Validate file extension
+        allowed_extensions = {"jpg", "jpeg", "png", "gif", "bmp", "webp", "pdf"}
+        filename = secure_filename(file.filename).lower()
+        file_extension = filename.rsplit(".", 1)[-1] if "." in filename else ""
 
+        if file_extension not in allowed_extensions:
+            raise Exception(
+                f"Unsupported file type: {file_extension}. Allowed: {', '.join(allowed_extensions)}"
+            )
+
+        # Determine resource type
+        resource_type = "image" if file_extension != "pdf" else "raw"
+
+        # Upload to Cloudinary
         response = cloudinary.uploader.upload(
             file,
             resource_type=resource_type,
             folder=folder,
+            public_id=f"inventory_{filename}",
             use_filename=True,
             unique_filename=False,
             overwrite=True,
         )
 
-        return response.get("secure_url")
+        secure_url = response.get("secure_url")
+        if not secure_url:
+            raise Exception("Cloudinary did not return a secure URL")
 
-    except Exception as e:
-        raise Exception(f"❌ Cloudinary upload failed: {str(e)}")
+        return secure_url
+
+    except (
+        cloudinary.exceptions.Error,
+        cloudinary.api.Error,
+        cloudinary.exceptions.InvalidSignature,
+        cloudinary.exceptions.InvalidApiKey,
+    ) as e:
+        raise Exception(f"Cloudinary upload failed: {str(e)}")
