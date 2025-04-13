@@ -30,8 +30,6 @@ class InventorySchema(Schema):
 @jwt_required()
 def get_inventory():
     try:
-        page = int(request.args.get("page", 1))
-        per_page = int(request.args.get("per_page", 10))
         search = request.args.get("search", "")
 
         db = get_db()
@@ -41,12 +39,7 @@ def get_inventory():
         if search:
             query["name"] = {"$regex": search, "$options": "i"}
 
-        total = collection.count_documents(query)
-        inventory = list(
-            collection.find(query, {"_id": 0})
-            .skip((page - 1) * per_page)
-            .limit(per_page)
-        )
+        inventory = list(collection.find(query, {"_id": 0}))
         for item in inventory:
             item["total_value"] = item["quantity"] * item["unit_price"]
 
@@ -55,12 +48,6 @@ def get_inventory():
                 {
                     "success": True,
                     "data": inventory,
-                    "pagination": {
-                        "page": page,
-                        "per_page": per_page,
-                        "total": total,
-                        "pages": (total + per_page - 1) // per_page,
-                    },
                 }
             ),
             200,
@@ -105,13 +92,17 @@ def add_item():
         barcode = form.get("barcode")
         hsn_code = form.get("hsn_code")
 
-        image_url = upload_to_cloudinary(file) if file else None
-        if not image_url:
-            return (
-                jsonify({"success": False, "message": "Image upload failed"}),
-                400,
-            )
-
+        image_url = None
+        if file:
+            try:
+                image_url = upload_to_cloudinary(file)
+            except Exception as e:
+                return (
+                    jsonify(
+                        {"success": False, "message": f"Image upload failed: {str(e)}"}
+                    ),
+                    400,
+                )
         db = get_db()
         stock_collection = db["stock"]
         log_collection = db["logs"]

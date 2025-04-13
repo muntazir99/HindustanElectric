@@ -7,6 +7,7 @@ from flask_jwt_extended import JWTManager
 from .auth_routes import auth_bp
 from .inventory_routes import inventory_bp
 from .log_routes import log_bp
+from .upload_routes import upload_bp
 
 
 def configure_logging():
@@ -69,5 +70,6 @@ def create_app():
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(inventory_bp, url_prefix="/inventory")
     app.register_blueprint(log_bp, url_prefix="/logs")
+    app.register_blueprint(upload_bp, url_prefix="/upload")
 
     return app
