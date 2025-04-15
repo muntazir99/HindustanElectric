@@ -908,3 +908,50 @@ def get_item_details(item_id):
 #     except Exception as e:
 #         logger.error(f"Error fetching item details: {str(e)}")
 #         return jsonify({"success": False, "message": "Failed to fetch item details"}), 500
+@inventory_bp.route("/stats/top-least", methods=["GET"])
+def top_least_selling():
+    try:
+        db = get_db()
+        pipeline = [
+            { 
+                "$match": { 
+                    "action": { "$regex": "^sell$", "$options": "i" } 
+                }
+            },
+            { 
+                "$project": {
+                    "item_name": 1,
+                    "company": 1,
+                    "sold": { 
+                        "$ifNull": [ "$quantity_sold", { "$ifNull": [ "$quantity", 0 ] } ] 
+                    }
+                }
+            },
+            {
+                "$group": {
+                    "_id": { "name": "$item_name", "company": "$company" },
+                    "totalSold": { "$sum": "$sold" }
+                }
+            },
+            { "$sort": { "totalSold": -1 } }
+        ]
+        results = list(db["logs"].aggregate(pipeline))
+        
+        if not results:
+            return jsonify({
+                "success": True,
+                "top_selling": None,
+                "least_selling": None
+            }), 200
+
+        top_selling = results[0]
+        least_selling = results[-1]
+        
+        return jsonify({
+            "success": True,
+            "top_selling": top_selling,
+            "least_selling": least_selling
+        }), 200
+
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
