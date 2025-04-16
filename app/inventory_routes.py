@@ -818,15 +818,13 @@ def get_item_names():
         db = get_db()
         collection = db["stock"]
 
-        pipeline = [
-            {"$group": {"_id": "$name", "object_id": {"$first": "$_id"}}},
-            {"$project": {"_id": 0, "name": "$_id", "object_id": 1}},
-        ]
+        # Fetch all documents, projecting only name and _id fields
+        results = list(collection.find({}, {"_id": 1, "name": 1}))
 
-        results = list(collection.aggregate(pipeline))
-
+        # Convert ObjectId to string for JSON serialization
         for item in results:
-            item["object_id"] = str(item["object_id"])
+            item["object_id"] = str(item["_id"])
+            del item["_id"]  # Remove original _id field
 
         return jsonify({"success": True, "data": results}), 200
 
@@ -843,7 +841,7 @@ def get_item_details(item_id):
         db = get_db()
         collection = db["stock"]
 
-        item = collection.find_one({"_id": ObjectId(item_id)})
+        item = collection.find({"_id": ObjectId(item_id)})
 
         if not item:
             return jsonify({"success": False, "message": "Item not found"}), 404
@@ -928,7 +926,9 @@ def update_item():
             "name": data.get("name"),
             "company": data.get("company"),
             "quantity": int(data.get("quantity")) if data.get("quantity") else None,
-            "unit_price": float(data.get("unit_price")) if data.get("unit_price") else None,
+            "unit_price": (
+                float(data.get("unit_price")) if data.get("unit_price") else None
+            ),
             "category": data.get("category"),
             "barcode": data.get("barcode"),
             "hsn_code": data.get("hsn_code"),
@@ -942,12 +942,14 @@ def update_item():
 
         db = get_db()
         result = db["stock"].update_one(
-            {"name": original_name, "company": original_company},
-            {"$set": update_data}
+            {"name": original_name, "company": original_company}, {"$set": update_data}
         )
-        
+
         if result.modified_count > 0:
-            return jsonify({"success": True, "message": "Item updated successfully."}), 200
+            return (
+                jsonify({"success": True, "message": "Item updated successfully."}),
+                200,
+            )
         else:
             return jsonify({"success": False, "message": "No changes made."}), 200
 
