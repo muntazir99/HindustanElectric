@@ -841,7 +841,7 @@ def get_item_details(item_id):
         db = get_db()
         collection = db["stock"]
 
-        item = collection.find({"_id": ObjectId(item_id)})
+        item = collection.find_one({"_id": ObjectId(item_id)})
 
         if not item:
             return jsonify({"success": False, "message": "Item not found"}), 404
