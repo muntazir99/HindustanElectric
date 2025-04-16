@@ -908,50 +908,48 @@ def get_item_details(item_id):
 #     except Exception as e:
 #         logger.error(f"Error fetching item details: {str(e)}")
 #         return jsonify({"success": False, "message": "Failed to fetch item details"}), 500
-@inventory_bp.route("/stats/top-least", methods=["GET"])
-def top_least_selling():
-    try:
-        db = get_db()
-        pipeline = [
-            { 
-                "$match": { 
-                    "action": { "$regex": "^sell$", "$options": "i" } 
-                }
-            },
-            { 
-                "$project": {
-                    "item_name": 1,
-                    "company": 1,
-                    "sold": { 
-                        "$ifNull": [ "$quantity_sold", { "$ifNull": [ "$quantity", 0 ] } ] 
-                    }
-                }
-            },
-            {
-                "$group": {
-                    "_id": { "name": "$item_name", "company": "$company" },
-                    "totalSold": { "$sum": "$sold" }
-                }
-            },
-            { "$sort": { "totalSold": -1 } }
-        ]
-        results = list(db["logs"].aggregate(pipeline))
-        
-        if not results:
-            return jsonify({
-                "success": True,
-                "top_selling": None,
-                "least_selling": None
-            }), 200
 
-        top_selling = results[0]
-        least_selling = results[-1]
+
+@inventory_bp.route("/update", methods=["PUT"])
+def update_item():
+    try:
+        # Check if files are in the request (multipart/form-data)
+        if request.files:
+            data = request.form.to_dict()
+            file = request.files.get("file")
+        else:
+            data = request.get_json()
+            file = None
+
+        original_name = data.get("originalName")
+        original_company = data.get("originalCompany")
+
+        update_data = {
+            "name": data.get("name"),
+            "company": data.get("company"),
+            "quantity": int(data.get("quantity")) if data.get("quantity") else None,
+            "unit_price": float(data.get("unit_price")) if data.get("unit_price") else None,
+            "category": data.get("category"),
+            "barcode": data.get("barcode"),
+            "hsn_code": data.get("hsn_code"),
+            "updated_at": datetime.utcnow(),
+        }
+
+        # If a file is provided, upload it and update the "image" field.
+        if file:
+            image_url = upload_to_cloudinary(file)
+            update_data["image"] = image_url
+
+        db = get_db()
+        result = db["stock"].update_one(
+            {"name": original_name, "company": original_company},
+            {"$set": update_data}
+        )
         
-        return jsonify({
-            "success": True,
-            "top_selling": top_selling,
-            "least_selling": least_selling
-        }), 200
+        if result.modified_count > 0:
+            return jsonify({"success": True, "message": "Item updated successfully."}), 200
+        else:
+            return jsonify({"success": False, "message": "No changes made."}), 200
 
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
