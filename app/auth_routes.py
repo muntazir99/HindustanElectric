@@ -77,7 +77,7 @@ def login():
 def create_user():
     try:
         # Check if requester is admin
-        claims = get_jwt_identity()
+        claims = get_jwt()
         if claims.get("role") != "admin":
             return jsonify({"success": False, "message": "Unauthorized"}), 403
 
