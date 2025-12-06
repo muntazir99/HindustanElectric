@@ -8,16 +8,21 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-def get_db():
-    try:
-        mongo_uri = os.getenv("MONGO_URI")
-        if not mongo_uri:
-            raise ValueError("MONGO_URI environment variable not set")
+# Global variable to hold the client
+mongo_client = None
 
-        client = MongoClient(mongo_uri)
-        client.admin.command("ismaster")  # Test connection
-        db = client["hindustanelectric"]
-        return db
+def get_db():
+    global mongo_client
+    try:
+        if mongo_client is None:
+            mongo_uri = os.getenv("MONGO_URI")
+            if not mongo_uri:
+                raise ValueError("MONGO_URI environment variable not set")
+            mongo_client = MongoClient(mongo_uri)
+            # Optional: Test connection immediately
+            mongo_client.admin.command("ismaster")
+
+        return mongo_client["hindustanelectric"]
     except ConnectionFailure:
         logging.error("Failed to connect to MongoDB")
         raise

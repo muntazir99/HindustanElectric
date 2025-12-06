@@ -2,7 +2,7 @@ import logging
 from flask import Blueprint, request, jsonify
 from .db_config import get_db
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from marshmallow import Schema, fields, validate
+from marshmallow import Schema, fields, validate, ValidationError
 from datetime import datetime
 from bson import ObjectId
 
@@ -173,6 +173,15 @@ def get_purchase_orders():
         logger.error(f"PO retrieval error: {str(e)}")
         return jsonify({"success": False, "message": "Failed to retrieve purchase orders"}), 500
     
+class ReceiveValuesSchema(Schema):
+    item_id = fields.Str(required=True)
+    name = fields.Str()
+    quantity = fields.Int(required=True, validate=validate.Range(min=0))
+    cost_price = fields.Float(required=True, validate=validate.Range(min=0))
+
+class ReceiveGoodsSchema(Schema):
+    items = fields.List(fields.Nested(ReceiveValuesSchema), required=True, validate=validate.Length(min=1))
+
 @purchase_bp.route("/orders/<string:order_id>/receive", methods=["POST"])
 @jwt_required()
 def receive_goods_for_po(order_id):
@@ -182,9 +191,14 @@ def receive_goods_for_po(order_id):
     """
     try:
         data = request.json
-        items_being_received = data.get("items")
-        if not items_being_received:
-            return jsonify({"success": False, "message": "No items provided."}), 400
+        # Validate input
+        schema = ReceiveGoodsSchema()
+        try:
+            validated_data = schema.load(data)
+        except ValidationError as err:
+             return jsonify({"success": False, "message": "Validation Error", "errors": err.messages}), 400
+
+        items_being_received = validated_data["items"]
 
         db = get_db()
         po_collection = db["purchase_orders"]

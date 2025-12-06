@@ -68,39 +68,3 @@ if __name__ == "__main__":
 
     # Run the Flask application
     app.run(host='0.0.0.0', port=port, debug=is_development)
-# import os
-# from dotenv import load_dotenv
-
-# # import socket
-# from app import create_app
-# from flask_cors import CORS
-# from flask_limiter import Limiter
-# from flask_limiter.util import get_remote_address
-# from app.inventory_routes import inventory_bp
-
-# # Load environment variables from .env
-# load_dotenv()
-
-# app = create_app()
-# CORS(
-#     app,
-#     resources={r"/*": {"origins": ["https://hindustanelectric.vercel.app", "http://localhost:3000"]}},
-#     supports_credentials=True,
-# )
-
-
-# @app.route("/")
-# def home():
-#     return "Hello, Hindustan Electric!"
-
-
-# # Apply rate limiting
-# limiter = Limiter(
-#     app=app,
-#     key_func=get_remote_address,
-#     default_limits=["2000 per day", "500 per hour"],
-# )
-
-# if __name__ == "__main__":
-#     port = int(os.getenv("PORT", 5001))
-#     app.run(host="0.0.0.0", port=port, debug=True)

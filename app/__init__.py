@@ -24,17 +24,38 @@ from .business_reports import business_report_bp
 from .payment_routes import payment_bp
 
 
+import json
+
+class JsonFormatter(logging.Formatter):
+    def format(self, record):
+        log_record = {
+            "timestamp": self.formatTime(record, self.datefmt),
+            "level": record.levelname,
+            "message": record.getMessage(),
+            "module": record.module,
+            "funcName": record.funcName,
+        }
+        if record.exc_info:
+            log_record["exception"] = self.formatException(record.exc_info)
+        return json.dumps(log_record)
+
 def configure_logging():
     log_file = "app.log"
     log_handler = RotatingFileHandler(log_file, maxBytes=10*1024*1024, backupCount=5)
     log_handler.setLevel(logging.INFO)
-    log_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-    log_handler.setFormatter(log_formatter)
+    
+    # Use JSON Formatter
+    json_formatter = JsonFormatter()
+    log_handler.setFormatter(json_formatter)
     
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
     logger.addHandler(log_handler)
-    logger.addHandler(logging.StreamHandler())
+    
+    # Also log JSON to stdout for container/terminal logs
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(json_formatter)
+    logger.addHandler(stream_handler)
 
 
 def create_app():

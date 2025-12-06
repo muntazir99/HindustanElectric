@@ -5,7 +5,7 @@ from datetime import datetime
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from ..utils import upload_to_cloudinary
 from bson import ObjectId
-from marshmallow import Schema, fields, validate
+from marshmallow import Schema, fields, validate, ValidationError
 
 crud_bp = Blueprint("inventory_crud", __name__)
 logger = logging.getLogger(__name__)
@@ -20,6 +20,7 @@ class InventorySchema(Schema):
     category = fields.Str()
     minimum_stock = fields.Int()
     hsn_code = fields.Str(required=True, validate=validate.Length(min=1))
+    barcode = fields.Str()
     image = fields.Str()
 
 
@@ -27,20 +28,55 @@ class InventorySchema(Schema):
 @jwt_required()
 def get_inventory():
     try:
+        # Pagination parameters
+        page = int(request.args.get("page", 1))
+        limit = int(request.args.get("limit", 50))
+        skip = (page - 1) * limit
+        
         search = request.args.get("search", "")
         db = get_db()
         collection = db["stock"]
 
-        query = {}
+        match_stage = {}
         if search:
-            query["name"] = {"$regex": search, "$options": "i"}
+            match_stage["name"] = {"$regex": search, "$options": "i"}
 
-        inventory = list(collection.find(query))
-        for item in inventory:
-            item["_id"] = str(item["_id"])
-            item["total_value"] = item.get("quantity", 0) * item.get("unit_price", 0)
+        # Use $facet to get both the data and the total count in one go
+        pipeline = [
+            {"$match": match_stage},
+            {
+                "$facet": {
+                    "metadata": [{"$count": "total"}],
+                    "data": [
+                        {"$skip": skip},
+                        {"$limit": limit},
+                        {
+                            "$addFields": {
+                                "total_value": {"$multiply": ["$quantity", "$unit_price"]},
+                                "_id": {"$toString": "$_id"}
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
 
-        return jsonify({"success": True, "data": inventory}), 200
+        result = list(collection.aggregate(pipeline))[0]
+        
+        inventory = result["data"]
+        total_count = result["metadata"][0]["total"] if result["metadata"] else 0
+        total_pages = (total_count + limit - 1) // limit
+
+        return jsonify({
+            "success": True, 
+            "data": inventory,
+            "pagination": {
+                "current_page": page,
+                "total_pages": total_pages,
+                "total_items": total_count,
+                "limit": limit
+            }
+        }), 200
     except Exception as e:
         logger.error(f"Inventory retrieval error: {str(e)}")
         return jsonify({"success": False, "message": "Failed to retrieve inventory"}), 500
@@ -49,40 +85,56 @@ def get_inventory():
 @jwt_required()
 def add_item():
     try:
-        form = request.form
-        file = request.files.get("file")
-
-        name = form.get("name", "").strip().lower()
-        company = form.get("company", "").strip().lower()
-        unit_price = float(form.get("unit_price", 0))
-        quantity = int(form.get("quantity", 0))
-        date_str = form.get("date_of_addition")
-
+        # Validate data using Marshmallow Schema
+        schema = InventorySchema()
         try:
-            date_of_addition = datetime.strptime(date_str, "%Y-%m-%d")
-        except (ValueError, TypeError):
-            return jsonify({"success": False, "message": "Invalid date format. Expected YYYY-MM-DD."}), 400
+            # request.form is an ImmutableMultiDict, convert to dict for marshmallow
+            form_data = request.form.to_dict()
+            clean_data = schema.load(form_data)
+        except ValidationError as err:
+             return jsonify({"success": False, "message": "Validation Error", "errors": err.messages}), 400
 
-        category = form.get("category")
-        minimum_stock = form.get("minimum_stock")
-        barcode = form.get("barcode")
-        hsn_code = form.get("hsn_code")
+        file = request.files.get("file")
+        
+        # Extract validated data
+        name = clean_data["name"].strip().lower()
+        company = clean_data["company"].strip().lower()
+        unit_price = clean_data["unit_price"]
+        quantity = clean_data["quantity"]
+        date_of_addition = clean_data["date_of_addition"] # Already a date object
+        category = clean_data.get("category")
+        minimum_stock = clean_data.get("minimum_stock")
+        hsn_code = clean_data.get("hsn_code")
+        barcode = request.form.get("barcode") # not in schema yet? checking existing schema
 
+        # Check existing schema:
+        # barcode was NOT in the InventorySchema in previous file content!
+        # Schema had: name, company, unit_price, quantity, date_of_addition, category, minimum_stock, hsn_code, image
+        # Original code used: barcode = form.get("barcode")
+        # So I should probably add barcode to schema or manually get it. 
+        # Ideally add to schema.
+        
         image_url = upload_to_cloudinary(file) if file else None
         db = get_db()
         stock_collection = db["stock"]
         log_collection = db["logs"]
         current_user = get_jwt_identity()
+        
+        # Create a datetime for date_of_addition from the date object
+        # The original code did: datetime.strptime(date_str, "%Y-%m-%d")
+        # Marshmallow gives a date object (datetime.date). 
+        # MongoDB usually stores datetime.datetime.
+        date_of_addition_dt = datetime.combine(date_of_addition, datetime.min.time())
 
         update_data = {
             "$inc": {"quantity": quantity},
             "$setOnInsert": {
                 "unit_price": unit_price, "company": company, "category": category,
-                "minimum_stock": int(minimum_stock) if minimum_stock else None,
+                "minimum_stock": minimum_stock,
                 "barcode": barcode, "hsn_code": hsn_code, "image": image_url,
                 "created_at": datetime.utcnow(), "created_by": current_user,
             },
-            "$set": {"updated_at": datetime.utcnow(), "updated_by": current_user, "date_of_addition": date_of_addition},
+            "$set": {"updated_at": datetime.utcnow(), "updated_by": current_user, "date_of_addition": date_of_addition_dt},
         }
 
         stock_collection.update_one({"name": name, "company": company}, update_data, upsert=True)
@@ -150,8 +202,6 @@ def update_item():
             data = request.get_json()
             file = None
 
-        # --- START OF CHANGES ---
-
         item_id = data.get("id")
         if not item_id:
             return jsonify({"success": False, "message": "Item ID is required for updates."}), 400
@@ -187,12 +237,99 @@ def update_item():
             return jsonify({"success": True, "message": "Item updated successfully.", "data": updated_item}), 200
         else:
             return jsonify({"success": False, "message": "Item not found or no changes made."}), 404
-            
-        # --- END OF CHANGES ---
-
     except Exception as e:
         logger.error(f"Item update error: {str(e)}")
         return jsonify({"success": False, "message": str(e)}), 500
+
+@crud_bp.route("/restock", methods=["POST"])
+@jwt_required()
+def restock_item():
+    """
+    Dedicated endpoint for restocking items.
+    Updates Weighted Average Cost (WAC) and Price History (Max/Min).
+    """
+    try:
+        data = request.get_json()
+        item_id = data.get("id")
+        added_quantity = int(data.get("added_quantity", 0))
+        new_unit_price = float(data.get("new_unit_price", 0.0))
+
+        if not item_id:
+            return jsonify({"success": False, "message": "Item ID is required."}), 400
+        if added_quantity <= 0:
+            return jsonify({"success": False, "message": "Quantity must be positive."}), 400
+        if new_unit_price <= 0:
+            return jsonify({"success": False, "message": "Price must be positive."}), 400
+
+        db = get_db()
+        stock_collection = db["stock"]
+        log_collection = db["logs"]
+        current_user = get_jwt_identity()
+
+        # 1. Fetch current item state
+        current_item = stock_collection.find_one({"_id": ObjectId(item_id)})
+        if not current_item:
+            return jsonify({"success": False, "message": "Item not found."}), 404
+
+        current_qty = int(current_item.get("quantity", 0))
+        current_avg_price = float(current_item.get("unit_price", 0.0))
+        
+        # 2. Historical Price Logic
+        historical_max = float(current_item.get("historical_max_price", current_avg_price))
+        historical_min = float(current_item.get("historical_min_price", current_avg_price))
+
+        # Check against the NEW incoming price
+        if new_unit_price > historical_max:
+            historical_max = new_unit_price
+        if new_unit_price < historical_min:
+            historical_min = new_unit_price
+
+        # 3. WAC Calculation
+        # Formula: ((OldQty * OldPrice) + (NewQty * NewPrice)) / (OldQty + NewQty)
+        total_qty = current_qty + added_quantity
+        total_value = (current_qty * current_avg_price) + (added_quantity * new_unit_price)
+        new_avg_price = total_value / total_qty
+
+        # 4. Update Database
+        update_doc = {
+            "$set": {
+                "quantity": total_qty,
+                "unit_price": new_avg_price, # The new WAC
+                "historical_max_price": historical_max,
+                "historical_min_price": historical_min,
+                "updated_at": datetime.utcnow(),
+                "updated_by": current_user
+            }
+        }
+
+        stock_collection.update_one({"_id": ObjectId(item_id)}, update_doc)
+
+        # 5. Log Transaction
+        log_collection.insert_one({
+            "item_name": current_item.get("name"),
+            "company": current_item.get("company"),
+            "quantity_added": added_quantity,
+            "incoming_unit_price": new_unit_price,
+            "new_moving_average": new_avg_price,
+            "action": "restock",
+            "timestamp": datetime.utcnow(),
+            "performed_by": current_user
+        })
+
+        return jsonify({
+            "success": True, 
+            "message": f"Restocked successfully. New WAC: {new_avg_price:.2f}",
+            "data": {
+                "new_quantity": total_qty,
+                "new_wac": new_avg_price,
+                "max_price": historical_max,
+                "min_price": historical_min
+            }
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Restock error: {str(e)}")
+        return jsonify({"success": False, "message": f"Restock failed: {str(e)}"}), 500
 @crud_bp.route("/delete", methods=["DELETE"])
 @jwt_required()
 def delete_item():

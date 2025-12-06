@@ -4,9 +4,31 @@ from ..db_config import get_db
 from datetime import datetime
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson import ObjectId
+from marshmallow import Schema, fields, validate, ValidationError
 
 sales_bp = Blueprint("inventory_sales", __name__)
 logger = logging.getLogger(__name__)
+
+# --- Validation Schemas ---
+class SaleItemSchema(Schema):
+    item_id = fields.Str(allow_none=True) # Now preferred over name matching
+    hsn_code = fields.Str(allow_none=True) # Added to match frontend
+    item_name = fields.Str(required=True, validate=validate.Length(min=1))
+    company = fields.Str(required=True, validate=validate.Length(min=1))
+    quantity = fields.Int(required=True, validate=validate.Range(min=1))
+    price = fields.Float(required=True, validate=validate.Range(min=0.01))
+    discount = fields.Float(load_default=0.0)
+    taxPercentage = fields.Float(load_default=0.0)
+    taxIncluded = fields.Bool(load_default=False)
+    buyer = fields.Str() # Optional per item, might be global
+
+class SaleTransactionSchema(Schema):
+    sales = fields.List(fields.Nested(SaleItemSchema), required=True, validate=validate.Length(min=1))
+    payment_method = fields.Str(validate=validate.OneOf(["Cash", "Credit", "UPI", "Card", "Online"]), load_default="Cash")
+    customer_id = fields.Str()
+    is_gst = fields.Bool(load_default=False) # Helper field allowed
+    recipient_gst = fields.Str(allow_none=True) # Helper field allowed
+
 
 
 @sales_bp.route("/sell", methods=["POST"])
@@ -54,11 +76,20 @@ def sell_multiple_items():
     """
     try:
         data = request.json
-        sales_items = data.get("sales", [])
-        payment_method = data.get("payment_method", "Cash")
-        customer_id = data.get("customer_id")
+        # Validate using Marshmallow
+        schema = SaleTransactionSchema()
+        try:
+            validated_data = schema.load(data)
+        except ValidationError as err:
+            logger.error(f"Validation Error: {err.messages}") # Detailed logging
+            return jsonify({"success": False, "message": "Validation Error", "errors": err.messages}), 400
+
+        sales_items = validated_data["sales"]
+        payment_method = validated_data["payment_method"]
+        customer_id = validated_data.get("customer_id")
         
         db = get_db()
+
         stock_collection = db["stock"]
         customers_collection = db["customers"]
         invoices_collection = db["invoices"]
@@ -137,10 +168,19 @@ def sell_multiple_items():
 
         # Deduct stock for each item sold
         for sale in sales_items:
-            stock_collection.update_one(
-                {"name": sale.get("item_name").strip().lower(), "company": sale.get("company").strip().lower()},
-                {"$inc": {"quantity": -int(sale.get("quantity"))}}
-            )
+            # PREFERRED: Use ID for robust update
+            if sale.get("item_id"):
+                 stock_collection.update_one(
+                    {"_id": ObjectId(sale.get("item_id"))},
+                    {"$inc": {"quantity": -int(sale.get("quantity"))}}
+                )
+            else:
+                # FALLBACK: Use name/company (Legacy behavior)
+                logger.warning(f"Sale processed without ID for {sale.get('item_name')}. Using potentially fragile name matching.")
+                stock_collection.update_one(
+                    {"name": sale.get("item_name").strip().lower(), "company": sale.get("company").strip().lower()},
+                    {"$inc": {"quantity": -int(sale.get("quantity"))}}
+                )
         
         # Update customer balance if it was a credit sale
         if payment_method == "Credit" and customer_id:
