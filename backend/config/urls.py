@@ -28,6 +28,7 @@ urlpatterns = [
     path("api/catalog/", include("catalog.urls")),
     path("api/stock/", include("stock.urls")),
     path("api/purchases/", include("purchases.urls")),
+    path("api/sales/", include("sales.urls")),
     path("api/import/catalogue/sample", CatalogueSample.as_view(), name="import-sample"),
     path("api/import/<str:kind>/template", ImportTemplate.as_view(), name="import-template"),
     path("api/import/<str:kind>", ImportUpload.as_view(), name="import-upload"),

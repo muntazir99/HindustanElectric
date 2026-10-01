@@ -4,9 +4,11 @@ import {
   ClipboardCheck,
   ExternalLink,
   FileSpreadsheet,
+  FileText,
   LayoutDashboard,
   LogOut,
   Package,
+  Receipt,
   SlidersHorizontal,
   Truck,
   UserPlus,
@@ -16,6 +18,8 @@ import { BACK_OFFICE_URL } from "../../api.js";
 
 const MAIN = [
   ["/dashboard", "Home", LayoutDashboard],
+  ["/billing", "Billing", Receipt],
+  ["/bills", "Bills", FileText],
   ["/items", "Items", Package],
   ["/purchases", "Purchases", Truck],
   ["/counts", "Stock counts", ClipboardCheck],

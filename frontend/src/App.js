@@ -17,6 +17,10 @@ const CountSheet = lazy(() => import("./pages/stock/CountSheet.js"));
 const Adjustments = lazy(() => import("./pages/stock/Adjustments.js"));
 const ImportPage = lazy(() => import("./pages/ImportPage.js"));
 const Suppliers = lazy(() => import("./pages/Suppliers.js"));
+const Billing = lazy(() => import("./pages/billing/Billing.js"));
+const BillList = lazy(() => import("./pages/billing/BillList.js"));
+const BillDetail = lazy(() => import("./pages/billing/BillDetail.js"));
+const BillPrint = lazy(() => import("./pages/billing/BillPrint.js"));
 
 /** A fresh screen per bill, so moving from /purchases/new to /purchases/12 resets everything. */
 function PurchaseEntryRoute() {
@@ -48,6 +52,15 @@ function AppRoutes() {
       <Suspense fallback={<Loading />}>
         <Routes>
           <Route path="/login" element={<Login />} />
+          {/* Printing: no menu or layout around the bill. */}
+          <Route
+            path="/bills/:id/print"
+            element={
+              <PrivateRoute>
+                <BillPrint />
+              </PrivateRoute>
+            }
+          />
           <Route
             path="/"
             element={
@@ -58,6 +71,9 @@ function AppRoutes() {
           >
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<Home />} />
+            <Route path="billing" element={<Billing />} />
+            <Route path="bills" element={<BillList />} />
+            <Route path="bills/:id" element={<BillDetail />} />
             <Route path="items" element={<ItemList />} />
             <Route path="items/new" element={<ItemNew />} />
             <Route path="items/:id" element={<ItemDetail />} />

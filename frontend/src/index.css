@@ -21,3 +21,19 @@ body {
 input, button, select, textarea {
     font-size: 1rem; /* Prevents small text in form controls */
 }
+/* Printing bills: A4, only the bill itself. */
+@media print {
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+  html {
+    font-size: 100%;
+  }
+  body {
+    background: white;
+  }
+  .no-print {
+    display: none !important;
+  }
+}

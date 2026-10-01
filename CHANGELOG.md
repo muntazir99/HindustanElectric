@@ -5,6 +5,21 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-01 — Phase 2, step 2: counter billing, printing, bills list
+
+**Added**
+- **Billing screen** for the counter: scan or search adds a line (scanning again adds one more); unit, quantity, rate and discount editable; stock shown on each line with a warning when the bill asks for more than the shelf should have; lines priced below cost highlighted (staff see "price too low — ask the owner", never the cost).
+- Customer picker by name or phone with khata balance shown, and quick "add new customer"; walk-in by default. Optional buyer details, rates excluding GST, place of supply, bill note, discount on the whole bill.
+- Payment in one click (Cash / UPI / Card / Khata) or split; anything unpaid goes on khata.
+- Keyboard: F2 item, F4 customer, F8 hold, F9 finish & print.
+- **Autosave**: the bill is saved to the server as you go, so a refresh or power cut doesn't lose it; totals always come from the server's calculation.
+- **Hold** a bill and resume it later from "Held bills" (or from the Bills page).
+- **A4 tax invoice print** in the shop's layout: GSTIN, invoice number and date, place of supply, lines with HSN, taxable value and GST, GST summary by rate, amount in words in lakh/crore style, payments and amount due, bank details, terms, signature boxes; UPI QR for the amount due when a UPI ID is set; CANCELLED watermark on cancelled bills.
+- **Bills** list (by day, held, cancelled; search by number, name or phone) and bill page with reprint and owner-only cancel (with reason).
+- API: `/api/sales/invoices` (drafts, current, finalise, cancel) and `/api/sales/customers`; 27 new tests (238 backend tests).
+
+**Tested in the browser:** scanned bill, hold and resume, refresh mid-bill, finish, print view, cancel with refund.
+
 ### 2026-10-01 — Phase 2, step 1: billing engine (no screens yet)
 
 **Decided:** Phase 2 plan approved; invoice series starts at 1 with prefix `HE`; returns and refunds are owner-only; customer Excel import deferred (docs/PLAN.md §1).

@@ -150,3 +150,25 @@ def test_random_bills_always_add_up():
         bill = price_bill(lines, rates_include_tax=include, bill_discount=discount, same_state=rng.random() < 0.8)
         check_adds_up(bill)
         assert sum(r.discount for r in bill.lines) == bill.discount
+
+
+class TestAmountInWords:
+    @pytest.mark.parametrize(
+        "amount, words",
+        [
+            ("0", "Rupees Zero Only"),
+            ("5", "Rupees Five Only"),
+            ("19", "Rupees Nineteen Only"),
+            ("2400", "Rupees Two Thousand Four Hundred Only"),
+            ("4973", "Rupees Four Thousand Nine Hundred Seventy Three Only"),
+            ("100000", "Rupees One Lakh Only"),
+            ("120050", "Rupees One Lakh Twenty Thousand Fifty Only"),
+            ("2510000", "Rupees Twenty Five Lakh Ten Thousand Only"),
+            ("12345678", "Rupees One Crore Twenty Three Lakh Forty Five Thousand Six Hundred Seventy Eight Only"),
+            ("343.38", "Rupees Three Hundred Forty Three and Thirty Eight Paise Only"),
+        ],
+    )
+    def test_indian_style(self, amount, words):
+        from sales.words import rupees_in_words
+
+        assert rupees_in_words(D(amount)) == words
