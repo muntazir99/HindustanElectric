@@ -4,12 +4,18 @@ import { useForm } from 'react-hook-form';
 import { fetchCustomers, addCustomer } from '../../store/customersSlice.js';
 import StatusWrapper from '../Common/StatusWrapper.js';
 
+import api from '../../api.js';
+
 function CustomerManager() {
   const dispatch = useDispatch();
   const { items: customers, loading, error } = useSelector((state) => state.customers);
   const { register, handleSubmit, formState: { errors }, reset } = useForm();
   const [serverMessage, setServerMessage] = useState("");
   const [serverError, setServerError] = useState("");
+
+  // Local state for risk scores
+  const [riskScores, setRiskScores] = useState({});
+  const [loadingRisk, setLoadingRisk] = useState({});
 
   useEffect(() => {
     dispatch(fetchCustomers());
@@ -24,6 +30,20 @@ function CustomerManager() {
       reset();
     } else {
       setServerError(resultAction.payload || "An error occurred.");
+    }
+  };
+
+  const handleCheckRisk = async (customerId) => {
+    setLoadingRisk(prev => ({ ...prev, [customerId]: true }));
+    try {
+      const res = await api.get(`/ai/credit-score/${customerId}`);
+      if (res.data.success) {
+        setRiskScores(prev => ({ ...prev, [customerId]: res.data.data }));
+      }
+    } catch (err) {
+      console.error("Failed to fetch risk score", err);
+    } finally {
+      setLoadingRisk(prev => ({ ...prev, [customerId]: false }));
     }
   };
 
@@ -47,7 +67,7 @@ function CustomerManager() {
               <label className="block text-sm font-medium text-gray-700">GSTIN (Optional)</label>
               <input type="text" className="w-full p-2 border rounded mt-1" {...register("gstin")} />
             </div>
-             <div>
+            <div>
               <label className="block text-sm font-medium text-gray-700">Address (Optional)</label>
               <textarea className="w-full p-2 border rounded mt-1" {...register("address")} />
             </div>
@@ -82,22 +102,42 @@ function CustomerManager() {
                 <thead>
                   <tr className="bg-gray-200">
                     <th className="px-4 py-2 text-left">Name</th>
-                    <th className="px-4 py-2 text-left">Price Tier</th> {/* <-- NEW COLUMN */}
+                    <th className="px-4 py-2 text-left">Price Tier</th>
                     <th className="px-4 py-2 text-right">Credit Limit</th>
                     <th className="px-4 py-2 text-right">Balance</th>
-                    <th className="px-4 py-2 text-left">GSTIN</th>
+                    <th className="px-4 py-2 text-center">AI Risk Check</th> {/* New Column */}
                   </tr>
                 </thead>
                 <tbody>
-                  {(customers || []).map((customer) => (
-                    <tr key={customer._id} className="border-b">
-                      <td className="px-4 py-2 capitalize">{customer.name}</td>
-                      <td className="px-4 py-2">{customer.price_tier}</td> {/* <-- NEW DATA */}
-                      <td className="px-4 py-2 text-right">₹{Number(customer.credit_limit).toFixed(2)}</td>
-                      <td className="px-4 py-2 text-right">₹{Number(customer.current_balance).toFixed(2)}</td>
-                      <td className="px-4 py-2">{customer.gstin || 'N/A'}</td>
-                    </tr>
-                  ))}
+                  {(customers || []).map((customer) => {
+                    const scoreData = riskScores[customer._id];
+                    return (
+                      <tr key={customer._id} className="border-b">
+                        <td className="px-4 py-2 capitalize">{customer.name}</td>
+                        <td className="px-4 py-2">{customer.price_tier}</td>
+                        <td className="px-4 py-2 text-right">₹{Number(customer.credit_limit).toFixed(2)}</td>
+                        <td className="px-4 py-2 text-right">₹{Number(customer.current_balance).toFixed(2)}</td>
+                        <td className="px-4 py-2 text-center">
+                          {scoreData ? (
+                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${scoreData.risk_level === "High" ? "bg-red-100 text-red-800" :
+                                scoreData.risk_level === "Medium" ? "bg-yellow-100 text-yellow-800" :
+                                  "bg-green-100 text-green-800"
+                              }`}>
+                              {scoreData.score}/100 ({scoreData.risk_level})
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => handleCheckRisk(customer._id)}
+                              disabled={loadingRisk[customer._id]}
+                              className="text-white bg-indigo-500 hover:bg-indigo-600 px-3 py-1 rounded text-xs disabled:opacity-50"
+                            >
+                              {loadingRisk[customer._id] ? "Analyzing..." : "Check Score"}
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
               {(!customers || customers.length === 0) && <p className="text-center text-gray-500 mt-4">No customers found.</p>}

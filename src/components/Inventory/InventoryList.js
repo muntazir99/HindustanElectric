@@ -1,12 +1,17 @@
 import React, { useEffect, useState } from "react";
 import api from "../../api.js";
 
+import ForecastModal from "./ForecastModal.js"; // Import Forecast Modal
+
 function InventoryList() {
   const [inventory, setInventory] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedCategories, setExpandedCategories] = useState({});
   const [editingItem, setEditingItem] = useState(null);
   const [editForm, setEditForm] = useState({});
+
+  // AI Forecast State
+  const [forecastItem, setForecastItem] = useState(null);
 
   const fetchInventory = async () => {
     try {
@@ -34,7 +39,6 @@ function InventoryList() {
     : inventory;
 
   const groupedInventory = filteredInventory.reduce((groups, item) => {
-    // This check is now safe because we filter the inventory array upon fetch
     const category = item.category || "Uncategorized";
     if (!groups[category]) {
       groups[category] = [];
@@ -65,6 +69,10 @@ function InventoryList() {
     });
   };
 
+  const handleForecast = (item) => {
+    setForecastItem(item);
+  };
+
   const handleEditChange = (field, value) => {
     setEditForm((prev) => ({ ...prev, [field]: value }));
   };
@@ -81,13 +89,11 @@ function InventoryList() {
 
       // --- FIX ---
       // Always re-fetch the full inventory list after a successful update.
-      // This is more reliable than trying to update the state manually.
       fetchInventory();
 
       setEditingItem(null); // Close the modal
     } catch (err) {
       console.error("Error updating item:", err);
-      // You could set an error state here to show a message to the user
     }
   };
 
@@ -141,13 +147,23 @@ function InventoryList() {
                       key={item._id}
                       className="relative bg-white border border-gray-300 rounded-md shadow-sm p-4 flex flex-col"
                     >
-                      <button
-                        onClick={() => handleEdit(item)}
-                        className="absolute top-2 right-2 bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs"
-                      >
-                        Edit
-                      </button>
-                      <h3 className="text-base font-semibold text-gray-800 text-center mb-2">
+                      <div className="absolute top-2 right-2 flex space-x-1">
+                        <button
+                          onClick={() => handleForecast(item)}
+                          title="AI Demand Forecast"
+                          className="bg-purple-500 hover:bg-purple-600 text-white px-2 py-1 rounded text-xs"
+                        >
+                          🔮
+                        </button>
+                        <button
+                          onClick={() => handleEdit(item)}
+                          className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs"
+                        >
+                          Edit
+                        </button>
+                      </div>
+
+                      <h3 className="text-base font-semibold text-gray-800 text-center mb-2 mt-4">
                         {item.name}
                       </h3>
                       <div className="flex justify-center mb-4">
@@ -162,8 +178,6 @@ function InventoryList() {
                         <p><span className="font-medium">Quantity:</span> {item.quantity}</p>
                         <p><span className="font-medium">Unit Price (₹):</span> {Number(item.unit_price).toFixed(2)}</p>
                         <p><span className="font-medium">Category:</span> {item.category || "N/A"}</p>
-                        <p><span className="font-medium">Barcode:</span> {item.barcode || "N/A"}</p>
-                        <p><span className="font-medium">HSN Code:</span> {item.hsn_code || "N/A"}</p>
                         {(item.historical_max_price || item.historical_min_price) && (
                           <div className="pt-2 mt-2 border-t border-gray-100 flex justify-between text-xs text-gray-500">
                             <span>Max: <span className="text-red-600 font-bold">{item.historical_max_price ? `₹${item.historical_max_price}` : '-'}</span></span>
@@ -233,24 +247,6 @@ function InventoryList() {
                   className="w-full p-2 border border-gray-300 rounded-md"
                 />
               </div>
-              <div>
-                <label className="block text-gray-700 mb-1">Barcode</label>
-                <input
-                  type="text"
-                  value={editForm.barcode}
-                  onChange={(e) => handleEditChange("barcode", e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-md"
-                />
-              </div>
-              <div>
-                <label className="block text-gray-700 mb-1">HSN Code</label>
-                <input
-                  type="text"
-                  value={editForm.hsn_code}
-                  onChange={(e) => handleEditChange("hsn_code", e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-md"
-                />
-              </div>
               <div className="flex justify-end space-x-4 mt-4">
                 <button
                   type="button"
@@ -269,6 +265,14 @@ function InventoryList() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Forecast Modal */}
+      {forecastItem && (
+        <ForecastModal
+          item={forecastItem}
+          onClose={() => setForecastItem(null)}
+        />
       )}
     </div>
   );
