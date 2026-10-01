@@ -30,7 +30,7 @@ Living document. Decisions are recorded here; individual changes go in [CHANGELO
 |---|---|---|
 | **0. Foundation** | Monorepo, Django + Postgres, owner/staff users, JWT login, shop settings, Django admin, test setup | Done 2026-10-01 |
 | **1. Catalogue & stock-in** | Products/variants, units & barcodes, Excel import, purchase bill entry, stock ledger, stock counts, adjustments, low-stock list | Done 2026-10-01 |
-| **2. Counter billing** | Scanner-friendly billing, GST-correct invoices, FY numbering, A4 print, customers & khata, payments, returns/credit notes, quotations | Design summary §7; detailed plan before build |
+| **2. Counter billing** | Scanner-friendly billing, GST-correct invoices, FY numbering, A4 print, customers & khata, payments, returns/credit notes, quotations | **Awaiting approval (§7)** |
 | **3. Back office & reports** | Day-end summary, sales & profit, GST summary for CA, supplier payables, expenses, reorder list → purchase orders, barcode label printing, Excel/DB exports & backups | Later |
 | **4. Growth** | Public website, WhatsApp bills & reminders, read bill photos/PDFs into draft purchase entries automatically, electrician loyalty, demand forecasting | Later |
 
@@ -129,21 +129,139 @@ Changes made while building, beyond the approved design:
 - Owner can import a distributor price list, enter a purchase bill, count a rack and see correct stock and history for every item.
 - Tests cover unit conversion, WAC, count posting, negative-stock flagging, duplicate-bill rejection, and that staff can't reach owner-only actions.
 
-## 7. Phase 2 — Counter billing (summary; detailed plan before build)
+## 7. Phase 2 — Counter billing (FOR APPROVAL)
 
-- Billing screen built for **keyboard + USB barcode scanner**: scan or search adds a line; sell in any unit (1 coil or 12.5 m).
-- **One GST calculation, in the backend**, tested: prices tax-inclusive; CGST + SGST for Bihar buyers (state 10), IGST when the buyer's GSTIN is from another state; per-line rounding, invoice round-off.
-- **Invoice numbers:** one series per financial year, e.g. `HE/26-27/00001`, unique and consecutive; cancelled invoices keep their number. Credit notes `CN/26-27/00001`.
-- **Customers & khata:** balance = credit invoices − payments; split payments (cash + UPI); partial payment at the counter.
-- **Returns** (common when electricians return unused material) → credit note, stock back in.
-- **Quotations/estimates** — no stock or ledger effect; convert to a bill later.
-- **A4 print** from a browser print view; shop details come from Settings.
-- **To confirm with your CA:** how today's "GST / non-GST bill" toggle should map to invoice types.
+Goal: the father and staff can bill every sale at the counter, correctly for GST, faster than writing by hand —
+and stock, khata and cash all update by themselves.
+
+### 7.1 What changes from the earlier summary
+
+- **Place of supply is not "the buyer's GSTIN state".** For goods handed over at the shop, the place of supply is
+  Bihar, so even an out-of-state GSTIN buyer normally pays CGST + SGST. IGST applies only when goods are delivered
+  to another state. Each bill gets a *Place of supply* (default Bihar). **Confirm with CA.**
+- **Every sale is a tax invoice** (with or without the buyer's GSTIN). The old "GST / non-GST" toggle becomes:
+  *Tax invoice* for sales, *Quotation* for estimates (not a sale). **Confirm with CA.**
+- **Opening khata balances** and a **customer Excel import** are added, so existing udhaar registers can move in.
+- **Hold bill** is added (park a half-made bill while serving the next customer).
+
+### 7.2 How a bill is calculated (one function on the server, used everywhere)
+
+Prices on the shelf include GST, so by default **rates include GST** and the customer pays exactly the shelf price.
+A bill can be switched to *rates exclude GST* (contractor / B2B quotes).
+
+For each line:
+1. gross = quantity × rate; line discount = gross × discount % (paise rounded, half-up).
+2. A **bill discount** (₹, e.g. "₹50 kam") is shared across lines in proportion to their value; the last paisa goes to the largest line.
+3. Rates include GST: line total = gross − discounts; taxable = line total × 100 / (100 + GST %); tax = line total − taxable.
+   Rates exclude GST: taxable = gross − discounts; tax = taxable × GST %; line total = taxable + tax.
+4. Bihar sale: CGST = half of tax, SGST = the rest (so they always add up exactly). Other state: IGST = tax.
+
+Bill total = sum of line totals, rounded to the nearest rupee; the difference is printed as *Round off*.
+The printed GST summary (by rate) is the sum of the saved line values — never recalculated — so the paper and the
+records always agree. (Fixes the old bug where the PDF added 18% on its own.)
+
+### 7.3 Data model (new app `sales`)
+
+| Table | Key fields | Notes |
+|---|---|---|
+| `Customer` | name, phone, GSTIN, state code, address, type (retail / electrician / contractor / business), credit limit, default discount %, active | Phone searchable at the counter |
+| `Invoice` | number, date, status (draft / held / final / cancelled), customer or walk-in name+phone+address, place of supply, rates-include-GST, bill discount, taxable, CGST, SGST, IGST, round off, total, paid at counter, to khata, cancel reason | Number given only when finalised |
+| `InvoiceLine` | item, unit, quantity, base quantity, rate, discount %, discount ₹, taxable, GST %, CGST/SGST/IGST, total, **snapshot of name and HSN**, **cost at sale** | Snapshots keep old bills unchanged if an item is renamed; cost enables profit reports later |
+| `Payment` | date, mode (cash / UPI / card / bank / cheque), amount, reference, customer and/or invoice, receipt number | Counter payments and khata receipts alike |
+| `CustomerLedger` | customer, date, kind (opening / bill / payment / return / adjustment), debit, credit, link to document, note, user | **Khata.** Append-only; balance = debits − credits |
+| `CreditNote` + lines | number, date, original invoice, lines returned, taxes reversed, refund mode (cash / UPI / to khata) | Returns |
+| `Quotation` + lines | number, date, valid until, buyer, lines, totals, converted bill | No stock or khata effect |
+| `DocumentSeries` | series (e.g. invoice 2026-27), last number | Locked while numbering, so numbers are never skipped or repeated |
+
+Shop settings gain: invoice prefix, UPI ID (optional, for a pay-by-UPI QR on bills), round-off on/off.
+
+### 7.4 Numbers on documents
+
+| Document | Example | Rule |
+|---|---|---|
+| Tax invoice | `HE/26-27/00001` | One unbroken series per financial year (April–March), max 16 characters (GST rule). A number is taken only at the moment a bill is finalised, so held/abandoned bills don't leave gaps. Cancelled bills keep their number, marked *Cancelled*. Bill date = today (no back-dating, so numbers and dates stay in order). |
+| Credit note | `CN/26-27/00001` | Own series |
+| Payment receipt | `RC/26-27/00001` | For khata payments |
+| Quotation | `QT/26-27/00001` | Not a GST document |
+
+**Starting number:** if the shop already issued numbered GST bills on paper this financial year, the digital series
+must either continue from the last paper number or use a new prefix. The owner sets this once in the back office.
+
+### 7.5 What happens when…
+
+| Event | Stock | Khata | Cash/UPI |
+|---|---|---|---|
+| Bill finalised | SALE out (base units), cost recorded | If any amount is on credit: bill debited, counter payments credited | Payments recorded by mode |
+| Bill cancelled (owner) | Goods back in | Bill and its payments reversed | Payments reversed |
+| Return / credit note | Returned goods back in | Credited (if refund mode = khata) | Refund recorded (if cash/UPI) |
+| Khata payment received | — | Credited | Recorded, receipt printed |
+| Quotation | — | — | — |
+
+Rules:
+- A bill can't be finalised unless *paid at counter + to khata = total*. Khata needs a customer; walk-in bills are paid in full.
+- Walk-in bills over ₹50,000 need the buyer's name and address (GST rule for unregistered buyers).
+- **Credit limit:** staff can't put a customer over their limit; the owner sees a warning and can go ahead.
+- **Price below average cost:** staff can't save it ("price too low — ask the owner", the cost itself is never shown); the owner gets a warning.
+- Negative stock: allowed, item flagged *needs recount* (as in Phase 1).
+- Returns: quantity can't exceed what was sold minus earlier returns; GST is reversed at the original bill's rates.
+
+### 7.6 Screens
+
+- **Billing** (the counter screen, keyboard + scanner):
+  scan or search → line added (scanning again adds 1); unit, quantity, rate, discount editable; stock shown per line.
+  Right side: customer (search by name/phone, *walk-in* default, quick add) with khata balance; bill discount;
+  totals; payment buttons — *Cash full*, *UPI full*, split, *To khata*. Keys: F2 search, F4 customer, F8 hold,
+  F9 save & print, Esc clear.
+- **Print (A4):** the shop's current layout — GSTIN, *TAX INVOICE*, shop details, party details, invoice no./date/place
+  of supply, items with HSN, GST summary by rate, amount in words (Indian style: *One Lakh Twenty Thousand Rupees…*),
+  bank details, terms, signature boxes; optional UPI QR. Browser print → paper or *Save as PDF*.
+- **Bills:** today / date range / customer / number search; open → reprint, return, cancel (owner).
+- **Held bills:** resume or discard.
+- **Customers:** list with balances; customer page with khata statement (running balance, printable), receive
+  payment (prints receipt), opening balance and credit limit (owner).
+- **Returns:** pick the bill (by number, customer or date), tick quantities, choose refund → credit note printed.
+- **Quotations:** same line builder → print → *Convert to bill*.
+- **Home:** today's sales, number of bills, cash / UPI / khata split, cash refunds, total udhaar outstanding.
+- **Customer import (owner):** Excel with name, phone, GSTIN, address, type, opening balance — for moving the paper khata in.
+
+### 7.7 Who can do what
+
+| | Staff | Owner |
+|---|---|---|
+| Make bills, hold, print, reprint, quotations | ✓ | ✓ |
+| Add customers, receive khata payments | ✓ | ✓ |
+| Discounts | ✓ (not below average cost) | ✓ (warning only) |
+| Exceed a credit limit | | ✓ |
+| Returns & refunds | *decision needed* | ✓ |
+| Cancel bills, opening balances, credit limits, khata adjustments, customer import | | ✓ |
+
+### 7.8 Build order (one commit each, tested before the next)
+
+1. **Billing engine:** sales models, GST calculation, numbering, finalise/cancel with stock and khata effects. Tests only, no screens.
+2. **Counter screen + A4 print + bills list.**
+3. **Customers & khata:** statement, payments and receipts, opening balances, customer import.
+4. **Returns (credit notes), quotations, held bills.**
+5. **Home "today" numbers, remove the old billing/customer screens, docs.** Browser walk-through of a full counter day.
+
+### 7.9 Done when
+
+- A 5-item scanned bill paid part cash, part UPI is finalised and printed in under 30 seconds, and the printed totals equal the saved bill to the paisa.
+- Stock, khata and today's cash figures are right after bills, returns, cancellations and khata payments.
+- Invoice numbers have no gaps or repeats, including across 31 March → 1 April.
+- Tests cover: inclusive/exclusive rates, line and bill discounts, rounding (lines always add up to the total), Bihar vs other-state tax split, numbering, every stock/khata effect above, return limits, staff limits.
+- The CA has confirmed the items marked *Confirm with CA* before go-live.
+
+### 7.10 Not in Phase 2
+
+E-invoicing (IRN) and e-way bills (only needed above turnover / value limits — CA to confirm), WhatsApp sharing
+(Phase 4), day-end report, GST return export and supplier payables (Phase 3), thermal receipt printers.
 
 ## 8. Open items
 
 - [x] Owner approval of Phase 1 design (§6)
 - [x] Remove the old Flask files from the repo root (preserved under tag `flask-final`)
 - [ ] Remove old React screens once Phase 2/3 replace them (billing, invoices, customers, payments, purchase orders, reports — no longer routed)
-- [ ] CA confirmation on invoice types (before Phase 2)
+- [ ] Owner approval of Phase 2 design (§7)
+- [ ] CA confirmation of items marked *Confirm with CA* in §7 (before go-live)
+- [ ] Last paper invoice number this financial year, if any (§7.4)
 - [ ] Hosting choice (before first deploy)
