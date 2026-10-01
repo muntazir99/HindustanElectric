@@ -30,13 +30,21 @@ class PurchaseLineSerializer(serializers.ModelSerializer):
     base_unit = serializers.CharField(source="item.base_unit", read_only=True)
     unit_name = serializers.CharField(source="unit.name", read_only=True)
     unit_factor = serializers.DecimalField(source="unit.factor", max_digits=12, decimal_places=3, read_only=True)
+    item_units = serializers.SerializerMethodField()
     gst_rate = GstRateField(required=False)
 
     class Meta:
         model = PurchaseLine
         fields = [
-            "id", "item", "item_name", "item_code", "base_unit", "unit", "unit_name", "unit_factor",
+            "id", "item", "item_name", "item_code", "base_unit", "item_units", "unit", "unit_name", "unit_factor",
             "quantity", "rate", "discount_percent", "gst_rate", "taxable_amount", "tax_amount",
+        ]
+
+    def get_item_units(self, line):
+        """The item's units, so a draft can be edited without fetching each item."""
+        return [
+            {"id": unit.id, "name": unit.name, "factor": str(unit.factor), "is_base": unit.is_base}
+            for unit in line.item.units.all()
         ]
         read_only_fields = ["taxable_amount", "tax_amount"]
 

@@ -59,7 +59,8 @@ class ItemSerializer(serializers.ModelSerializer):
         return format_quantity(item.stock_qty, item.base_unit, item.units.all())
 
     def get_is_low(self, item):
-        return item.min_stock > 0 and item.stock_qty <= item.min_stock
+        # Uncounted items read 0, which says nothing about the shelf.
+        return item.counted_at is not None and item.min_stock > 0 and item.stock_qty <= item.min_stock
 
     def to_representation(self, item):
         data = super().to_representation(item)

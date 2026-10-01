@@ -45,7 +45,7 @@ def filter_items(queryset, params):
     elif params.get("include_inactive") != "1":
         queryset = queryset.filter(is_active=True)
     if status_filter == "low":
-        queryset = queryset.filter(min_stock__gt=0, stock_qty__lte=F("min_stock"))
+        queryset = queryset.filter(counted_at__isnull=False, min_stock__gt=0, stock_qty__lte=F("min_stock"))
     elif status_filter == "not_counted":
         queryset = queryset.filter(counted_at__isnull=True)
     elif status_filter == "needs_recount":

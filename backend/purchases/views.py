@@ -51,7 +51,7 @@ class PurchaseBillViewSet(viewsets.ModelViewSet):
             if params.get("date_to"):
                 queryset = queryset.filter(bill_date__lte=params["date_to"])
         else:
-            queryset = queryset.prefetch_related("lines__item__product__brand", "lines__unit")
+            queryset = queryset.prefetch_related("lines__item__product__brand", "lines__item__units", "lines__unit")
         return queryset
 
     def get_serializer_class(self):

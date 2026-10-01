@@ -3,8 +3,8 @@ from decimal import Decimal
 import pytest
 
 from catalog.models import Category, Item, ItemUnit, Product
-from stock.models import Adjustment
-from stock.services import create_adjustment
+from stock.models import Adjustment, StockCount
+from stock.services import count_item, create_adjustment, post_count
 
 pytestmark = pytest.mark.django_db
 D = Decimal
@@ -108,7 +108,10 @@ class TestItemList:
 
     def test_status_filters(self, staff_api, owner, wire, make_item):
         switch = make_item(product="Switch", min_stock=D("10"))
-        create_adjustment(switch.pk, D("4"), Adjustment.Reason.CORRECTION, owner)
+        make_item(product="Fan", min_stock=D("10"))  # not counted: never "low"
+        count = StockCount.objects.create(title="S1", created_by=owner)
+        count_item(count, switch.pk, D("4"), owner)
+        post_count(count, owner)
         low = staff_api.get("/api/catalog/items?status=low").data["results"]
         assert [row["id"] for row in low] == [switch.pk]
         assert low[0]["is_low"] is True

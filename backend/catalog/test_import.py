@@ -62,6 +62,7 @@ class TestCatalogueImport:
             "rows": 2, "created": 2, "updated": 0, "unchanged": 0, "errors": 0, "committed": False,
         }
         assert not Item.objects.exists() and not Brand.objects.exists()
+        assert "code" not in response.data["rows"][0]  # real codes are given only when saved
 
     def test_commit_creates_items_units_and_barcodes(self, owner_api):
         response = upload(owner_api, xlsx([RED, SWITCH]), commit="true")

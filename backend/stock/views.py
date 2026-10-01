@@ -118,7 +118,9 @@ class StockSummary(APIView):
             "active_items": active.count(),
             "not_counted": active.filter(counted_at__isnull=True).count(),
             "needs_recount": active.filter(needs_recount=True).count(),
-            "low_stock": active.filter(min_stock__gt=0, stock_qty__lte=F("min_stock")).count(),
+            "low_stock": active.filter(
+                counted_at__isnull=False, min_stock__gt=0, stock_qty__lte=F("min_stock")
+            ).count(),
             "open_counts": StockCount.objects.filter(status=StockCount.Status.OPEN).count(),
             "draft_bills": PurchaseBill.objects.filter(status=PurchaseBill.Status.DRAFT).count(),
         }

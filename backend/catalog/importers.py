@@ -161,6 +161,10 @@ def _run(rows, handle_row, *, commit, skip_errors):
         committed = commit and (errors == 0 or skip_errors)
         if not committed:
             transaction.set_rollback(True)
+            # New items get their real code only when actually saved.
+            for result in results:
+                if result["status"] == "created":
+                    result.pop("code", None)
     summary = {
         "rows": len(results),
         "created": sum(1 for r in results if r["status"] == "created"),
