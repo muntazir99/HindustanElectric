@@ -1,6 +1,7 @@
 from collections import defaultdict
 from decimal import Decimal
 
+from django.db import models
 from rest_framework import serializers
 
 from catalog.display import format_quantity
@@ -199,3 +200,74 @@ class InvoiceListSerializer(serializers.ModelSerializer):
             "customer", "total", "paid_amount", "credit_amount", "line_count", "created_by",
             "created_at", "updated_at", "finalised_at",
         ]
+
+
+class LedgerLineSerializer(serializers.Serializer):
+    id = serializers.IntegerField(source="entry.id")
+    date = serializers.DateField(source="entry.date")
+    kind = serializers.CharField(source="entry.kind")
+    kind_display = serializers.CharField(source="entry.get_kind_display")
+    debit = serializers.DecimalField(source="entry.debit", max_digits=12, decimal_places=2)
+    credit = serializers.DecimalField(source="entry.credit", max_digits=12, decimal_places=2)
+    balance = serializers.DecimalField(max_digits=12, decimal_places=2)
+    note = serializers.CharField(source="entry.note")
+    invoice = serializers.IntegerField(source="entry.invoice_id", allow_null=True)
+    invoice_number = serializers.CharField(source="entry.invoice.number", default=None)
+    payment = serializers.IntegerField(source="entry.payment_id", allow_null=True)
+    receipt_number = serializers.CharField(source="entry.payment.receipt_number", default=None)
+    receipt_cancelled = serializers.SerializerMethodField()
+
+    def get_receipt_cancelled(self, line):
+        payment = line["entry"].payment
+        return bool(payment and payment.cancelled_at)
+
+
+class AmountSerializer(serializers.Serializer):
+    amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    note = serializers.CharField(max_length=250, required=False, allow_blank=True, default="")
+
+
+class ReceivePaymentSerializer(serializers.Serializer):
+    amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))
+    mode = serializers.ChoiceField(choices=Payment.Mode.choices, default=Payment.Mode.CASH)
+    reference = serializers.CharField(max_length=60, required=False, allow_blank=True, default="")
+    note = serializers.CharField(max_length=250, required=False, allow_blank=True, default="")
+
+
+class ReceiptSerializer(serializers.ModelSerializer):
+    """A khata payment, for printing a receipt."""
+
+    mode_display = serializers.CharField(source="get_mode_display")
+    customer_detail = serializers.SerializerMethodField()
+    amount_in_words = serializers.SerializerMethodField()
+    balance_after = serializers.SerializerMethodField()
+    created_by = serializers.CharField(source="created_by.username")
+
+    class Meta:
+        model = Payment
+        fields = [
+            "id", "kind", "receipt_number", "date", "amount", "mode", "mode_display", "reference", "note",
+            "customer", "customer_detail", "amount_in_words", "balance_after", "created_by", "created_at",
+            "cancelled_at", "cancel_reason",
+        ]
+
+    def get_customer_detail(self, payment):
+        customer = payment.customer
+        if customer is None:
+            return None
+        return {"id": customer.id, "name": customer.name, "phone": customer.phone, "address": customer.address}
+
+    def get_amount_in_words(self, payment):
+        return rupees_in_words(payment.amount)
+
+    def get_balance_after(self, payment):
+        """What the customer still owed right after this payment."""
+        if payment.customer is None:
+            return None
+        entry = payment.customer.ledger.filter(payment=payment).first()
+        if entry is None:
+            return None
+        totals = payment.customer.ledger.filter(id__lte=entry.id).aggregate(
+            debit=models.Sum("debit"), credit=models.Sum("credit")
+        )
+        return str((totals["debit"] or ZERO) - (totals["credit"] or ZERO))

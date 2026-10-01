@@ -5,6 +5,22 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-01 — Phase 2, step 3: customers & khata
+
+**Added**
+- **Customers & khata** page: list with what each customer owes (or advance), filter "owe money", search by name/phone/GSTIN; add and edit customers (credit limit and discount are owner-only).
+- **Khata statement** per customer with running balance, links to bills and receipts, date range with "brought forward", and printing (the menu is hidden when printing).
+- **Receive payment** (staff and owner): cash / UPI / card / bank / cheque with reference; numbered receipt `RC/26-27/00001`; printable receipt showing amount in words and balance still due.
+- **Opening balance** from the paper khata (owner, once per customer) and **khata adjustments** with a reason (owner).
+- **Cancel a receipt** (owner, with reason) for a payment entered by mistake — marked cancelled and struck through, khata corrected, nothing deleted.
+- Overpayment check: if the amount is more than the customer owes, the screen says how much will become an advance and asks to confirm; the amount box selects its value on focus so typing replaces it.
+- 12 new tests (250 backend tests).
+
+**Fixed**
+- Billing screen: a newly scanned line sometimes showed "…" instead of its price — line state is now built once outside React's update step.
+
+**Why the receipt fixes:** while testing, a prefilled ₹3,500 plus a typed ₹1,000 became ₹3,50,01,000 and was accepted without question. That can happen at the counter too.
+
 ### 2026-10-01 — Phase 2, step 2: counter billing, printing, bills list
 
 **Added**

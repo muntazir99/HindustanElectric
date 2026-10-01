@@ -12,6 +12,7 @@ import {
   SlidersHorizontal,
   Truck,
   UserPlus,
+  Users,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext.js";
 import { BACK_OFFICE_URL } from "../../api.js";
@@ -20,6 +21,7 @@ const MAIN = [
   ["/dashboard", "Home", LayoutDashboard],
   ["/billing", "Billing", Receipt],
   ["/bills", "Bills", FileText],
+  ["/customers", "Customers & khata", Users],
   ["/items", "Items", Package],
   ["/purchases", "Purchases", Truck],
   ["/counts", "Stock counts", ClipboardCheck],

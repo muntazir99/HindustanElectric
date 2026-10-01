@@ -136,19 +136,17 @@ export default function Billing() {
     const byKey = {};
     sent.forEach((line, index) => (byKey[line.key] = bill.lines[index]));
     setComputed(byKey);
-    setLines((current) => {
-      const next = current.map((line) => {
-        const saved = byKey[line.key];
-        if (!saved) return line;
-        return {
-          ...line,
-          rate: line.rateManual ? line.rate : plain(saved.rate),
-          discount: line.discountManual ? line.discount : plain(saved.discount_percent),
-        };
-      });
-      state.current.lines = next;
-      return next;
+    const next = state.current.lines.map((line) => {
+      const saved = byKey[line.key];
+      if (!saved) return line;
+      return {
+        ...line,
+        rate: line.rateManual ? line.rate : plain(saved.rate),
+        discount: line.discountManual ? line.discount : plain(saved.discount_percent),
+      };
     });
+    state.current.lines = next;
+    setLines(next);
     setPending(false);
   }, []);
 
@@ -189,21 +187,19 @@ export default function Billing() {
     timer.current = setTimeout(() => queueSave(), 300);
   }
 
+  // Build the new state once, outside React's updater: updaters must be pure (React may run them
+  // twice), and adding a line creates a new key.
   function changeLines(update) {
-    setLines((current) => {
-      const next = update(current);
-      state.current.lines = next;
-      return next;
-    });
+    const next = update(state.current.lines);
+    state.current.lines = next;
+    setLines(next);
     changed();
   }
 
   function changeHeader(patch) {
-    setHeader((current) => {
-      const next = { ...current, ...patch };
-      state.current.header = next;
-      return next;
-    });
+    const next = { ...state.current.header, ...patch };
+    state.current.header = next;
+    setHeader(next);
     changed();
   }
 

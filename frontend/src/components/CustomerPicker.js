@@ -1,73 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { UserPlus, X } from "lucide-react";
 import api from "../api.js";
-import { errorMessage } from "../lib/errors.js";
 import { money } from "../lib/format.js";
-import { Alert, Button, Field, Input, Modal, Select, inputClass } from "../ui/index.js";
-
-export const CUSTOMER_KINDS = [
-  ["retail", "Retail"],
-  ["electrician", "Electrician"],
-  ["contractor", "Contractor"],
-  ["business", "Business"],
-];
-
-function NewCustomerModal({ initialName, onClose, onCreated }) {
-  const digits = /^\d+$/.test(initialName.replace(/\s/g, ""));
-  const [form, setForm] = useState({
-    name: digits ? "" : initialName,
-    phone: digits ? initialName : "",
-    gstin: "",
-    address: "",
-    kind: "retail",
-  });
-  const [error, setError] = useState("");
-  const set = (key) => (event) => setForm({ ...form, [key]: event.target.value });
-
-  async function save() {
-    try {
-      onCreated((await api.post("/sales/customers", form)).data);
-    } catch (err) {
-      setError(errorMessage(err));
-    }
-  }
-
-  return (
-    <Modal title="New customer" onClose={onClose}>
-      <Alert>{error}</Alert>
-      <div className="grid grid-cols-2 gap-4">
-        <Field label="Name *" className="col-span-2">
-          <Input value={form.name} onChange={set("name")} autoFocus />
-        </Field>
-        <Field label="Phone">
-          <Input value={form.phone} onChange={set("phone")} inputMode="tel" />
-        </Field>
-        <Field label="Type">
-          <Select value={form.kind} onChange={set("kind")}>
-            {CUSTOMER_KINDS.map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </Select>
-        </Field>
-        <Field label="GSTIN" className="col-span-2" hint="Only for registered businesses">
-          <Input value={form.gstin} onChange={(e) => setForm({ ...form, gstin: e.target.value.toUpperCase() })} />
-        </Field>
-        <Field label="Address" className="col-span-2">
-          <Input value={form.address} onChange={set("address")} />
-        </Field>
-      </div>
-      <p className="text-sm text-gray-500 mt-3">The owner can set a credit limit and discount later.</p>
-      <div className="flex gap-3 mt-4">
-        <Button variant="primary" onClick={save} disabled={!form.name.trim()}>
-          Save customer
-        </Button>
-        <Button onClick={onClose}>Cancel</Button>
-      </div>
-    </Modal>
-  );
-}
+import { inputClass } from "../ui/index.js";
+import CustomerForm from "./CustomerForm.js";
 
 /** Pick a customer by name or phone, or add one. value is a customer object or null (walk-in). */
 export default function CustomerPicker({ value, onChange, inputId = "customer-search" }) {
@@ -174,10 +110,10 @@ export default function CustomerPicker({ value, onChange, inputId = "customer-se
         </ul>
       )}
       {adding && (
-        <NewCustomerModal
+        <CustomerForm
           initialName={query.trim()}
           onClose={() => setAdding(false)}
-          onCreated={(customer) => {
+          onSaved={(customer) => {
             setAdding(false);
             choose(customer);
           }}

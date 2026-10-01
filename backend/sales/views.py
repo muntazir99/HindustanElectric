@@ -11,9 +11,13 @@ from catalog.models import ItemUnit
 from catalog.serializers import is_owner
 
 from . import services
-from .models import Customer, Invoice, InvoiceLine
+from .models import Customer, Invoice, InvoiceLine, Payment
 from .serializers import (
+    AmountSerializer,
     CustomerSerializer,
+    LedgerLineSerializer,
+    ReceiptSerializer,
+    ReceivePaymentSerializer,
     FinaliseSerializer,
     InvoiceInputSerializer,
     InvoiceListSerializer,
@@ -50,6 +54,74 @@ class CustomerViewSet(
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
+
+    def _customer_response(self, customer):
+        return CustomerSerializer(customers_with_balance().get(pk=customer.pk), context={"request": self.request}).data
+
+    @action(detail=True)
+    def ledger(self, request, pk=None):
+        """Khata statement with running balance; ?date_from=&date_to= carry earlier entries forward."""
+        customer = self.get_object()
+        params = request.query_params
+        brought_forward, lines, closing = services.statement(customer, params.get("date_from"), params.get("date_to"))
+        return Response(
+            {
+                "customer": self._customer_response(customer),
+                "brought_forward": str(brought_forward),
+                "closing_balance": str(closing),
+                "lines": LedgerLineSerializer(
+                    [{"entry": entry, "balance": balance} for entry, balance in lines], many=True
+                ).data,
+            }
+        )
+
+    @action(detail=True, methods=["post"])
+    def payments(self, request, pk=None):
+        """Receive money against khata: {amount, mode, reference?, note?}. Returns the receipt."""
+        customer = self.get_object()
+        serializer = ReceivePaymentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        payment = services.receive_payment(
+            customer, data["amount"], mode=data["mode"], user=request.user, reference=data["reference"], note=data["note"]
+        )
+        return Response(ReceiptSerializer(payment).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["post"])
+    def opening(self, request, pk=None):
+        """Owner: what they already owed from the paper khata (negative = advance)."""
+        if not is_owner({"request": request}):
+            raise PermissionDenied("Only the owner can set an opening balance.")
+        customer = self.get_object()
+        serializer = AmountSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        services.set_opening_balance(customer, serializer.validated_data["amount"], user=request.user, note=serializer.validated_data["note"])
+        return Response(self._customer_response(customer), status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["post"])
+    def adjust(self, request, pk=None):
+        """Owner: correct the khata (+ owes more, − owes less), with a reason."""
+        if not is_owner({"request": request}):
+            raise PermissionDenied("Only the owner can adjust a khata.")
+        customer = self.get_object()
+        serializer = AmountSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        services.adjust_khata(customer, serializer.validated_data["amount"], user=request.user, note=serializer.validated_data["note"])
+        return Response(self._customer_response(customer), status=status.HTTP_201_CREATED)
+
+
+class ReceiptViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+    """Khata payment receipts, for printing; the owner can cancel one entered by mistake."""
+
+    queryset = Payment.objects.filter(kind=Payment.Kind.KHATA).select_related("customer", "created_by")
+    serializer_class = ReceiptSerializer
+
+    @action(detail=True, methods=["post"])
+    def cancel(self, request, pk=None):
+        if not is_owner({"request": request}):
+            raise PermissionDenied("Only the owner can cancel a receipt.")
+        payment = services.cancel_receipt(self.get_object(), reason=request.data.get("reason", ""), user=request.user)
+        return Response(ReceiptSerializer(payment).data)
 
 
 INVOICE_DETAIL = Invoice.objects.select_related("customer", "created_by", "finalised_by", "cancelled_by").prefetch_related(

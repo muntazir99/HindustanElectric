@@ -279,3 +279,95 @@ def cancel(invoice, *, reason, user):
         invoice.cancel_reason = reason[:250]
         invoice.save()
     return invoice
+
+
+# --- khata ---------------------------------------------------------------------------
+
+def set_opening_balance(customer, amount, *, user, note=""):
+    """What the customer already owed from the paper khata (negative = advance). Once per customer."""
+    amount = money(amount)
+    if amount == 0:
+        raise BillingError("Opening balance can't be zero.")
+    if customer.ledger.filter(kind=LedgerEntry.Kind.OPENING).exists():
+        raise BillingError("This customer already has an opening balance. Use an adjustment to correct it.")
+    return LedgerEntry.objects.create(
+        customer=customer, date=timezone.localdate(), kind=LedgerEntry.Kind.OPENING,
+        debit=max(amount, ZERO), credit=max(-amount, ZERO),
+        note=note or "Brought forward from paper khata", created_by=user,
+    )
+
+
+def adjust_khata(customer, amount, *, user, note):
+    """Owner's correction: positive = customer owes more, negative = owes less."""
+    amount = money(amount)
+    note = (note or "").strip()
+    if amount == 0:
+        raise BillingError("Adjustment can't be zero.")
+    if not note:
+        raise BillingError("Write why the khata is being adjusted.")
+    return LedgerEntry.objects.create(
+        customer=customer, date=timezone.localdate(), kind=LedgerEntry.Kind.ADJUSTMENT,
+        debit=max(amount, ZERO), credit=max(-amount, ZERO), note=note[:250], created_by=user,
+    )
+
+
+def receive_payment(customer, amount, *, mode, user, reference="", note=""):
+    """Money received against khata. Gets a receipt number (RC/26-27/00001)."""
+    amount = money(amount)
+    if amount <= 0:
+        raise BillingError("Payment must be more than zero.")
+    if mode not in Payment.Mode.values:
+        raise BillingError("Unknown payment mode.")
+    today = timezone.localdate()
+    with transaction.atomic():
+        payment = Payment.objects.create(
+            kind=Payment.Kind.KHATA, mode=mode, amount=amount, date=today, customer=customer,
+            receipt_number=next_number("receipt", today), reference=reference[:60], note=note[:250],
+            created_by=user,
+        )
+        LedgerEntry.objects.create(
+            customer=customer, date=today, kind=LedgerEntry.Kind.PAYMENT, credit=amount, payment=payment,
+            note=f"Receipt {payment.receipt_number}" + (f" · {reference}" if reference else ""), created_by=user,
+        )
+    return payment
+
+
+def cancel_receipt(payment, *, reason, user):
+    """Owner: undo a khata payment entered by mistake. Marked cancelled, khata put back."""
+    reason = (reason or "").strip()
+    if not reason:
+        raise BillingError("Give a reason for cancelling the receipt.")
+    with transaction.atomic():
+        payment = Payment.objects.select_for_update(of=("self",)).select_related("customer").get(pk=payment.pk)
+        if payment.kind != Payment.Kind.KHATA:
+            raise BillingError("Only khata payment receipts can be cancelled here.")
+        if payment.cancelled_at:
+            raise BillingError("This receipt is already cancelled.")
+        payment.cancelled_by = user
+        payment.cancelled_at = timezone.now()
+        payment.cancel_reason = reason[:250]
+        payment.save()
+        LedgerEntry.objects.create(
+            customer=payment.customer, date=timezone.localdate(), kind=LedgerEntry.Kind.RECEIPT_CANCELLED,
+            debit=payment.amount, payment=payment,
+            note=f"Receipt {payment.receipt_number} cancelled: {reason}"[:250], created_by=user,
+        )
+    return payment
+
+
+def statement(customer, date_from=None, date_to=None):
+    """Khata lines with a running balance; earlier entries are carried in as 'brought forward'."""
+    entries = customer.ledger.select_related("invoice", "payment").order_by("date", "id")
+    brought_forward = ZERO
+    if date_from:
+        for entry in entries.filter(date__lt=date_from):
+            brought_forward += entry.debit - entry.credit
+        entries = entries.filter(date__gte=date_from)
+    if date_to:
+        entries = entries.filter(date__lte=date_to)
+    balance = brought_forward
+    lines = []
+    for entry in entries:
+        balance += entry.debit - entry.credit
+        lines.append((entry, balance))
+    return brought_forward, lines, balance

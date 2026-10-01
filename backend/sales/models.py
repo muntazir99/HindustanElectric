@@ -204,6 +204,12 @@ class Payment(models.Model):
     note = models.CharField(max_length=250, blank=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
     created_at = models.DateTimeField(auto_now_add=True)
+    # A khata receipt entered by mistake is cancelled (never deleted) and left out of cash totals.
+    cancelled_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+    cancel_reason = models.CharField(max_length=250, blank=True)
 
     class Meta:
         ordering = ["-created_at"]
@@ -222,6 +228,7 @@ class LedgerEntry(models.Model):
         BILL_CANCELLED = "bill_cancelled", "Bill cancelled"
         REFUND = "refund", "Payment returned"
         RETURN = "return", "Goods returned"
+        RECEIPT_CANCELLED = "receipt_cancelled", "Receipt cancelled"
         ADJUSTMENT = "adjustment", "Adjustment"
 
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT, related_name="ledger")
