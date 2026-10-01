@@ -9,7 +9,7 @@ from catalog.models import Item, ItemUnit
 from catalog.serializers import is_owner
 from core.fields import GstRateField
 
-from .models import Customer, Invoice, InvoiceLine, Payment
+from .models import CreditNote, CreditNoteLine, Customer, Invoice, InvoiceLine, Payment
 from .states import STATES, state_label
 from .words import rupees_in_words
 
@@ -94,14 +94,20 @@ class InvoiceLineSerializer(serializers.ModelSerializer):
     item_units = serializers.SerializerMethodField()
     item_stock = serializers.SerializerMethodField()
     below_cost = serializers.SerializerMethodField()
+    returned_quantity = serializers.SerializerMethodField()
 
     class Meta:
         model = InvoiceLine
         fields = [
             "id", "position", "item", "item_code", "unit", "description", "unit_name", "hsn_code", "base_unit",
             "item_units", "item_stock", "quantity", "base_quantity", "rate", "discount_percent", "gst_rate",
-            "gross", "discount", "taxable_value", "cgst", "sgst", "igst", "total", "below_cost",
+            "gross", "discount", "taxable_value", "cgst", "sgst", "igst", "total", "below_cost", "returned_quantity",
         ]
+
+    def get_returned_quantity(self, line):
+        if line.invoice.status == Invoice.Status.DRAFT:
+            return "0"
+        return str(sum((r.quantity for r in line.returns.all()), ZERO))
 
     def get_item_units(self, line):
         return [
@@ -161,11 +167,14 @@ class InvoiceSerializer(serializers.ModelSerializer):
     created_by = serializers.CharField(source="created_by.username", read_only=True)
     finalised_by = serializers.CharField(source="finalised_by.username", read_only=True, default=None)
     cancelled_by = serializers.CharField(source="cancelled_by.username", read_only=True, default=None)
+    converted_to_number = serializers.CharField(source="converted_to.number", read_only=True, default=None)
+    credit_notes = serializers.SerializerMethodField()
 
     class Meta:
         model = Invoice
         fields = [
-            "id", "number", "status", "status_display", "invoice_date", "held",
+            "id", "number", "kind", "valid_until", "converted_to", "converted_to_number", "credit_notes",
+            "status", "status_display", "invoice_date", "held",
             "customer", "customer_detail", "buyer_name", "buyer_phone", "buyer_gstin", "buyer_address",
             "place_of_supply", "place_of_supply_label", "rates_include_tax", "bill_discount",
             "gross_total", "discount_total", "taxable_total", "cgst_total", "sgst_total", "igst_total",
@@ -177,6 +186,12 @@ class InvoiceSerializer(serializers.ModelSerializer):
 
     def get_customer_detail(self, invoice):
         return CustomerBriefSerializer(invoice.customer).data if invoice.customer else None
+
+    def get_credit_notes(self, invoice):
+        return [
+            {"id": note.id, "number": note.number, "date": note.date, "total": str(note.total)}
+            for note in invoice.credit_notes.all()
+        ]
 
     def get_tax_summary(self, invoice):
         return tax_summary(invoice.lines.all())
@@ -196,9 +211,9 @@ class InvoiceListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Invoice
         fields = [
-            "id", "number", "status", "status_display", "held", "invoice_date", "buyer_name", "buyer_phone",
-            "customer", "total", "paid_amount", "credit_amount", "line_count", "created_by",
-            "created_at", "updated_at", "finalised_at",
+            "id", "number", "kind", "valid_until", "converted_to", "status", "status_display", "held", "invoice_date",
+            "buyer_name", "buyer_phone", "customer", "total", "paid_amount", "credit_amount", "line_count",
+            "created_by", "created_at", "updated_at", "finalised_at",
         ]
 
 
@@ -271,3 +286,73 @@ class ReceiptSerializer(serializers.ModelSerializer):
             debit=models.Sum("debit"), credit=models.Sum("credit")
         )
         return str((totals["debit"] or ZERO) - (totals["credit"] or ZERO))
+
+
+class ReturnLineInputSerializer(serializers.Serializer):
+    line = serializers.IntegerField()
+    quantity = serializers.DecimalField(max_digits=12, decimal_places=3, min_value=ZERO)
+
+
+class ReturnInputSerializer(serializers.Serializer):
+    lines = ReturnLineInputSerializer(many=True)
+    refund_mode = serializers.ChoiceField(choices=CreditNote.Refund.choices)
+    reason = serializers.CharField(max_length=250)
+
+
+class CreditNoteLineSerializer(serializers.ModelSerializer):
+    description = serializers.CharField(source="invoice_line.description")
+    hsn_code = serializers.CharField(source="invoice_line.hsn_code")
+    unit_name = serializers.CharField(source="invoice_line.unit_name")
+    rate = serializers.DecimalField(source="invoice_line.rate", max_digits=12, decimal_places=2)
+    gst_rate = serializers.DecimalField(source="invoice_line.gst_rate", max_digits=4, decimal_places=2)
+    item = serializers.IntegerField(source="invoice_line.item_id")
+
+    class Meta:
+        model = CreditNoteLine
+        fields = [
+            "id", "item", "description", "hsn_code", "unit_name", "quantity", "rate", "gst_rate",
+            "taxable_value", "cgst", "sgst", "igst", "total",
+        ]
+
+
+class CreditNoteSerializer(serializers.ModelSerializer):
+    lines = CreditNoteLineSerializer(many=True)
+    invoice_number = serializers.CharField(source="invoice.number")
+    invoice_date = serializers.DateField(source="invoice.invoice_date")
+    buyer_name = serializers.CharField(source="invoice.buyer_name")
+    buyer_phone = serializers.CharField(source="invoice.buyer_phone")
+    buyer_gstin = serializers.CharField(source="invoice.buyer_gstin")
+    buyer_address = serializers.CharField(source="invoice.buyer_address")
+    place_of_supply_label = serializers.SerializerMethodField()
+    refund_mode_display = serializers.CharField(source="get_refund_mode_display")
+    tax_summary = serializers.SerializerMethodField()
+    amount_in_words = serializers.SerializerMethodField()
+    created_by = serializers.CharField(source="created_by.username")
+
+    class Meta:
+        model = CreditNote
+        fields = [
+            "id", "number", "date", "invoice", "invoice_number", "invoice_date", "customer",
+            "buyer_name", "buyer_phone", "buyer_gstin", "buyer_address", "place_of_supply_label",
+            "reason", "refund_mode", "refund_mode_display", "taxable_total", "cgst_total", "sgst_total",
+            "igst_total", "round_off", "total", "lines", "tax_summary", "amount_in_words", "created_by", "created_at",
+        ]
+
+    def get_place_of_supply_label(self, note):
+        return state_label(note.invoice.place_of_supply)
+
+    def get_tax_summary(self, note):
+        rows = defaultdict(lambda: {"taxable": ZERO, "cgst": ZERO, "sgst": ZERO, "igst": ZERO})
+        for line in note.lines.all():
+            row = rows[line.invoice_line.gst_rate]
+            row["taxable"] += line.taxable_value
+            row["cgst"] += line.cgst
+            row["sgst"] += line.sgst
+            row["igst"] += line.igst
+        return [
+            {"rate": str(rate), **{k: str(v) for k, v in row.items()}, "tax": str(row["cgst"] + row["sgst"] + row["igst"])}
+            for rate, row in sorted(rows.items())
+        ]
+
+    def get_amount_in_words(self, note):
+        return rupees_in_words(note.total)

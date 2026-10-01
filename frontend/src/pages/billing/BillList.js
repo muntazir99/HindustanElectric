@@ -8,6 +8,7 @@ import { Alert, Badge, Button, Card, Empty, Input, PageHeader, Pagination, Spinn
 const TABS = [
   ["", "Bills"],
   ["held", "Held"],
+  ["quotation", "Quotations"],
   ["cancelled", "Cancelled"],
 ];
 
@@ -30,7 +31,8 @@ export default function BillList() {
   const query = new URLSearchParams({ page: String(page) });
   if (status) query.set("status", status);
   if (params.get("search")) query.set("search", params.get("search"));
-  if (day && status !== "held") {
+  const undated = status === "held" || status === "quotation";
+  if (day && !undated) {
     query.set("date_from", day);
     query.set("date_to", day);
   }
@@ -40,7 +42,10 @@ export default function BillList() {
 
   return (
     <>
-      <PageHeader title="Bills" subtitle={status === "held" ? "Bills parked at the counter" : day ? `Bills on ${date(day)}` : "All bills"}>
+      <PageHeader
+        title="Bills"
+        subtitle={status === "held" ? "Bills parked at the counter" : status === "quotation" ? "Quotations (estimates) — not bills" : day ? `Bills on ${date(day)}` : "All bills"}
+      >
         <Button variant="primary" to="/billing">
           <Plus size={18} /> New bill
         </Button>
@@ -60,7 +65,7 @@ export default function BillList() {
             </button>
           ))}
         </div>
-        {status !== "held" && (
+        {!undated && (
           <label className="flex items-center gap-2 text-sm">
             Date
             <input type="date" className="border rounded-lg px-2 py-1.5" value={day} max={today()} onChange={(e) => update({ day: e.target.value })} />
@@ -102,10 +107,10 @@ export default function BillList() {
                 <tr
                   key={bill.id}
                   className="hover:bg-blue-50/50 cursor-pointer"
-                  onClick={() => navigate(bill.status === "draft" ? `/billing?resume=${bill.id}` : `/bills/${bill.id}`)}
+                  onClick={() => navigate(bill.kind === "invoice" && bill.status === "draft" ? `/billing?resume=${bill.id}` : `/bills/${bill.id}`)}
                 >
                   <td className={`${td} font-mono text-sm font-semibold`}>{bill.number || "—"}</td>
-                  <td className={`${td} whitespace-nowrap`}>{dateTime(bill.finalised_at || bill.updated_at)}</td>
+                  <td className={`${td} whitespace-nowrap`}>{bill.kind === "quotation" ? date(bill.invoice_date) : dateTime(bill.finalised_at || bill.updated_at)}</td>
                   <td className={td}>
                     {bill.buyer_name || "Cash sale"}
                     {bill.buyer_phone && <span className="text-sm text-gray-500"> · {bill.buyer_phone}</span>}
@@ -116,14 +121,18 @@ export default function BillList() {
                     {Number(bill.credit_amount) > 0 ? money(bill.credit_amount) : "—"}
                   </td>
                   <td className={td}>
-                    <Badge color={BILL_STATUS[bill.status][0]}>{BILL_STATUS[bill.status][1]}</Badge>
+                    {bill.kind === "quotation" ? (
+                      <Badge color="blue">{bill.converted_to ? "Converted" : `Valid till ${date(bill.valid_until)}`}</Badge>
+                    ) : (
+                      <Badge color={BILL_STATUS[bill.status][0]}>{BILL_STATUS[bill.status][1]}</Badge>
+                    )}
                   </td>
                 </tr>
               ))}
             </tbody>
           </Table>
         )}
-        {data && status !== "held" && day && rows.length > 0 && (
+        {data && !undated && day && rows.length > 0 && (
           <p className="px-4 py-3 border-t text-sm text-gray-700">
             Total of final bills on this page: <b>{money(dayTotal)}</b>
           </p>

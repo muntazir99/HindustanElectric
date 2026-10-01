@@ -24,6 +24,7 @@ const BillPrint = lazy(() => import("./pages/billing/BillPrint.js"));
 const CustomerList = lazy(() => import("./pages/customers/CustomerList.js"));
 const CustomerDetail = lazy(() => import("./pages/customers/CustomerDetail.js"));
 const ReceiptPrint = lazy(() => import("./pages/customers/ReceiptPrint.js"));
+const CreditNotePrint = lazy(() => import("./pages/billing/CreditNotePrint.js"));
 
 /** A fresh screen per bill, so moving from /purchases/new to /purchases/12 resets everything. */
 function PurchaseEntryRoute() {
@@ -61,6 +62,14 @@ function AppRoutes() {
             element={
               <PrivateRoute>
                 <BillPrint />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/credit-notes/:id/print"
+            element={
+              <PrivateRoute>
+                <CreditNotePrint />
               </PrivateRoute>
             }
           />

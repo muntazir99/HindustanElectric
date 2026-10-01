@@ -48,6 +48,7 @@ export default function BillPrint() {
   const s = shop.data;
   const sameState = Number(bill.igst_total) === 0;
   const cancelled = bill.status === "cancelled";
+  const quotation = bill.kind === "quotation";
   const terms = (s.invoice_terms || "").split("\n").filter(Boolean);
   const paidModes = bill.payments.filter((p) => p.kind === "sale");
 
@@ -77,8 +78,8 @@ export default function BillPrint() {
         <div className="border border-black">
           <div className="flex justify-between px-2 py-1 border-b border-black">
             <span>GSTIN: <b>{s.gstin || "—"}</b></span>
-            <span className="font-bold">TAX INVOICE</span>
-            <span>Original for Recipient</span>
+            <span className="font-bold">{quotation ? "QUOTATION" : "TAX INVOICE"}</span>
+            <span>{quotation ? "Not a tax invoice" : "Original for Recipient"}</span>
           </div>
           <div className="text-center py-2 border-b border-black">
             <p className="text-xl font-bold uppercase tracking-wide">{s.name}</p>
@@ -87,16 +88,22 @@ export default function BillPrint() {
           </div>
           <div className="grid grid-cols-2 border-b border-black">
             <div className="p-2 border-r border-black">
-              <p className="font-bold mb-1">Billed to</p>
-              <p className="font-semibold">{bill.buyer_name || "Cash sale"}</p>
+              <p className="font-bold mb-1">{quotation ? "Quotation for" : "Billed to"}</p>
+              <p className="font-semibold">{bill.buyer_name || bill.customer_detail?.name || (quotation ? "—" : "Cash sale")}</p>
               {bill.buyer_address && <p className="whitespace-pre-line">{bill.buyer_address}</p>}
               {bill.buyer_phone && <p>Phone: {bill.buyer_phone}</p>}
               {bill.buyer_gstin && <p>GSTIN: <b>{bill.buyer_gstin}</b></p>}
             </div>
             <div className="p-2 grid grid-cols-[auto_1fr] gap-x-3 content-start">
-              <span>Invoice no.</span><b>{bill.number || "DRAFT"}</b>
+              <span>{quotation ? "Quotation no." : "Invoice no."}</span><b>{bill.number || "DRAFT"}</b>
               <span>Date</span><b>{bill.invoice_date ? new Date(bill.invoice_date).toLocaleDateString("en-IN", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—"}</b>
               <span>Place of supply</span><b>{bill.place_of_supply_label}</b>
+              {quotation && bill.valid_until && (
+                <>
+                  <span>Valid until</span>
+                  <b>{new Date(bill.valid_until).toLocaleDateString("en-IN", { day: "2-digit", month: "2-digit", year: "numeric" })}</b>
+                </>
+              )}
             </div>
           </div>
 
@@ -188,6 +195,7 @@ export default function BillPrint() {
               {Number(bill.credit_amount) > 0 && (
                 <div className="flex justify-between gap-6 font-bold"><dt>Due (on khata)</dt><dd>{Number(bill.credit_amount).toFixed(2)}</dd></div>
               )}
+              {quotation && <p className="pt-2 text-[10px]">Prices as quoted, subject to stock. Not a bill.</p>}
             </dl>
           </div>
 

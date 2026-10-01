@@ -5,6 +5,15 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-01 — Phase 2, step 4: returns (credit notes) and quotations
+
+**Added**
+- **Returns** (owner only, as decided): pick the bill, enter how much of each line is coming back, choose cash back / UPI back / credit to khata, give a reason. Makes a numbered **credit note** `CN/26-27/00001` (A4 print, against the original invoice number and date), puts the goods back into stock at their original cost, and records the refund or khata credit.
+- GST on returns is reversed at the bill's own rates; returning a line in several parts reverses exactly what was charged, to the paisa. Can't return more than was sold; a bill with returns can't be cancelled.
+- **Quotations**: "Quotation" on the billing screen turns the current bill into a numbered quotation `QT/26-27/00001`, valid 15 days, printed as *QUOTATION — not a tax invoice*. No stock or khata effect. **Convert to bill** opens a new bill at the quoted prices. Quotations have their own tab in Bills and never use invoice numbers.
+- Bill page shows returned quantities and links to credit notes.
+- 13 new tests (263 backend tests).
+
 ### 2026-10-01 — Phase 2, step 3: customers & khata
 
 **Added**

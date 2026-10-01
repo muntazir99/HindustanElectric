@@ -11,9 +11,11 @@ from catalog.models import ItemUnit
 from catalog.serializers import is_owner
 
 from . import services
-from .models import Customer, Invoice, InvoiceLine, Payment
+from .models import CreditNote, Customer, Invoice, InvoiceLine, Payment
 from .serializers import (
     AmountSerializer,
+    CreditNoteSerializer,
+    ReturnInputSerializer,
     CustomerSerializer,
     LedgerLineSerializer,
     ReceiptSerializer,
@@ -132,6 +134,8 @@ INVOICE_DETAIL = Invoice.objects.select_related("customer", "created_by", "final
         ),
     ),
     "payments",
+    "credit_notes",
+    "lines__returns",
 )
 
 
@@ -149,10 +153,12 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         params = self.request.query_params
         queryset = Invoice.objects.select_related("created_by").annotate(line_count=Count("lines"))
         state = params.get("status", "final")
-        if state == "held":
-            queryset = queryset.filter(status=Invoice.Status.DRAFT, held=True).order_by("-updated_at")
+        if state == "quotation":
+            queryset = queryset.filter(kind=Invoice.Kind.QUOTATION).order_by("-invoice_date", "-id")
+        elif state == "held":
+            queryset = queryset.filter(kind=Invoice.Kind.INVOICE, status=Invoice.Status.DRAFT, held=True).order_by("-updated_at")
         elif state in Invoice.Status.values:
-            queryset = queryset.filter(status=state).order_by("-finalised_at", "-id")
+            queryset = queryset.filter(kind=Invoice.Kind.INVOICE, status=state).order_by("-finalised_at", "-id")
         else:
             queryset = queryset.exclude(status=Invoice.Status.DRAFT).order_by("-finalised_at", "-id")
         if params.get("date_from"):
@@ -201,7 +207,9 @@ class InvoiceViewSet(viewsets.ModelViewSet):
     def current(self, request):
         """The bill this user was working on at the counter (not held), to resume after a refresh."""
         invoice = (
-            Invoice.objects.filter(status=Invoice.Status.DRAFT, held=False, created_by=request.user)
+            Invoice.objects.filter(
+                kind=Invoice.Kind.INVOICE, status=Invoice.Status.DRAFT, held=False, created_by=request.user
+            )
             .order_by("-updated_at")
             .first()
         )
@@ -223,4 +231,41 @@ class InvoiceViewSet(viewsets.ModelViewSet):
             raise PermissionDenied("Only the owner can cancel a bill.")
         invoice = services.cancel(self.get_object(), reason=request.data.get("reason", ""), user=request.user)
         return self._respond(invoice)
+
+    @action(detail=True, methods=["post"])
+    def returns(self, request, pk=None):
+        """Owner: goods returned against this bill -> credit note. {lines: [{line, quantity}], refund_mode, reason}"""
+        if not is_owner({"request": request}):
+            raise PermissionDenied("Only the owner can take returns and give refunds.")
+        serializer = ReturnInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        note = services.create_return(
+            self.get_object(),
+            lines=[(line["line"], line["quantity"]) for line in data["lines"]],
+            refund_mode=data["refund_mode"],
+            reason=data["reason"],
+            user=request.user,
+        )
+        return Response(CreditNoteSerializer(CREDIT_NOTES.get(pk=note.pk)).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["post"])
+    def quotation(self, request, pk=None):
+        """Save this draft as a numbered quotation."""
+        invoice = services.save_as_quotation(self.get_object(), user=request.user)
+        return self._respond(invoice)
+
+    @action(detail=True, methods=["post"])
+    def convert(self, request, pk=None):
+        """Start a bill from this quotation; returns the new draft bill."""
+        bill = services.quotation_to_bill(self.get_object(), user=request.user)
+        return self._respond(bill, status.HTTP_201_CREATED)
+
+
+CREDIT_NOTES = CreditNote.objects.select_related("invoice", "created_by").prefetch_related("lines__invoice_line")
+
+
+class CreditNoteViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+    queryset = CREDIT_NOTES
+    serializer_class = CreditNoteSerializer
 

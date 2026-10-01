@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Ban, Printer } from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, Ban, FileOutput, Printer, Undo2 } from "lucide-react";
 import api from "../../api.js";
 import { useAuth } from "../../context/AuthContext.js";
 import { useFetch } from "../../hooks/useFetch.js";
 import { errorMessage } from "../../lib/errors.js";
-import { dateTime, money, plain } from "../../lib/format.js";
-import { Alert, Badge, Button, Card, Field, Input, Modal, Spinner, Table, td, th } from "../../ui/index.js";
+import { date, dateTime, money, plain } from "../../lib/format.js";
+import { Alert, Badge, Button, Card, Field, Input, Modal, NumberInput, Spinner, Table, td, th } from "../../ui/index.js";
 import { BILL_STATUS } from "./BillList.js";
 
 function CancelModal({ bill, onClose, onDone }) {
@@ -44,15 +44,137 @@ function CancelModal({ bill, onClose, onDone }) {
   );
 }
 
+const REFUND_MODES = [
+  ["cash", "Cash back"],
+  ["upi", "UPI back"],
+  ["khata", "Credit to khata"],
+];
+
+function ReturnModal({ bill, onClose, onDone }) {
+  const returnable = bill.lines
+    .map((line) => ({ ...line, left: Number(line.quantity) - Number(line.returned_quantity) }))
+    .filter((line) => line.left > 0);
+  const [quantities, setQuantities] = useState({});
+  const [refundMode, setRefundMode] = useState("cash");
+  const [reason, setReason] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const chosen = returnable.filter((line) => Number(quantities[line.id]) > 0);
+  const tooMany = chosen.find((line) => Number(quantities[line.id]) > line.left);
+  const estimate = chosen.reduce((sum, line) => sum + (Number(line.total) * Number(quantities[line.id])) / Number(line.quantity), 0);
+
+  async function save() {
+    setBusy(true);
+    try {
+      const response = await api.post(`/sales/invoices/${bill.id}/returns`, {
+        lines: chosen.map((line) => ({ line: line.id, quantity: quantities[line.id] })),
+        refund_mode: refundMode,
+        reason,
+      });
+      onDone(response.data);
+    } catch (err) {
+      setError(errorMessage(err));
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Modal title={`Return goods from bill ${bill.number}`} onClose={onClose} wide>
+      <Alert>{error}</Alert>
+      {returnable.length === 0 ? (
+        <p>Everything on this bill has already been returned.</p>
+      ) : (
+        <>
+          <table className="w-full text-left mb-4">
+            <thead>
+              <tr className="text-xs uppercase text-gray-500 border-b">
+                <th className="py-2">Item</th>
+                <th className="py-2 text-right">Sold</th>
+                <th className="py-2 text-right">Can return</th>
+                <th className="py-2 text-right w-36">Returning</th>
+              </tr>
+            </thead>
+            <tbody>
+              {returnable.map((line) => (
+                <tr key={line.id} className="border-b border-gray-100">
+                  <td className="py-2">{line.description}</td>
+                  <td className="py-2 text-right whitespace-nowrap">
+                    {plain(line.quantity)} {line.unit_name}
+                  </td>
+                  <td className="py-2 text-right whitespace-nowrap">
+                    {plain(line.left)} {line.unit_name}
+                  </td>
+                  <td className="py-2">
+                    <NumberInput
+                      className="text-right py-1"
+                      value={quantities[line.id] || ""}
+                      aria-label={`Returning ${line.description}`}
+                      onChange={(e) => setQuantities({ ...quantities, [line.id]: e.target.value })}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="flex flex-wrap gap-2 mb-4" role="radiogroup" aria-label="Money back as">
+            {REFUND_MODES.filter(([value]) => value !== "khata" || bill.customer).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={refundMode === value}
+                onClick={() => setRefundMode(value)}
+                className={`px-3 py-1.5 rounded-lg border font-semibold ${refundMode === value ? "bg-blue-700 text-white border-blue-700" : "bg-white border-gray-300"}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <Field label="Reason *">
+            <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. unused material returned by electrician" />
+          </Field>
+          {tooMany && <p className="text-red-700 text-sm mt-2">{tooMany.description}: more than can be returned.</p>}
+          {chosen.length > 0 && !tooMany && (
+            <p className="mt-3">
+              About <b>{money(estimate)}</b> {refundMode === "khata" ? "will be credited to the khata" : "to give back"} (exact amount on the credit note).
+            </p>
+          )}
+          <div className="flex gap-3 mt-5">
+            <Button variant="primary" onClick={save} disabled={busy || !chosen.length || Boolean(tooMany) || !reason.trim()}>
+              {busy ? "Saving…" : "Make credit note"}
+            </Button>
+            <Button onClick={onClose}>Cancel</Button>
+          </div>
+        </>
+      )}
+    </Modal>
+  );
+}
+
 export default function BillDetail() {
   const { id } = useParams();
   const { user } = useAuth();
-  const { data: bill, error, loading, setData } = useFetch(`/sales/invoices/${id}`);
+  const navigate = useNavigate();
+  const { data: bill, error, loading, setData, reload } = useFetch(`/sales/invoices/${id}`);
   const [cancelling, setCancelling] = useState(false);
+  const [returning, setReturning] = useState(false);
+  const [actionError, setActionError] = useState("");
 
   if (loading && !bill) return <Spinner />;
   if (!bill) return <Alert>{error || "Bill not found."}</Alert>;
-  const [color, label] = BILL_STATUS[bill.status];
+  const quotation = bill.kind === "quotation";
+  const [color, label] = quotation ? ["blue", "Quotation"] : BILL_STATUS[bill.status];
+  const isOwner = user?.role === "owner";
+
+  async function convert() {
+    setActionError("");
+    try {
+      const response = await api.post(`/sales/invoices/${bill.id}/convert`);
+      navigate(`/billing?resume=${response.data.id}`);
+    } catch (err) {
+      setActionError(errorMessage(err));
+    }
+  }
 
   return (
     <>
@@ -62,12 +184,22 @@ export default function BillDetail() {
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-3">
-            Bill {bill.number} <Badge color={color}>{label}</Badge>
+            {quotation ? "Quotation" : "Bill"} {bill.number} <Badge color={color}>{label}</Badge>
           </h1>
           <p className="text-gray-600 mt-1">
-            {dateTime(bill.finalised_at)} by {bill.finalised_by} · {bill.buyer_name || "Cash sale"}
+            {quotation ? `${date(bill.invoice_date)}, valid until ${date(bill.valid_until)}` : `${dateTime(bill.finalised_at)} by ${bill.finalised_by}`}
+            {" · "}
+            {bill.buyer_name || (quotation ? "No name" : "Cash sale")}
             {bill.buyer_phone && ` · ${bill.buyer_phone}`}
           </p>
+          {quotation && bill.converted_to && (
+            <p className="mt-1">
+              Billed as{" "}
+              <Link to={`/bills/${bill.converted_to}`} className="text-blue-800 underline">
+                {bill.converted_to_number || "a bill in progress"}
+              </Link>
+            </p>
+          )}
           {bill.status === "cancelled" && (
             <p className="text-red-700 mt-1">
               Cancelled {dateTime(bill.cancelled_at)} by {bill.cancelled_by}: {bill.cancel_reason}
@@ -78,7 +210,17 @@ export default function BillDetail() {
           <Button variant="primary" to={`/bills/${bill.id}/print`}>
             <Printer size={18} /> Print
           </Button>
-          {user?.role === "owner" && bill.status === "final" && (
+          {quotation && (
+            <Button variant="success" onClick={convert}>
+              <FileOutput size={18} /> Convert to bill
+            </Button>
+          )}
+          {isOwner && bill.status === "final" && (
+            <Button onClick={() => setReturning(true)}>
+              <Undo2 size={18} /> Return goods
+            </Button>
+          )}
+          {isOwner && bill.status === "final" && bill.credit_notes.length === 0 && (
             <Button variant="danger" onClick={() => setCancelling(true)}>
               <Ban size={18} /> Cancel bill
             </Button>
@@ -86,6 +228,21 @@ export default function BillDetail() {
         </div>
       </div>
 
+      <Alert>{actionError}</Alert>
+      {bill.credit_notes.length > 0 && (
+        <Alert kind="info">
+          Returns:{" "}
+          {bill.credit_notes.map((note, index) => (
+            <span key={note.id}>
+              {index > 0 && ", "}
+              <Link to={`/credit-notes/${note.id}/print`} className="underline font-semibold">
+                {note.number}
+              </Link>{" "}
+              ({money(note.total)})
+            </span>
+          ))}
+        </Alert>
+      )}
       <Card className="mb-6">
         <Table>
           <thead>
@@ -109,6 +266,9 @@ export default function BillDetail() {
                 </td>
                 <td className={`${td} text-right whitespace-nowrap`}>
                   {plain(line.quantity)} {line.unit_name}
+                  {Number(line.returned_quantity) > 0 && (
+                    <div className="text-xs text-amber-800">{plain(line.returned_quantity)} returned</div>
+                  )}
                 </td>
                 <td className={`${td} text-right`}>{money(line.rate)}</td>
                 <td className={`${td} text-right`}>{Number(line.discount) ? money(line.discount) : "—"}</td>
@@ -167,6 +327,17 @@ export default function BillDetail() {
         </Card>
       </div>
 
+      {returning && (
+        <ReturnModal
+          bill={bill}
+          onClose={() => setReturning(false)}
+          onDone={(note) => {
+            setReturning(false);
+            reload();
+            navigate(`/credit-notes/${note.id}/print`);
+          }}
+        />
+      )}
       {cancelling && (
         <CancelModal
           bill={bill}

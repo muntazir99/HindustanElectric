@@ -3,9 +3,11 @@ Making, finalising and cancelling bills. Finalising is the only way a sale touch
 stock, khata or cash, and it does all three in one transaction (docs/PLAN.md §7.5).
 """
 
+from datetime import timedelta
 from decimal import Decimal
 
 from django.db import transaction
+from django.db.models import Sum
 from django.utils import timezone
 
 from core.numbers import cost, money, qty
@@ -13,7 +15,7 @@ from shop.models import ShopSettings
 from stock.models import StockMovement
 from stock.services import lock_items, record_movement, weighted_average_cost
 
-from .models import Invoice, InvoiceLine, LedgerEntry, Payment
+from .models import CreditNote, CreditNoteLine, Invoice, InvoiceLine, LedgerEntry, Payment
 from .numbering import next_number
 from .pricing import LineInput, PricingError, price_bill
 
@@ -79,6 +81,8 @@ def save_draft(invoice, *, lines, user, **header):
     """
     if invoice.pk and invoice.status != Invoice.Status.DRAFT:
         raise BillingError("A finalised bill can't be changed.")
+    if invoice.is_quotation:
+        raise BillingError("A quotation can't be changed. Convert it to a bill, or make a new quotation.")
     for field, value in header.items():
         if field not in HEADER_FIELDS:
             raise ValueError(f"Unknown bill field {field}")
@@ -163,6 +167,8 @@ def finalise(invoice, *, payments, user):
         invoice = Invoice.objects.select_for_update(of=("self",)).select_related("customer").get(pk=invoice.pk)
         if invoice.status != Invoice.Status.DRAFT:
             raise BillingError("This bill is already finalised.")
+        if invoice.is_quotation:
+            raise BillingError("A quotation can't be finalised. Convert it to a bill first.")
         lines = list(invoice.lines.select_related("unit", "item__product"))
         if not lines:
             raise BillingError("Add at least one item to the bill.")
@@ -244,6 +250,8 @@ def cancel(invoice, *, reason, user):
         invoice = Invoice.objects.select_for_update(of=("self",)).select_related("customer").get(pk=invoice.pk)
         if invoice.status != Invoice.Status.FINAL:
             raise BillingError("Only a finalised bill can be cancelled.")
+        if invoice.credit_notes.exists():
+            raise BillingError("Goods from this bill were already returned, so it can't be cancelled. Return the rest instead.")
         lines = list(invoice.lines.all())
         items = lock_items([line.item_id for line in lines])
         today = timezone.localdate()
@@ -371,3 +379,162 @@ def statement(customer, date_from=None, date_to=None):
         balance += entry.debit - entry.credit
         lines.append((entry, balance))
     return brought_forward, lines, balance
+
+
+# --- returns (credit notes) -------------------------------------------------------------
+
+def _round_total(subtotal):
+    if not ShopSettings.load().round_off_bills:
+        return subtotal, ZERO
+    total = subtotal.quantize(Decimal("1"), rounding="ROUND_HALF_UP")
+    return total, total - subtotal
+
+
+def create_return(invoice, *, lines, refund_mode, reason, user):
+    """
+    Goods coming back from a bill. lines: list of (invoice_line_id, quantity).
+    GST is reversed at the bill's own rates; returning everything left on a line
+    reverses exactly what was charged, to the paisa.
+    """
+    reason = (reason or "").strip()
+    if not reason:
+        raise BillingError("Give a reason for the return.")
+    if refund_mode not in CreditNote.Refund.values:
+        raise BillingError("Choose how the money goes back.")
+    with transaction.atomic():
+        invoice = Invoice.objects.select_for_update(of=("self",)).select_related("customer").get(pk=invoice.pk)
+        if invoice.status != Invoice.Status.FINAL or invoice.is_quotation:
+            raise BillingError("Goods can only be returned against a finalised bill.")
+        customer = invoice.customer
+        if refund_mode == CreditNote.Refund.KHATA and customer is None:
+            raise BillingError("“Credit to khata” needs a bill made out to a customer. Refund the money instead.")
+        bill_lines = {line.id: line for line in invoice.lines.all()}
+
+        planned = []
+        for line_id, quantity in lines:
+            line = bill_lines.get(int(line_id))
+            if line is None:
+                raise BillingError("That line is not on this bill.")
+            quantity = qty(quantity)
+            if quantity <= 0:
+                continue
+            before = line.returns.aggregate(
+                quantity=Sum("quantity"), base=Sum("base_quantity"), taxable=Sum("taxable_value"),
+                cgst=Sum("cgst"), sgst=Sum("sgst"), igst=Sum("igst"),
+            )
+            before = {key: value or ZERO for key, value in before.items()}
+            remaining = line.quantity - before["quantity"]
+            if quantity > remaining:
+                raise BillingError(f"{line.description}: only {remaining.normalize()} {line.unit_name} left to return.")
+            if quantity == remaining:
+                amounts = {
+                    "base_quantity": line.base_quantity - before["base"],
+                    "taxable_value": line.taxable_value - before["taxable"],
+                    "cgst": line.cgst - before["cgst"], "sgst": line.sgst - before["sgst"], "igst": line.igst - before["igst"],
+                }
+            else:
+                share = quantity / line.quantity
+                amounts = {
+                    "base_quantity": qty(line.base_quantity * share),
+                    "taxable_value": money(line.taxable_value * share),
+                    "cgst": money(line.cgst * share), "sgst": money(line.sgst * share), "igst": money(line.igst * share),
+                }
+            amounts["total"] = amounts["taxable_value"] + amounts["cgst"] + amounts["sgst"] + amounts["igst"]
+            planned.append((line, quantity, amounts))
+        if not planned:
+            raise BillingError("Enter how much of which item is coming back.")
+
+        subtotal = sum((amounts["total"] for _, _, amounts in planned), ZERO)
+        total, round_off = _round_total(subtotal)
+        today = timezone.localdate()
+        note = CreditNote.objects.create(
+            number=next_number("credit_note", today), date=today, invoice=invoice, customer=customer,
+            reason=reason[:250], refund_mode=refund_mode,
+            taxable_total=sum((a["taxable_value"] for _, _, a in planned), ZERO),
+            cgst_total=sum((a["cgst"] for _, _, a in planned), ZERO),
+            sgst_total=sum((a["sgst"] for _, _, a in planned), ZERO),
+            igst_total=sum((a["igst"] for _, _, a in planned), ZERO),
+            round_off=round_off, total=total, created_by=user,
+        )
+
+        items = lock_items([line.item_id for line, _, _ in planned])
+        for line, quantity, amounts in planned:
+            returned = CreditNoteLine.objects.create(credit_note=note, invoice_line=line, quantity=quantity, **amounts)
+            item = items[line.item_id]
+            unit_cost = cost(line.cost_amount / line.base_quantity) if line.cost_amount is not None else None
+            if unit_cost is not None:
+                item.cost_price = weighted_average_cost(item.stock_qty, item.cost_price, returned.base_quantity, unit_cost)
+            record_movement(
+                item, StockMovement.Kind.SALE_RETURN, returned.base_quantity, user, unit_cost=unit_cost,
+                source=returned, note=f"Return {note.number} (bill {invoice.number})",
+            )
+
+        if total > 0:
+            if customer:
+                LedgerEntry.objects.create(
+                    customer=customer, date=today, kind=LedgerEntry.Kind.RETURN, credit=total, invoice=invoice,
+                    credit_note=note, note=f"Return {note.number} against bill {invoice.number}", created_by=user,
+                )
+            if refund_mode != CreditNote.Refund.KHATA:
+                refund = Payment.objects.create(
+                    kind=Payment.Kind.REFUND, mode=refund_mode, amount=total, date=today, customer=customer,
+                    invoice=invoice, credit_note=note, note=f"Refund for return {note.number}", created_by=user,
+                )
+                if customer:
+                    LedgerEntry.objects.create(
+                        customer=customer, date=today, kind=LedgerEntry.Kind.REFUND, debit=total, invoice=invoice,
+                        payment=refund, credit_note=note, note=f"Refund paid for return {note.number}", created_by=user,
+                    )
+    return note
+
+
+# --- quotations ------------------------------------------------------------------------
+
+QUOTATION_VALID_DAYS = 15
+
+
+def save_as_quotation(invoice, *, user, valid_days=QUOTATION_VALID_DAYS):
+    """Turn a draft into a numbered quotation (QT/26-27/00001). Nothing else changes."""
+    with transaction.atomic():
+        invoice = Invoice.objects.select_for_update(of=("self",)).get(pk=invoice.pk)
+        if invoice.status != Invoice.Status.DRAFT or invoice.is_quotation:
+            raise BillingError("Only a bill that is still being made can become a quotation.")
+        if not invoice.lines.exists():
+            raise BillingError("Add at least one item to the quotation.")
+        apply_pricing(invoice)
+        today = timezone.localdate()
+        invoice.kind = Invoice.Kind.QUOTATION
+        invoice.number = next_number("quotation", today)
+        invoice.invoice_date = today
+        invoice.valid_until = today + timedelta(days=valid_days)
+        invoice.held = False
+        invoice.save()
+    return invoice
+
+
+def quotation_to_bill(quotation, *, user):
+    """Start a bill with the quotation's items at the quoted prices. Returns the new draft bill."""
+    if not quotation.is_quotation:
+        raise BillingError("This is not a quotation.")
+    existing = quotation.converted_to
+    if existing is not None:
+        if existing.status == Invoice.Status.DRAFT:
+            return existing
+        raise BillingError(f"This quotation was already billed as {existing.number}.")
+    lines = [
+        {
+            "item": line.item, "unit": line.unit, "quantity": line.quantity, "rate": line.rate,
+            "discount_percent": line.discount_percent, "gst_rate": line.gst_rate,
+        }
+        for line in quotation.lines.select_related("item__product", "unit")
+    ]
+    with transaction.atomic():
+        bill = save_draft(
+            Invoice(), lines=lines, user=user, customer=quotation.customer, buyer_name=quotation.buyer_name,
+            buyer_phone=quotation.buyer_phone, buyer_gstin=quotation.buyer_gstin, buyer_address=quotation.buyer_address,
+            place_of_supply=quotation.place_of_supply, rates_include_tax=quotation.rates_include_tax,
+            bill_discount=quotation.bill_discount, note=f"As per quotation {quotation.number}",
+        )
+        quotation.converted_to = bill
+        quotation.save(update_fields=["converted_to"])
+    return bill

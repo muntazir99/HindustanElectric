@@ -90,6 +90,18 @@ class Invoice(models.Model):
         FINAL = "final", "Final"
         CANCELLED = "cancelled", "Cancelled"
 
+    class Kind(models.TextChoices):
+        INVOICE = "invoice", "Tax invoice"
+        QUOTATION = "quotation", "Quotation"
+
+    kind = models.CharField(
+        max_length=10, choices=Kind.choices, default=Kind.INVOICE,
+        help_text="A quotation is a priced draft with its own QT number; it never touches stock or khata.",
+    )
+    valid_until = models.DateField(null=True, blank=True)
+    converted_to = models.ForeignKey(
+        "self", null=True, blank=True, on_delete=models.PROTECT, related_name="+", help_text="Bill made from this quotation."
+    )
     number = models.CharField(max_length=16, unique=True, null=True, blank=True)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.DRAFT)
     invoice_date = models.DateField(null=True, blank=True)
@@ -139,6 +151,10 @@ class Invoice(models.Model):
 
     def __str__(self):
         return self.number or f"Draft #{self.pk}"
+
+    @property
+    def is_quotation(self):
+        return self.kind == self.Kind.QUOTATION
 
     @property
     def same_state(self):
@@ -200,6 +216,9 @@ class Payment(models.Model):
     receipt_number = models.CharField(max_length=16, unique=True, null=True, blank=True)
     customer = models.ForeignKey(Customer, null=True, blank=True, on_delete=models.PROTECT, related_name="payments")
     invoice = models.ForeignKey(Invoice, null=True, blank=True, on_delete=models.PROTECT, related_name="payments")
+    credit_note = models.ForeignKey(
+        "CreditNote", null=True, blank=True, on_delete=models.PROTECT, related_name="payments"
+    )
     reference = models.CharField(max_length=60, blank=True, help_text="UPI reference, cheque number…")
     note = models.CharField(max_length=250, blank=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
@@ -238,6 +257,7 @@ class LedgerEntry(models.Model):
     credit = money_field(help_text="Customer owes less.")
     invoice = models.ForeignKey(Invoice, null=True, blank=True, on_delete=models.PROTECT, related_name="+")
     payment = models.ForeignKey(Payment, null=True, blank=True, on_delete=models.PROTECT, related_name="+")
+    credit_note = models.ForeignKey("CreditNote", null=True, blank=True, on_delete=models.PROTECT, related_name="+")
     note = models.CharField(max_length=250, blank=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -254,3 +274,50 @@ class LedgerEntry(models.Model):
 
     def __str__(self):
         return f"{self.customer} {self.get_kind_display()} {self.debit or -self.credit}"
+
+
+class CreditNote(models.Model):
+    """Goods returned against a bill. Stock comes back; the money is refunded or credited to khata."""
+
+    class Refund(models.TextChoices):
+        CASH = "cash", "Cash"
+        UPI = "upi", "UPI"
+        CARD = "card", "Card"
+        BANK = "bank", "Bank transfer"
+        KHATA = "khata", "Credit to khata"
+
+    number = models.CharField(max_length=16, unique=True)
+    date = models.DateField()
+    invoice = models.ForeignKey(Invoice, on_delete=models.PROTECT, related_name="credit_notes")
+    customer = models.ForeignKey(Customer, null=True, blank=True, on_delete=models.PROTECT, related_name="+")
+    reason = models.CharField(max_length=250)
+    refund_mode = models.CharField(max_length=10, choices=Refund.choices)
+    taxable_total = money_field()
+    cgst_total = money_field()
+    sgst_total = money_field()
+    igst_total = money_field()
+    round_off = money_field(max_digits=6)
+    total = money_field()
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.number
+
+
+class CreditNoteLine(models.Model):
+    credit_note = models.ForeignKey(CreditNote, on_delete=models.CASCADE, related_name="lines")
+    invoice_line = models.ForeignKey(InvoiceLine, on_delete=models.PROTECT, related_name="returns")
+    quantity = models.DecimalField(max_digits=12, decimal_places=3)
+    base_quantity = models.DecimalField(max_digits=12, decimal_places=3)
+    taxable_value = money_field()
+    cgst = money_field()
+    sgst = money_field()
+    igst = money_field()
+    total = money_field()
+
+    class Meta:
+        ordering = ["id"]

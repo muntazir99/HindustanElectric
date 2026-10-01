@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { PauseCircle, Printer, RotateCcw, Trash2 } from "lucide-react";
+import { FileText, PauseCircle, Printer, RotateCcw, Trash2 } from "lucide-react";
 import api from "../../api.js";
 import CustomerPicker from "../../components/CustomerPicker.js";
 import ItemSearch from "../../components/ItemSearch.js";
@@ -275,6 +275,26 @@ export default function Billing() {
     reloadHeld();
     setNotice(`Bill held${header.customer ? ` for ${header.customer.name}` : ""}. Resume it from “Held bills”.`);
     focusSearch();
+  }
+
+  async function quote() {
+    if (!lines.length || busy) return;
+    setBusy(true);
+    clearTimeout(timer.current);
+    const saved = await queueSave();
+    if (!saved) {
+      setBusy(false);
+      return;
+    }
+    try {
+      const response = await api.post(`/sales/invoices/${saved.id}/quotation`);
+      reset();
+      navigate(`/bills/${response.data.id}/print?next=/billing`);
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function resume(id) {
@@ -662,6 +682,9 @@ export default function Billing() {
               Finish without printing
             </button>
             <span className="flex gap-3">
+              <button type="button" onClick={quote} disabled={!lines.length || busy} className="inline-flex items-center gap-1 text-blue-800 hover:underline disabled:opacity-40">
+                <FileText size={16} /> Quotation
+              </button>
               <button type="button" onClick={hold} disabled={!lines.length} className="inline-flex items-center gap-1 text-amber-800 hover:underline disabled:opacity-40">
                 <PauseCircle size={16} /> Hold (F8)
               </button>
