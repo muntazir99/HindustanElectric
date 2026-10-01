@@ -14,9 +14,13 @@ export default function Adjustments() {
 
   return (
     <>
-      <PageHeader title="Adjustments" subtitle="Breakage, loss, samples and corrections. Every one is recorded with a reason." />
+      <PageHeader
+        title="Fix Stock"
+        back={["/more", "All options"]}
+        subtitle="Broken, lost, used in the shop, or a mistake. Every change is recorded with a reason."
+      />
       <Card className="p-5 mb-6">
-        <p className="font-semibold mb-2">Adjust an item</p>
+        <p className="font-semibold mb-2">Which item?</p>
         <ItemSearch onSelect={(selected) => setItem(selected)} />
       </Card>
       <Alert kind="success" onClose={() => setMessage("")}>
@@ -27,7 +31,7 @@ export default function Adjustments() {
         {loading && !data ? (
           <Spinner />
         ) : !data?.results.length ? (
-          <Empty>No adjustments yet.</Empty>
+          <Empty>No stock fixed yet.</Empty>
         ) : (
           <Table>
             <thead>

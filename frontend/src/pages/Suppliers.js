@@ -27,7 +27,7 @@ function SupplierForm({ supplier, onClose, onSaved }) {
   }
 
   return (
-    <Modal title={supplier ? "Edit supplier" : "New supplier"} onClose={onClose}>
+    <Modal title={supplier ? "Edit distributor" : "Add distributor"} onClose={onClose}>
       <Alert>{error}</Alert>
       <div className="grid gap-4">
         <Field label="Name *">
@@ -45,7 +45,7 @@ function SupplierForm({ supplier, onClose, onSaved }) {
         {supplier && (
           <label className="flex items-center gap-2">
             <input type="checkbox" className="w-5 h-5" checked={!form.is_active} onChange={(e) => setForm({ ...form, is_active: !e.target.checked })} />
-            No longer a supplier (hide from lists)
+            We don't buy from them any more (hide from lists)
           </label>
         )}
       </div>
@@ -66,21 +66,21 @@ export default function Suppliers() {
 
   return (
     <>
-      <PageHeader title="Suppliers" subtitle="Distributors you buy from">
+      <PageHeader title="Distributors" back={["/more", "All options"]} subtitle="Companies and dealers you buy from">
         <Button variant="primary" onClick={() => setEditing("new")}>
-          <Plus size={18} /> New supplier
+          <Plus size={18} /> Add distributor
         </Button>
       </PageHeader>
       <label className="flex items-center gap-2 mb-4 text-sm">
         <input type="checkbox" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />
-        Show former suppliers
+        Also show ones we don't buy from any more
       </label>
       <Alert>{error}</Alert>
       <Card>
         {loading && !data ? (
           <Spinner />
         ) : !data?.length ? (
-          <Empty>No suppliers yet.</Empty>
+          <Empty>No distributors yet.</Empty>
         ) : (
           <Table>
             <thead>

@@ -378,7 +378,7 @@ export default function ItemDetail() {
   return (
     <>
       <Link to="/items" className="inline-flex items-center gap-1 text-blue-800 mb-3 hover:underline">
-        <ArrowLeft size={16} /> Items
+        <ArrowLeft size={16} /> All Items
       </Link>
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
@@ -398,7 +398,7 @@ export default function ItemDetail() {
                 <Pencil size={18} /> Product, HSN & GST
               </Button>
               <Button variant="primary" onClick={() => setModal("adjust")}>
-                <SlidersHorizontal size={18} /> Adjust stock
+                <SlidersHorizontal size={18} /> Fix stock
               </Button>
             </>
           )}
@@ -410,7 +410,7 @@ export default function ItemDetail() {
           <p className="text-sm font-semibold text-gray-500">In stock</p>
           <p className={`text-4xl font-bold mt-1 ${Number(item.stock_qty) < 0 ? "text-red-700" : ""}`}>{item.stock_display}</p>
           <p className="text-sm text-gray-500 mt-2">
-            {item.counted_at ? `Last counted ${dateTime(item.counted_at)}` : "Not counted yet — this number isn't confirmed."}
+            {item.counted_at ? `Last checked ${dateTime(item.counted_at)}` : "Not checked yet — this number isn't confirmed."}
           </p>
           {Number(item.min_stock) > 0 && <p className="text-sm text-gray-500">Reorder at {plain(item.min_stock)} {item.base_unit}</p>}
         </Card>

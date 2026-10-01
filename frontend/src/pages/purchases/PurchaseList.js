@@ -6,8 +6,8 @@ import { Alert, Badge, Button, Card, Empty, Input, PageHeader, Pagination, Spinn
 
 const TABS = [
   ["", "All"],
-  ["draft", "Not posted"],
-  ["posted", "Posted"],
+  ["draft", "Not added to stock"],
+  ["posted", "Added to stock"],
 ];
 
 export default function PurchaseList() {
@@ -30,13 +30,17 @@ export default function PurchaseList() {
 
   return (
     <>
-      <PageHeader title="Purchases" subtitle="Bills from distributors. Posting a bill adds its goods to stock.">
+      <PageHeader
+        title="Purchase Bills"
+        back={["/more", "All options"]}
+        subtitle="Bills from distributors. The goods go into stock when you press “Add to stock”."
+      >
         <Button variant="primary" to="/purchases/new">
-          <Plus size={18} /> Enter a bill
+          <Plus size={18} /> Goods Arrived
         </Button>
       </PageHeader>
       <Card className="p-4 mb-4 flex flex-wrap gap-3 items-center">
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {TABS.map(([value, label]) => (
             <button
               key={value}
@@ -51,7 +55,7 @@ export default function PurchaseList() {
           ))}
         </div>
         <div className="flex-1 min-w-[220px]">
-          <Input defaultValue={search} placeholder="Search bill number or supplier" onChange={(e) => update({ search: e.target.value.trim() })} />
+          <Input defaultValue={search} placeholder="Bill number or distributor" onChange={(e) => update({ search: e.target.value.trim() })} />
         </div>
       </Card>
       <Alert>{error}</Alert>
@@ -65,7 +69,7 @@ export default function PurchaseList() {
             <thead>
               <tr>
                 <th className={th}>Bill date</th>
-                <th className={th}>Supplier</th>
+                <th className={th}>Distributor</th>
                 <th className={th}>Bill no.</th>
                 <th className={`${th} text-right`}>Lines</th>
                 <th className={`${th} text-right`}>Total</th>
@@ -84,7 +88,7 @@ export default function PurchaseList() {
                   <td className={`${td} text-right`}>{bill.line_count}</td>
                   <td className={`${td} text-right font-semibold`}>{money(bill.total)}</td>
                   <td className={td}>
-                    <Badge color={bill.status === "posted" ? "green" : "amber"}>{bill.status === "posted" ? "Posted" : "Not posted"}</Badge>
+                    <Badge color={bill.status === "posted" ? "green" : "amber"}>{bill.status === "posted" ? "Added to stock" : "Not added yet"}</Badge>
                   </td>
                 </tr>
               ))}

@@ -8,7 +8,7 @@ import { useFetch } from "../../hooks/useFetch.js";
 import { errorMessage } from "../../lib/errors.js";
 import { dateTime, plain, plural, signed } from "../../lib/format.js";
 import { Alert, Badge, Button, Card, Empty, Input, Modal, NumberInput, Spinner, Table, td, th } from "../../ui/index.js";
-import { COUNT_STATUS_COLOR } from "./CountList.js";
+import { COUNT_STATUS_COLOR, COUNT_STATUS_LABEL } from "./CountList.js";
 
 function QuantityCell({ line, onSet, disabled }) {
   const [value, setValue] = useState(plain(line.counted_qty));
@@ -145,30 +145,30 @@ export default function CountSheet() {
   return (
     <>
       <Link to="/counts" className="inline-flex items-center gap-1 text-blue-800 mb-3 hover:underline">
-        <ArrowLeft size={16} /> Stock counts
+        <ArrowLeft size={16} /> Check Stock
       </Link>
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Count: {count.title}</h1>
+          <h1 className="text-3xl font-bold">Checking: {count.title}</h1>
           <p className="text-gray-600 mt-1 flex items-center gap-2">
-            <Badge color={COUNT_STATUS_COLOR[count.status]}>{count.status_display}</Badge>
+            <Badge color={COUNT_STATUS_COLOR[count.status]}>{COUNT_STATUS_LABEL[count.status] || count.status_display}</Badge>
             Started {dateTime(count.created_at)} by {count.created_by} · {plural(count.lines.length, "item")}
           </p>
         </div>
         {isOwner && open && (
           <div className="flex gap-2">
             <Button variant="danger" onClick={() => window.confirm("Cancel this count? Nothing will change in stock.") && finish("cancel")}>
-              Cancel count
+              Cancel this count
             </Button>
             <Button variant="success" onClick={() => setConfirm(true)} disabled={!count.lines.length}>
-              Review & post
+              Check &amp; save to stock
             </Button>
           </div>
         )}
       </div>
 
       {open && !isOwner && (
-        <Alert kind="info">Count what you see on the shelf. The owner will review and post the count.</Alert>
+        <Alert kind="info">Count what you see on the shelf. The owner will check it and save it to stock.</Alert>
       )}
       <Alert onClose={() => setError("")}>{error}</Alert>
 
@@ -241,7 +241,7 @@ export default function CountSheet() {
       </Card>
 
       {confirm && (
-        <Modal title="Post this count?" onClose={() => setConfirm(false)}>
+        <Modal title="Save this count to stock?" onClose={() => setConfirm(false)}>
           <p className="mb-2">
             <b>{plural(count.lines.length, "item")}</b> counted, <b>{withDifference.length}</b> with a difference.
           </p>
@@ -251,7 +251,7 @@ export default function CountSheet() {
           </p>
           <div className="flex gap-3">
             <Button variant="success" onClick={() => finish("post")} disabled={busy}>
-              {busy ? "Posting…" : "Post count"}
+              {busy ? "Saving…" : "Yes, save to stock"}
             </Button>
             <Button onClick={() => setConfirm(false)}>Back</Button>
           </div>

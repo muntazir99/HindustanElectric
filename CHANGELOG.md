@@ -5,6 +5,19 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-01 — Simple screens, step 5: plain names everywhere — redesign complete
+
+**Changed**
+- Every screen now uses the names from the All options page, and each one has a back link to where it is opened from:
+  - Items → **All Items** (filters: Running low, Not checked yet, Check again, Not sold any more); Add item → **Add New Item**; Adjust stock → **Fix stock**.
+  - Adjustments → **Fix Stock** ("Which item?"); Stock counts → **Check Stock** (status: In progress / Saved to stock; "Check & save to stock").
+  - Purchases → **Purchase Bills**; Enter a purchase bill → **Goods Arrived**; Post to stock → **Add to stock** (Added to stock / Not added yet); Save draft → "Save, finish later".
+  - Suppliers → **Distributors**.
+  - Bill page: Quotation → **Estimate**, Convert to bill → **Make it a bill**.
+  - Import from Excel → **Upload from Excel** ("Save N rows"); Add user → **Staff Logins**.
+- Phones: the top bar fits a 375px screen, and Home, New Bill, bills, purchases and the Excel page no longer scroll sideways.
+- Printed bills, estimates, credit notes and receipts are unchanged.
+
 ### 2026-10-01 — Simple screens, step 4: Khata
 
 **Changed**

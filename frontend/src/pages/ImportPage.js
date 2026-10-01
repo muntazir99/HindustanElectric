@@ -9,7 +9,7 @@ import { Alert, Badge, Button, Card, PageHeader, Table, td, th } from "../ui/ind
 const KINDS = {
   catalogue: {
     label: "Items (catalogue)",
-    text: "Add new items or update existing ones: names, sizes, units, packs, barcodes, prices, racks. Fill the green Stock columns with what's on the shelf: they go into a stock count for you to review and post.",
+    text: "Add new items or update existing ones: names, sizes, units, packs, barcodes, prices, racks. Fill the green Stock columns with what's on the shelf: they go into a stock check for you to look over and save to stock.",
   },
   prices: {
     label: "Price update",
@@ -75,9 +75,13 @@ export default function ImportPage() {
 
   return (
     <>
-      <PageHeader title="Import from Excel" subtitle="Load many items or prices at once. You'll see a preview before anything is saved." />
+      <PageHeader
+        title="Upload from Excel"
+        back={["/more", "All options"]}
+        subtitle="Add many items, or new prices, at once. You'll see a preview before anything is saved."
+      />
 
-      <div className="flex gap-2 mb-4" role="tablist">
+      <div className="flex flex-wrap gap-2 mb-4" role="tablist">
         {Object.entries(KINDS).map(([value, { label }]) => (
           <button
             key={value}
@@ -113,6 +117,7 @@ export default function ImportPage() {
               type="file"
               accept=".xlsx,.csv"
               aria-label="Filled sheet"
+              className="max-w-full"
               onChange={(e) => {
                 setFile(e.target.files?.[0] || null);
                 setResult(null);
@@ -143,10 +148,10 @@ export default function ImportPage() {
                 </Link>
                 {summary.stock_count_id && (
                   <p className="mt-2">
-                    Stock for {summary.stock_lines} item{summary.stock_lines === 1 ? "" : "s"} is waiting in the count{" "}
+                    Stock for {summary.stock_lines} item{summary.stock_lines === 1 ? "" : "s"} is waiting in the stock check{" "}
                     <b>{summary.stock_count_title}</b>.{" "}
                     <Link to={`/counts/${summary.stock_count_id}`} className="underline font-semibold">
-                      Review and post it
+                      Check it and save it
                     </Link>{" "}
                     to put it into stock.
                   </p>
@@ -161,7 +166,7 @@ export default function ImportPage() {
                 <Badge color={summary.errors ? "red" : "gray"}>{summary.errors} errors</Badge>
                 {summary.stock_lines > 0 && (
                   <span className="text-sm text-gray-700">
-                    Stock for {summary.stock_lines} item{summary.stock_lines === 1 ? "" : "s"} will go into a stock count for you to review.
+                    Stock for {summary.stock_lines} item{summary.stock_lines === 1 ? "" : "s"} will go into a stock check for you to look over.
                   </span>
                 )}
               </div>
@@ -171,11 +176,11 @@ export default function ImportPage() {
                 {summary.errors > 0 && (
                   <label className="flex items-center gap-2">
                     <input type="checkbox" checked={skipErrors} onChange={(e) => setSkipErrors(e.target.checked)} className="w-5 h-5" />
-                    Skip the {summary.errors} rows with errors and import the rest
+                    Skip the {summary.errors} rows with errors and save the rest
                   </label>
                 )}
                 <Button variant="success" onClick={() => send(true)} disabled={busy || good === 0 || (summary.errors > 0 && !skipErrors)}>
-                  {busy ? "Importing…" : `Import ${good} rows`}
+                  {busy ? "Saving…" : `Save ${good} rows`}
                 </Button>
                 {summary.errors > 0 && !skipErrors && (
                   <span className="text-sm text-gray-600">Fix the errors in Excel and check again, or tick “skip”.</span>

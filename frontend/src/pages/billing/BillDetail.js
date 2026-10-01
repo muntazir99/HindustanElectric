@@ -163,7 +163,7 @@ export default function BillDetail() {
   if (loading && !bill) return <Spinner />;
   if (!bill) return <Alert>{error || "Bill not found."}</Alert>;
   const quotation = bill.kind === "quotation";
-  const [color, label] = quotation ? ["blue", "Quotation"] : BILL_STATUS[bill.status];
+  const [color, label] = quotation ? ["blue", "Estimate"] : BILL_STATUS[bill.status];
   const isOwner = user?.role === "owner";
 
   async function convert() {
@@ -179,12 +179,12 @@ export default function BillDetail() {
   return (
     <>
       <Link to="/bills" className="inline-flex items-center gap-1 text-blue-800 mb-3 hover:underline">
-        <ArrowLeft size={16} /> Bills
+        <ArrowLeft size={16} /> Old Bills
       </Link>
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-3">
-            {quotation ? "Quotation" : "Bill"} {bill.number} <Badge color={color}>{label}</Badge>
+            {quotation ? "Estimate" : "Bill"} {bill.number} <Badge color={color}>{label}</Badge>
           </h1>
           <p className="text-gray-600 mt-1">
             {quotation ? `${date(bill.invoice_date)}, valid until ${date(bill.valid_until)}` : `${dateTime(bill.finalised_at)} by ${bill.finalised_by}`}
@@ -212,7 +212,7 @@ export default function BillDetail() {
           </Button>
           {quotation && (
             <Button variant="success" onClick={convert}>
-              <FileOutput size={18} /> Convert to bill
+              <FileOutput size={18} /> Make it a bill
             </Button>
           )}
           {isOwner && bill.status === "final" && (

@@ -8,19 +8,19 @@ import { Alert, Badge, Button, Card, Empty, PageHeader, Pagination, Select, Spin
 
 const FILTERS = [
   ["", "All"],
-  ["low", "Low stock"],
-  ["not_counted", "Not counted"],
-  ["needs_recount", "Needs recount"],
-  ["inactive", "Inactive"],
+  ["low", "Running low"],
+  ["not_counted", "Not checked yet"],
+  ["needs_recount", "Check again"],
+  ["inactive", "Not sold any more"],
 ];
 
 export function StatusBadges({ item }) {
   return (
     <span className="inline-flex flex-wrap gap-1">
-      {!item.is_active && <Badge color="gray">Inactive</Badge>}
-      {!item.counted_at && <Badge color="amber">Not counted</Badge>}
-      {item.needs_recount && <Badge color="red">Needs recount</Badge>}
-      {item.is_low && <Badge color="red">Low</Badge>}
+      {!item.is_active && <Badge color="gray">Not sold any more</Badge>}
+      {!item.counted_at && <Badge color="amber">Not checked yet</Badge>}
+      {item.needs_recount && <Badge color="red">Check again</Badge>}
+      {item.is_low && <Badge color="red">Running low</Badge>}
     </span>
   );
 }
@@ -55,14 +55,18 @@ export default function ItemList() {
 
   return (
     <>
-      <PageHeader title="Items" subtitle={data ? `${data.count} item${data.count === 1 ? "" : "s"}` : ""}>
+      <PageHeader
+        title={status === "low" ? "Running Low" : "All Items"}
+        back={["/more", "All options"]}
+        subtitle={data ? `${data.count} item${data.count === 1 ? "" : "s"}` : ""}
+      >
         {isOwner && (
           <Button to="/import">
-            <FileSpreadsheet size={18} /> Import
+            <FileSpreadsheet size={18} /> Upload from Excel
           </Button>
         )}
         <Button variant="primary" to="/items/new">
-          <Plus size={18} /> Add item
+          <Plus size={18} /> Add New Item
         </Button>
       </PageHeader>
 

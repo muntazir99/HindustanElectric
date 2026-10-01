@@ -63,7 +63,7 @@ export default function BillList() {
       />
       {help && <Alert kind="info">{help}</Alert>}
       <Card className="p-4 mb-4 flex flex-wrap items-center gap-3">
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {TABS.map(([value, label]) => (
             <button
               key={value}

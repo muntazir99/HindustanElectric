@@ -411,7 +411,7 @@ export default function Billing() {
   const gst = server ? round2(Number(server.cgst_total) + Number(server.sgst_total) + Number(server.igst_total)) : 0;
 
   return (
-    <div className="grid lg:grid-cols-[1fr_360px] xl:grid-cols-[1fr_390px] gap-5 items-start">
+    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_390px] gap-5 items-start">
       <div className="min-w-0">
         <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
           <div>

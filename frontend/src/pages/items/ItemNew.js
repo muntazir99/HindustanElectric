@@ -196,7 +196,7 @@ export default function ItemNew() {
 
   return (
     <>
-      <PageHeader title="Add item" subtitle="One product, with all its sizes and colours" />
+      <PageHeader title="Add New Item" back={["/items", "All Items"]} subtitle="One product, with all its sizes and colours" />
       <ExcelHint />
 
       <Card className="p-6 mb-6">

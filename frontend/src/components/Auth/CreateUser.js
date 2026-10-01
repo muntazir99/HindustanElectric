@@ -23,7 +23,11 @@ export default function CreateUser() {
 
   return (
     <>
-      <PageHeader title="Add user" subtitle="Give a staff member their own login. Everything they do is recorded under their name." />
+      <PageHeader
+        title="Staff Logins"
+        back={["/more", "All options"]}
+        subtitle="Give each helper their own login. Everything they do is recorded under their name."
+      />
       <Card className="p-6 max-w-lg">
         <Alert>{error}</Alert>
         <Alert kind="success">{message}</Alert>

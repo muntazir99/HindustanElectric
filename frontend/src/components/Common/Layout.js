@@ -17,9 +17,9 @@ function TopBar() {
 
   return (
     <header className="print:hidden sticky top-0 z-40 bg-white border-b border-gray-200">
-      <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-3 flex items-center gap-3 md:gap-4">
+      <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-3 flex items-center gap-2 sm:gap-3 md:gap-4">
         <Link to="/dashboard" className="mr-auto md:mr-2 shrink-0 leading-tight">
-          <span className="block text-lg sm:text-xl md:text-2xl font-bold text-gray-900">Hindustan Electric</span>
+          <span className="block text-base sm:text-xl md:text-2xl font-bold text-gray-900">Hindustan Electric</span>
           <span className="hidden md:block text-sm text-gray-500">Muzaffarpur</span>
         </Link>
 
@@ -40,9 +40,9 @@ function TopBar() {
 
         <NavLink
           to="/billing"
-          className="shrink-0 inline-flex items-center gap-1.5 h-12 px-3 sm:px-4 md:px-5 rounded-xl bg-green-700 hover:bg-green-800 text-white text-lg font-semibold"
+          className="shrink-0 inline-flex items-center gap-1.5 h-12 px-3 sm:px-4 md:px-5 rounded-xl bg-green-700 hover:bg-green-800 text-white sm:text-lg font-semibold"
         >
-          <Plus size={22} strokeWidth={2.5} /> New Bill
+          <Plus size={20} strokeWidth={2.5} /> New Bill
         </NavLink>
         <NavLink
           to="/more"

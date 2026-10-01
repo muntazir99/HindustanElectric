@@ -29,7 +29,7 @@ function Task({ task }) {
     >
       <Icon size={34} strokeWidth={1.8} className={task.main ? "text-white" : task.tone || "text-blue-800"} />
       <span>
-        <span className="block text-2xl font-bold leading-tight">{task.name}</span>
+        <span className="block text-xl sm:text-2xl font-bold leading-tight">{task.name}</span>
         <span className={`block ${task.main ? "text-blue-100" : "text-gray-600"}`}>{task.text}</span>
       </span>
     </Link>
@@ -236,7 +236,7 @@ export default function Home() {
         ))}
       </div>
 
-      <div className="grid lg:grid-cols-[1fr_380px] gap-5 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-5 items-start">
         <div className="space-y-5 min-w-0">
           {today && <TodayCard today={today} />}
           <RecentBills />

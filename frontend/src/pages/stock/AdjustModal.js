@@ -47,11 +47,11 @@ export default function AdjustModal({ item, onClose, onDone }) {
   }
 
   return (
-    <Modal title={`Adjust stock — ${item.name}`} onClose={onClose}>
+    <Modal title={`Fix stock — ${item.name}`} onClose={onClose}>
       <Alert>{error}</Alert>
       <p className="text-sm text-gray-600 mb-4">
-        Now: <b>{item.stock_display}</b>. Use this for breakage, loss or fixing a mistake. Prefer a stock count when
-        you've checked the shelf.
+        Now: <b>{item.stock_display}</b>. Use this for breakage, loss or fixing a mistake. If you've counted the
+        shelf, use Check Stock instead.
       </p>
       <div className="grid grid-cols-2 gap-4">
         <div className="col-span-2 flex gap-2" role="radiogroup" aria-label="Add or remove">

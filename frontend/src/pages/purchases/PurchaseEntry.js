@@ -62,7 +62,7 @@ function SupplierModal({ onClose, onCreated }) {
     }
   }
   return (
-    <Modal title="New supplier" onClose={onClose}>
+    <Modal title="Add distributor" onClose={onClose}>
       <Alert>{error}</Alert>
       <div className="grid gap-4">
         <Field label="Name *">
@@ -77,7 +77,7 @@ function SupplierModal({ onClose, onCreated }) {
       </div>
       <div className="flex gap-3 mt-6">
         <Button variant="primary" onClick={save} disabled={!form.name.trim()}>
-          Save supplier
+          Save distributor
         </Button>
         <Button onClick={onClose}>Cancel</Button>
       </div>
@@ -218,7 +218,7 @@ export default function PurchaseEntry() {
       const response = isNew
         ? await api.post("/purchases/bills", payload())
         : await api.patch(`/purchases/bills/${id}`, payload());
-      const saved = "Draft saved. Stock is not changed until you post the bill.";
+      const saved = "Saved. Stock doesn't change until you press “Add to stock”.";
       if (isNew && !stay) {
         navigate(`/purchases/${response.data.id}`, { replace: true, state: { notice: saved } });
       } else {
@@ -261,7 +261,7 @@ export default function PurchaseEntry() {
   }
 
   async function remove() {
-    if (!window.confirm("Delete this draft bill?")) return;
+    if (!window.confirm("Delete this bill? It was not added to stock.")) return;
     try {
       await api.delete(`/purchases/bills/${id}`);
       navigate("/purchases");
@@ -290,16 +290,16 @@ export default function PurchaseEntry() {
   return (
     <>
       <Link to="/purchases" className="inline-flex items-center gap-1 text-blue-800 mb-3 hover:underline">
-        <ArrowLeft size={16} /> Purchases
+        <ArrowLeft size={16} /> Purchase Bills
       </Link>
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
-        <h1 className="text-2xl font-bold">
-          {isNew ? "Enter a purchase bill" : `Bill ${bill?.bill_number || ""}`}{" "}
-          {bill && <Badge color={posted ? "green" : "amber"}>{posted ? "Posted" : "Not posted"}</Badge>}
+        <h1 className="text-3xl font-bold">
+          {isNew ? "Goods Arrived" : `Bill ${bill?.bill_number || ""}`}{" "}
+          {bill && <Badge color={posted ? "green" : "amber"}>{posted ? "Added to stock" : "Not added yet"}</Badge>}
         </h1>
         {posted && (
           <p className="text-gray-600">
-            Posted {date(bill.posted_at)} by {bill.posted_by}
+            Added to stock {date(bill.posted_at)} by {bill.posted_by}
           </p>
         )}
       </div>
@@ -311,20 +311,20 @@ export default function PurchaseEntry() {
 
       <Card className="p-5 mb-6">
         <div className="grid md:grid-cols-4 gap-4">
-          <Field label="Supplier *" className="md:col-span-2">
+          <Field label="Distributor *" className="md:col-span-2">
             {posted ? (
               <p className="py-2 font-semibold">{bill.supplier_name}</p>
             ) : (
               <div className="flex gap-2">
                 <Select value={header.supplier} onChange={setH("supplier")}>
-                  <option value="">Choose supplier…</option>
+                  <option value="">Choose distributor…</option>
                   {(suppliers || []).map((supplier) => (
                     <option key={supplier.id} value={supplier.id}>
                       {supplier.name}
                     </option>
                   ))}
                 </Select>
-                <Button onClick={() => setModal("supplier")} title="New supplier" aria-label="New supplier">
+                <Button onClick={() => setModal("supplier")} title="Add distributor" aria-label="Add distributor">
                   <Plus size={18} />
                 </Button>
               </div>
@@ -347,7 +347,7 @@ export default function PurchaseEntry() {
             ) : bill ? (
               <input type="file" accept="image/*,application/pdf" onChange={attach} className="py-2 text-sm" />
             ) : (
-              <p className="py-2 text-sm text-gray-500">Save the draft first</p>
+              <p className="py-2 text-sm text-gray-500">Save the bill first</p>
             )}
           </Field>
         </div>
@@ -489,14 +489,14 @@ export default function PurchaseEntry() {
       {!posted && (
         <div className="flex flex-wrap gap-3 mt-6">
           <Button onClick={() => save()} disabled={busy || !header.supplier || !header.bill_number.trim()}>
-            Save draft
+            Save, finish later
           </Button>
           <Button variant="success" onClick={() => setModal("post")} disabled={busy || !header.supplier || !header.bill_number.trim() || !lines.length}>
-            Post to stock…
+            Add to stock…
           </Button>
           {bill && (
             <Button variant="danger" onClick={remove}>
-              Delete draft
+              Delete this bill
             </Button>
           )}
         </div>
@@ -522,20 +522,20 @@ export default function PurchaseEntry() {
         />
       )}
       {modal === "post" && (
-        <Modal title="Post this bill to stock?" onClose={() => setModal(null)}>
+        <Modal title="Add these goods to stock?" onClose={() => setModal(null)}>
           <p className="mb-2">
             <b>{lines.length}</b> lines from <b>{supplierName}</b>, bill <b>{header.bill_number}</b>, total <b>{money(total)}</b>.
           </p>
           {missingRates > 0 && (
-            <Alert kind="warning">{missingRates} line(s) have no rate and will be posted as free goods (₹0).</Alert>
+            <Alert kind="warning">{missingRates} line(s) have no rate and will be added as free goods (₹0).</Alert>
           )}
           {paperDiff !== null && paperDiff !== 0 && (
             <Alert kind="warning">The total differs from the paper bill by {money(Math.abs(paperDiff))}.</Alert>
           )}
-          <p className="text-gray-600 mb-4">The goods are added to stock and average costs updated. A posted bill can't be edited.</p>
+          <p className="text-gray-600 mb-4">The goods are added to stock and average costs updated. After this the bill can't be changed.</p>
           <div className="flex gap-3">
             <Button variant="success" onClick={post} disabled={busy}>
-              {busy ? "Posting…" : "Post bill"}
+              {busy ? "Adding…" : "Yes, add to stock"}
             </Button>
             <Button onClick={() => setModal(null)}>Back</Button>
           </div>

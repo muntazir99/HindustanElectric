@@ -7,6 +7,7 @@ import { dateTime } from "../../lib/format.js";
 import { Alert, Badge, Button, Card, Empty, Field, Input, PageHeader, Pagination, Spinner, Table, td, th } from "../../ui/index.js";
 
 export const COUNT_STATUS_COLOR = { open: "blue", posted: "green", cancelled: "gray" };
+export const COUNT_STATUS_LABEL = { open: "In progress", posted: "Saved to stock", cancelled: "Cancelled" };
 
 export default function CountList() {
   const navigate = useNavigate();
@@ -27,7 +28,11 @@ export default function CountList() {
 
   return (
     <>
-      <PageHeader title="Stock counts" subtitle="Count one rack or category at a time. What's on the shelf becomes the stock." />
+      <PageHeader
+        title="Check Stock"
+        back={["/more", "All options"]}
+        subtitle="Count one rack or one kind of item at a time. What's on the shelf becomes the stock."
+      />
       <Card className="p-5 mb-6">
         <div className="flex flex-wrap items-end gap-3">
           <Field label="What are you counting?" className="flex-1 min-w-[240px]">
@@ -39,7 +44,7 @@ export default function CountList() {
             />
           </Field>
           <Button variant="primary" onClick={start} disabled={!title.trim()}>
-            Start count
+            Start counting
           </Button>
         </div>
         <Alert>{error}</Alert>
@@ -49,16 +54,16 @@ export default function CountList() {
         {loading && !data ? (
           <Spinner />
         ) : !data?.results.length ? (
-          <Empty>No counts yet.</Empty>
+          <Empty>No stock checks yet.</Empty>
         ) : (
           <Table>
             <thead>
               <tr>
-                <th className={th}>Count</th>
+                <th className={th}>What was counted</th>
                 <th className={th}>Status</th>
                 <th className={`${th} text-right`}>Items</th>
                 <th className={th}>Started</th>
-                <th className={th}>Posted</th>
+                <th className={th}>Saved to stock</th>
               </tr>
             </thead>
             <tbody>
@@ -66,7 +71,7 @@ export default function CountList() {
                 <tr key={count.id} className="hover:bg-blue-50/50 cursor-pointer" onClick={() => navigate(`/counts/${count.id}`)}>
                   <td className={`${td} font-semibold`}>{count.title}</td>
                   <td className={td}>
-                    <Badge color={COUNT_STATUS_COLOR[count.status]}>{count.status_display}</Badge>
+                    <Badge color={COUNT_STATUS_COLOR[count.status]}>{COUNT_STATUS_LABEL[count.status] || count.status_display}</Badge>
                   </td>
                   <td className={`${td} text-right`}>{count.line_count}</td>
                   <td className={td}>
