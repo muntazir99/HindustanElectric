@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, X } from "lucide-react";
+import { ArrowLeft, Check, Home, X } from "lucide-react";
+import { useGoBack } from "../hooks/useTrail.js";
 
 const BUTTON = {
   primary: "bg-blue-800 hover:bg-blue-900 text-white border-blue-800",
@@ -42,12 +43,53 @@ export function Badge({ color = "gray", children }) {
   );
 }
 
-/** A plain "← Home" style link back to where this screen is opened from. */
+/**
+ * "← Back to Home": goes to the screen this one was opened from. `to` and `children` are the usual
+ * screen above it, used when that isn't known (a bookmark, a refresh in a new tab).
+ */
 export function BackLink({ to = "/more", children = "All options" }) {
+  const back = useGoBack(to, children);
   return (
-    <Link to={to} className="no-print inline-flex items-center gap-1.5 font-semibold text-blue-800 hover:underline">
-      <ArrowLeft size={18} /> {children}
+    <Link
+      to={back.to}
+      onClick={(event) => {
+        if (!back.fromHistory) return;
+        event.preventDefault();
+        back.go();
+      }}
+      className="no-print inline-flex items-center gap-1.5 min-h-[44px] text-lg font-semibold text-blue-800 hover:underline"
+    >
+      <ArrowLeft size={20} /> Back to {back.label}
     </Link>
+  );
+}
+
+/** The big blue "Go to Home" button that ends every finished job. */
+export function GoHomeButton() {
+  return (
+    <Link
+      to="/dashboard"
+      className="flex items-center justify-center gap-2.5 h-[60px] rounded-xl bg-blue-800 hover:bg-blue-900 text-white text-xl font-bold"
+    >
+      <Home size={24} /> Go to Home
+    </Link>
+  );
+}
+
+/** Shown when a job is finished: what was done, and what to do next (children: the buttons). */
+export function DonePanel({ title, detail, note, children }) {
+  return (
+    <div role="status" className="max-w-xl mx-auto md:py-6">
+      <Card className="p-6 md:p-9 flex flex-col items-center text-center gap-2">
+        <span className="flex items-center justify-center w-[72px] h-[72px] rounded-full bg-green-50 text-green-700">
+          <Check size={40} strokeWidth={2.6} />
+        </span>
+        <h1 className="text-3xl font-bold leading-tight mt-2">{title}</h1>
+        {detail && <p className="text-xl">{detail}</p>}
+        {note && <p className="text-gray-600">{note}</p>}
+        <div className="w-full max-w-sm flex flex-col gap-3 mt-5">{children}</div>
+      </Card>
+    </div>
   );
 }
 

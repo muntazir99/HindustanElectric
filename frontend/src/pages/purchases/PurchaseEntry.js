@@ -1,12 +1,28 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, Paperclip, Plus, Trash2 } from "lucide-react";
+import { CheckCircle2, Paperclip, Plus, Trash2 } from "lucide-react";
 import api from "../../api.js";
 import ItemSearch from "../../components/ItemSearch.js";
 import { useFetch } from "../../hooks/useFetch.js";
+import { useGoBack } from "../../hooks/useTrail.js";
 import { errorMessage } from "../../lib/errors.js";
-import { GST_RATES, date, money, plain, round2, today } from "../../lib/format.js";
-import { Alert, Badge, Button, Card, Field, Input, Modal, NumberInput, Select, Spinner, inputClass } from "../../ui/index.js";
+import { GST_RATES, date, money, plain, plural, round2, today } from "../../lib/format.js";
+import {
+  Alert,
+  BackLink,
+  Badge,
+  Button,
+  Card,
+  DonePanel,
+  Field,
+  GoHomeButton,
+  Input,
+  Modal,
+  NumberInput,
+  Select,
+  Spinner,
+  inputClass,
+} from "../../ui/index.js";
 import QuickItemModal from "../items/QuickItemModal.js";
 
 let nextKey = 1;
@@ -140,10 +156,13 @@ export default function PurchaseEntry() {
   const [notice, setNotice] = useState(location.state?.notice || "");
   const [busy, setBusy] = useState(false);
   const [modal, setModal] = useState(null);
+  // After "Add to stock": say it's done and what to do next, instead of leaving the bill on screen.
+  const [done, setDone] = useState(Boolean(location.state?.added));
+  const back = useGoBack("/purchases", "Purchase Bills");
 
   // A message carried over from the previous screen is shown once, not again on reload.
   useEffect(() => {
-    if (location.state?.notice) navigate(location.pathname, { replace: true, state: null });
+    if (location.state?.notice || location.state?.added) navigate(location.pathname, { replace: true, state: null });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -171,6 +190,25 @@ export default function PurchaseEntry() {
 
   if (!isNew && loading && !bill) return <Spinner />;
   if (!isNew && !loaded && loadError) return <Alert>{loadError}</Alert>;
+
+  const doneBill = bill || loaded;
+  if (done && doneBill) {
+    return (
+      <DonePanel
+        title="Goods added to stock"
+        detail={`Bill ${doneBill.bill_number} from ${doneBill.supplier_name} · ${plural(doneBill.lines.length, "item")} · ${money(doneBill.total)}`}
+        note="Stock is updated. You can find this bill later in More › Purchase Bills."
+      >
+        <GoHomeButton />
+        <Button className="h-14 text-lg" onClick={() => navigate("/purchases/new", { replace: true })}>
+          <Plus size={20} /> Enter another bill
+        </Button>
+        <button type="button" onClick={() => setDone(false)} className="self-center p-2 font-semibold text-blue-800 hover:underline">
+          See this bill
+        </button>
+      </DonePanel>
+    );
+  }
 
   const posted = bill?.status === "posted";
   const amounts = lines.map(lineAmounts);
@@ -244,14 +282,13 @@ export default function PurchaseEntry() {
     setBusy(true);
     try {
       const response = await api.post(`/purchases/bills/${saved.id}/post`);
-      const message = "Bill posted. Its goods are now in stock.";
       if (isNew) {
-        navigate(`/purchases/${saved.id}`, { replace: true, state: { notice: message } });
+        navigate(`/purchases/${saved.id}`, { replace: true, state: { added: true } });
         return;
       }
       setBill(response.data);
       setModal(null);
-      setNotice(message);
+      setDone(true);
     } catch (err) {
       setError(errorMessage(err));
       setModal(null);
@@ -264,7 +301,7 @@ export default function PurchaseEntry() {
     if (!window.confirm("Delete this bill? It was not added to stock.")) return;
     try {
       await api.delete(`/purchases/bills/${id}`);
-      navigate("/purchases");
+      back.go();
     } catch (err) {
       setError(errorMessage(err));
     }
@@ -289,9 +326,9 @@ export default function PurchaseEntry() {
 
   return (
     <>
-      <Link to="/purchases" className="inline-flex items-center gap-1 text-blue-800 mb-3 hover:underline">
-        <ArrowLeft size={16} /> Purchase Bills
-      </Link>
+      <div className="mb-1">
+        <BackLink to="/purchases">Purchase Bills</BackLink>
+      </div>
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <h1 className="text-3xl font-bold">
           {isNew ? "Goods Arrived" : `Bill ${bill?.bill_number || ""}`}{" "}

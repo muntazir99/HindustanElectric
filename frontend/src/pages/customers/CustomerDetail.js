@@ -7,7 +7,23 @@ import { useAuth } from "../../context/AuthContext.js";
 import { useFetch } from "../../hooks/useFetch.js";
 import { errorMessage } from "../../lib/errors.js";
 import { bigMoney, date, money } from "../../lib/format.js";
-import { Alert, BackLink, Badge, Button, Card, Field, Input, Modal, NumberInput, Spinner, Table, td, th } from "../../ui/index.js";
+import {
+  Alert,
+  BackLink,
+  Badge,
+  Button,
+  Card,
+  DonePanel,
+  Field,
+  GoHomeButton,
+  Input,
+  Modal,
+  NumberInput,
+  Spinner,
+  Table,
+  td,
+  th,
+} from "../../ui/index.js";
 import { BalanceText } from "./CustomerList.js";
 
 const KIND_LABEL = Object.fromEntries(CUSTOMER_KINDS);
@@ -207,6 +223,32 @@ export default function CustomerDetail() {
   const customer = data.customer;
   const hasOpening = data.lines.some((line) => line.kind === "opening") || (range.from && Number(data.brought_forward) !== 0);
 
+  // Just took a payment: say so, with what's still due, and what to do next.
+  if (receipt) {
+    const due = Number(customer.balance);
+    return (
+      <DonePanel
+        title="Payment saved"
+        detail={`${money(receipt.amount)} from ${customer.name} · Receipt ${receipt.receipt_number}`}
+        note={
+          due > 0
+            ? `${customer.name} still owes ${money(due)}.`
+            : due < 0
+              ? `${customer.name} now has ${money(-due)} advance.`
+              : "Nothing due now — the khata is clear."
+        }
+      >
+        <GoHomeButton />
+        <Button className="h-14 text-lg" to={`/receipts/${receipt.id}/print`}>
+          <Printer size={20} /> Print receipt
+        </Button>
+        <button type="button" onClick={() => setReceipt(null)} className="self-center p-2 font-semibold text-blue-800 hover:underline">
+          See {customer.name}'s khata
+        </button>
+      </DonePanel>
+    );
+  }
+
   async function post(action, body) {
     await api.post(`/sales/customers/${customer.id}/${action}`, body);
     setModal(null);
@@ -267,17 +309,6 @@ export default function CustomerDetail() {
           </Button>
         </div>
       </Card>
-
-      <Alert kind="success" onClose={() => setReceipt(null)}>
-        {receipt && (
-          <>
-            Received {money(receipt.amount)} · receipt <b>{receipt.receipt_number}</b>.{" "}
-            <Link to={`/receipts/${receipt.id}/print`} className="underline font-semibold">
-              Print receipt
-            </Link>
-          </>
-        )}
-      </Alert>
 
       {isOwner && (
         <div className="no-print flex flex-wrap items-center gap-3 mb-5 px-1">
@@ -423,10 +454,10 @@ export default function CustomerDetail() {
         <PaymentModal
           customer={customer}
           onClose={() => setModal(null)}
-          onDone={(payment) => {
+          onDone={async (payment) => {
+            await reload(); // so the done screen shows what's still owed after this payment
             setModal(null);
             setReceipt(payment);
-            reload();
           }}
         />
       )}

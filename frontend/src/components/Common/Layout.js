@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { ChevronDown, LayoutGrid, LogOut, Plus } from "lucide-react";
+import { ChevronDown, Home, LayoutGrid, LogOut, Plus } from "lucide-react";
 import { useAuth } from "../../context/AuthContext.js";
 import ItemSearch from "../ItemSearch.js";
 
 /**
- * One short bar on every screen: the shop name (goes Home), find an item, New Bill, and More.
- * Everything that isn't needed every hour lives on the More page, not in a menu.
+ * One short bar on every screen: shop name, find an item, Home, New Bill, and More — so Home is always
+ * one press away. Everything that isn't needed every hour lives on the More page, not in a menu.
  */
 function TopBar() {
   const { user, logout } = useAuth();
@@ -18,16 +18,17 @@ function TopBar() {
   return (
     <header className="print:hidden sticky top-0 z-40 bg-white border-b border-gray-200">
       <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-3 flex items-center gap-2 sm:gap-3 md:gap-4">
-        <Link to="/dashboard" className="mr-auto md:mr-2 shrink-0 leading-tight">
-          <span className="block text-base sm:text-xl md:text-2xl font-bold text-gray-900">Hindustan Electric</span>
+        {/* On a phone the Home button takes the name's place. */}
+        <Link to="/dashboard" className="hidden sm:block mr-auto lg:mr-2 shrink-0 leading-tight">
+          <span className="block text-xl md:text-2xl font-bold text-gray-900">Hindustan Electric</span>
           <span className="hidden md:block text-sm text-gray-500">Muzaffarpur</span>
         </Link>
 
         {/* On the bill screen the big scan box is the search, so don't show two. */}
         {onBilling ? (
-          <div className="flex-1 hidden md:block" />
+          <div className="flex-1 hidden lg:block" />
         ) : (
-          <div className="flex-1 min-w-0 hidden md:block">
+          <div className="flex-1 min-w-0 hidden lg:block">
             <ItemSearch
               compact
               autoFocus={false}
@@ -38,6 +39,16 @@ function TopBar() {
           </div>
         )}
 
+        <NavLink
+          to="/dashboard"
+          className={({ isActive }) =>
+            `mr-auto sm:mr-0 shrink-0 inline-flex items-center gap-2 h-12 px-3 md:px-4 rounded-xl border-2 border-blue-800 text-blue-800 font-bold ${
+              isActive ? "bg-blue-50" : "bg-white hover:bg-blue-50"
+            }`
+          }
+        >
+          <Home size={22} /> Home
+        </NavLink>
         <NavLink
           to="/billing"
           className="shrink-0 inline-flex items-center gap-1.5 h-12 px-3 sm:px-4 md:px-5 rounded-xl bg-green-700 hover:bg-green-800 text-white sm:text-lg font-semibold"

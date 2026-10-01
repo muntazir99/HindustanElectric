@@ -4,10 +4,11 @@ import { ArrowDownToLine, Download, FileSpreadsheet, Plus, Trash2, Wand2 } from 
 import api from "../../api.js";
 import { useAuth } from "../../context/AuthContext.js";
 import { useFetch } from "../../hooks/useFetch.js";
+import { useGoBack } from "../../hooks/useTrail.js";
 import { SAMPLE_SHEET_NAME, SAMPLE_SHEET_URL, downloadFile } from "../../lib/download.js";
 import { errorMessage } from "../../lib/errors.js";
 import { BASE_UNITS, GST_RATES } from "../../lib/format.js";
-import { Alert, Button, Card, Field, Input, PageHeader, Select, inputClass } from "../../ui/index.js";
+import { Alert, Button, Card, DonePanel, Field, GoHomeButton, Input, PageHeader, Select, inputClass } from "../../ui/index.js";
 
 let nextKey = 1;
 const blankRow = (variant = "") => ({
@@ -83,7 +84,7 @@ function ExcelHint() {
               <>
                 Upload it under{" "}
                 <Link to="/import" className="underline font-semibold">
-                  Import from Excel
+                  Upload from Excel
                 </Link>
                 .
               </>
@@ -122,6 +123,8 @@ export default function ItemNew() {
   const [error, setError] = useState("");
   const [existingId, setExistingId] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [done, setDone] = useState(null); // what was just saved, for the "done" screen
+  const back = useGoBack("/items", "All Items");
 
   const setField = (key) => (event) => setProduct({ ...product, [key]: event.target.value });
   const setCell = (key, field, value) => setRows(rows.map((row) => (row.key === key ? { ...row, [field]: value } : row)));
@@ -182,13 +185,40 @@ export default function ItemNew() {
           ...variantsBody(),
         });
       }
-      navigate(`/items?search=${encodeURIComponent(product.name.trim())}`);
+      setDone({
+        count: rows.length,
+        name: [product.brand.trim(), product.name.trim()].filter(Boolean).join(" "),
+        variants: rows.map((row) => row.variant.trim()).filter(Boolean),
+      });
     } catch (err) {
       setExistingId(err.response?.data?.product_id ?? null);
       setError(errorMessage(err));
     } finally {
       setSaving(false);
     }
+  }
+
+  if (done) {
+    const one = done.count === 1;
+    return (
+      <DonePanel
+        title={one ? "Item added" : `${done.count} items added`}
+        detail={done.variants.length ? `${done.name} — ${done.variants.join(", ")}` : done.name}
+        note={`${one ? "It" : "They"} can be billed now. Stock shows once you count ${one ? "it" : "them"} or enter a purchase bill.`}
+      >
+        <GoHomeButton />
+        {/* Opening the form again (replacing this page) gives a fresh, empty form. */}
+        <Button className="h-14 text-lg" onClick={() => navigate("/items/new", { replace: true })}>
+          <Plus size={20} /> Add another item
+        </Button>
+        <Link
+          to={`/items?search=${encodeURIComponent(product.name.trim())}`}
+          className="self-center p-2 font-semibold text-blue-800 hover:underline"
+        >
+          See {one ? "this item" : "these items"}
+        </Link>
+      </DonePanel>
+    );
   }
 
   const unitLabel = product.base_unit;
@@ -374,7 +404,7 @@ export default function ItemNew() {
         <Button variant="primary" onClick={() => save(false)} disabled={saving || !product.name.trim()}>
           {saving ? "Saving…" : `Save ${rows.length} item${rows.length === 1 ? "" : "s"}`}
         </Button>
-        <Button to="/items">Cancel</Button>
+        <Button onClick={back.go}>Cancel</Button>
       </div>
     </>
   );

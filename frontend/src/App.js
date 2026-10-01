@@ -1,8 +1,9 @@
 import { Suspense, lazy } from "react";
-import { BrowserRouter as Router, Navigate, Route, Routes, useParams } from "react-router-dom";
+import { BrowserRouter as Router, Navigate, Route, Routes, useLocation, useParams } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext.js";
 import ErrorBoundary from "./components/Common/ErrorBoundary.js";
 import Layout from "./components/Common/Layout.js";
+import { TrailProvider } from "./hooks/useTrail.js";
 
 const Login = lazy(() => import("./components/Auth/LoginAuth.js"));
 const CreateUser = lazy(() => import("./components/Auth/CreateUser.js"));
@@ -33,6 +34,12 @@ function PurchaseEntryRoute() {
   return <PurchaseEntry key={id || "new"} />;
 }
 
+/** A fresh, empty form each time "Add another item" opens it again. */
+function ItemNewRoute() {
+  const { key } = useLocation();
+  return <ItemNew key={key} />;
+}
+
 function Loading() {
   return <div className="flex h-screen items-center justify-center text-gray-600">Loading…</div>;
 }
@@ -54,6 +61,7 @@ function AppRoutes() {
 
   return (
     <ErrorBoundary>
+      <TrailProvider>
       <Suspense fallback={<Loading />}>
         <Routes>
           <Route path="/login" element={<Login />} />
@@ -99,7 +107,7 @@ function AppRoutes() {
             <Route path="customers" element={<CustomerList />} />
             <Route path="customers/:id" element={<CustomerDetail />} />
             <Route path="items" element={<ItemList />} />
-            <Route path="items/new" element={<ItemNew />} />
+            <Route path="items/new" element={<ItemNewRoute />} />
             <Route path="items/:id" element={<ItemDetail />} />
             <Route path="purchases" element={<PurchaseList />} />
             <Route path="purchases/new" element={<PurchaseEntryRoute />} />
@@ -114,6 +122,7 @@ function AppRoutes() {
           <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
         </Routes>
       </Suspense>
+      </TrailProvider>
     </ErrorBoundary>
   );
 }

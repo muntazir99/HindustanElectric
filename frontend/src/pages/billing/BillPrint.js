@@ -56,7 +56,7 @@ export default function BillPrint() {
     <div className="bg-gray-200 min-h-screen py-6 print:bg-white print:py-0">
       <div className="no-print max-w-[210mm] mx-auto mb-4 flex flex-wrap items-center gap-3 px-2">
         <Button to={next || `/bills/${bill.id}`}>
-          <ArrowLeft size={18} /> {next ? "Back to billing" : "Back to bill"}
+          <ArrowLeft size={18} /> {next ? "Back to New Bill" : "Back to the bill"}
         </Button>
         <Button variant="primary" onClick={() => window.print()}>
           <Printer size={18} /> Print

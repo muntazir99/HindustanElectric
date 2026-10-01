@@ -5,6 +5,23 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-02 — Getting back Home
+
+Screens only; how stock, bills and khata work is unchanged. Plan: [PLAN.md §8.3](docs/PLAN.md).
+
+**Fixed**
+- Opened from Home, Goods Arrived and Add New Item now say **Back to Home** (they said Purchase Bills / All Items, which then led to All options — three presses to get Home). Every "Back to …" link now returns to the screen it was opened from, like a phone's back button, and names it; it falls back to the usual screen above only when that isn't known. It still works after a page refresh.
+- **Cancel** on Add New Item, and deleting an unfinished purchase bill, go back the same way (they always went to All Items / Purchase Bills).
+- Leftover "Bill posted" message and "Import from Excel" link text.
+
+**Added**
+- **Home** button in the top bar on every screen (on a phone it takes the shop name's place).
+- Done screens after the three everyday jobs, each with a big **Go to Home**:
+  - Goods Arrived → **Goods added to stock** (bill, distributor, items, total) · Enter another bill · See this bill.
+  - Add New Item → **N items added** (name and sizes/colours) · Add another item (a fresh form) · See these items.
+  - Take Payment → **Payment saved** (amount, receipt number, and what the customer still owes) · Print receipt · See the khata.
+- 4 frontend tests for the back links (14 frontend tests).
+
 ### 2026-10-01 — Simple screens, step 5: plain names everywhere — redesign complete
 
 **Changed**

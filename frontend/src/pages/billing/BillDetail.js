@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Ban, FileOutput, Printer, Undo2 } from "lucide-react";
+import { Ban, FileOutput, Printer, Undo2 } from "lucide-react";
 import api from "../../api.js";
 import { useAuth } from "../../context/AuthContext.js";
 import { useFetch } from "../../hooks/useFetch.js";
 import { errorMessage } from "../../lib/errors.js";
 import { date, dateTime, money, plain } from "../../lib/format.js";
-import { Alert, Badge, Button, Card, Field, Input, Modal, NumberInput, Spinner, Table, td, th } from "../../ui/index.js";
+import { Alert, BackLink, Badge, Button, Card, Field, Input, Modal, NumberInput, Spinner, Table, td, th } from "../../ui/index.js";
 import { BILL_STATUS } from "./BillList.js";
 
 function CancelModal({ bill, onClose, onDone }) {
@@ -178,9 +178,9 @@ export default function BillDetail() {
 
   return (
     <>
-      <Link to="/bills" className="inline-flex items-center gap-1 text-blue-800 mb-3 hover:underline">
-        <ArrowLeft size={16} /> Old Bills
-      </Link>
+      <div className="mb-1">
+        <BackLink to="/bills">Old Bills</BackLink>
+      </div>
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-3">

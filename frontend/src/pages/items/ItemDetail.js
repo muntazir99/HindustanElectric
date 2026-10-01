@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Pencil, Plus, SlidersHorizontal, Trash2 } from "lucide-react";
+import { useParams } from "react-router-dom";
+import { Pencil, Plus, SlidersHorizontal, Trash2 } from "lucide-react";
 import api from "../../api.js";
 import { useAuth } from "../../context/AuthContext.js";
 import { useFetch } from "../../hooks/useFetch.js";
 import { errorMessage } from "../../lib/errors.js";
 import { BASE_UNITS, GST_RATES, dateTime, money, plain, signed } from "../../lib/format.js";
-import { Alert, Button, Card, Empty, Field, Input, Modal, NumberInput, Select, Spinner, Table, td, th } from "../../ui/index.js";
+import { Alert, BackLink, Button, Card, Empty, Field, Input, Modal, NumberInput, Select, Spinner, Table, td, th } from "../../ui/index.js";
 import { StatusBadges } from "./ItemList.js";
 import AdjustModal from "../stock/AdjustModal.js";
 
@@ -377,9 +377,9 @@ export default function ItemDetail() {
 
   return (
     <>
-      <Link to="/items" className="inline-flex items-center gap-1 text-blue-800 mb-3 hover:underline">
-        <ArrowLeft size={16} /> All Items
-      </Link>
+      <div className="mb-1">
+        <BackLink to="/items">All Items</BackLink>
+      </div>
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold">{item.name}</h1>

@@ -292,6 +292,20 @@ stock, GST or khata work**, and no backend change. Mock-up: the "Shop app — si
 4. Khata (customer list and customer page).
 5. Plain names on every other screen.
 
+### 8.3 Getting back Home (approved 2026-10-02)
+
+Found in use: opened from Home, Goods Arrived said "back to Purchase Bills", which said "back to All options" —
+three presses to get Home, and the only shortcut (the shop name) wasn't obvious. Add New Item had the same
+problem, and after saving, both left the person on a screen with no clear next step. Mock-up: the "Shop app —
+getting back Home" design canvas.
+
+- A **Home** button in the top bar on every screen.
+- **Back** (and **Cancel**) go to the screen this one was opened from, named in plain words ("Back to Home");
+  only when that isn't known (a bookmark, a fresh tab) do they go to the usual screen above.
+- Finishing **Goods Arrived**, **Add New Item** or **Take Payment** shows a done screen: what was saved, then
+  a big **Go to Home**, "do another", and a link to see what was saved.
+- No phone bottom bar (decided against for now).
+
 ## 9. Open items
 
 - [x] Owner approval of Phase 1 design (§6)
