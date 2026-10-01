@@ -29,3 +29,6 @@ staticfiles/
 
 # Local Claude Code launch config
 .claude/
+
+# Uploaded files in development
+backend/media/

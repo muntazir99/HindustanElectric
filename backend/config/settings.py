@@ -45,6 +45,9 @@ INSTALLED_APPS = [
     "rest_framework",
     "accounts",
     "shop",
+    "catalog",
+    "stock",
+    "purchases",
 ]
 
 MIDDLEWARE = [
@@ -97,6 +100,11 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# Uploaded files (purchase bill photos/PDFs). Local disk in development;
+# production storage is chosen at deploy time.
+MEDIA_URL = "media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
