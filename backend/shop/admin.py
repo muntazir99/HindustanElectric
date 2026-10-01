@@ -10,7 +10,7 @@ class ShopSettingsAdmin(admin.ModelAdmin):
     fieldsets = (
         ("Shop", {"fields": ("name", "gstin", "state_code", "address", "phone", "email")}),
         ("Bank details (printed on bills)", {"fields": ("bank_name", "bank_branch", "bank_account_number", "bank_ifsc")}),
-        ("Bills", {"fields": ("invoice_terms",)}),
+        ("Bills", {"fields": ("invoice_prefix", "round_off_bills", "upi_id", "invoice_terms")}),
     )
 
     def has_add_permission(self, request):

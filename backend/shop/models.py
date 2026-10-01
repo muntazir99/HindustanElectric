@@ -31,6 +31,17 @@ class ShopSettings(models.Model):
     bank_account_number = models.CharField(max_length=30, blank=True)
     bank_ifsc = models.CharField("Bank IFSC", max_length=11, blank=True)
 
+    invoice_prefix = models.CharField(
+        max_length=4,
+        default="HE",
+        help_text="Start of every invoice number, e.g. HE → HE/26-27/00001. Letters and digits only.",
+        validators=[RegexValidator(r"^[A-Z0-9]{1,4}$", "1 to 4 capital letters or digits.")],
+    )
+    upi_id = models.CharField(
+        "UPI ID", max_length=60, blank=True, help_text="If set, bills show a QR code to pay by UPI."
+    )
+    round_off_bills = models.BooleanField(default=True, help_text="Round bill totals to the nearest rupee.")
+
     invoice_terms = models.TextField(
         blank=True,
         help_text="Printed at the bottom of every bill, one term per line.",

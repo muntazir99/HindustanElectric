@@ -16,6 +16,9 @@ Living document. Decisions are recorded here; individual changes go in [CHANGELO
 | 2026-10-01 | **English only** | Not needed in Hindi. |
 | 2026-10-01 | **Public website deferred** to Phase 4 | First priority is digitizing the shop itself. |
 | 2026-10-01 | Host API + DB in **Mumbai or Singapore** region (chosen at deploy) | Old setup defaulted to Oregon, US. |
+| 2026-10-01 | **Phase 2 approved.** Invoice series starts at 1 with prefix `HE` (`HE/26-27/00001`) | No numbered GST bills were issued on paper this financial year. |
+| 2026-10-01 | **Returns and refunds: owner only** | Handing back cash is the easiest place for money to leak. |
+| 2026-10-01 | **Customer Excel import deferred**; opening khata balances entered per customer by the owner | Owner will say if the paper khata needs a bulk import. |
 
 ## 2. What the shop looks like (inputs to the design)
 
@@ -30,7 +33,7 @@ Living document. Decisions are recorded here; individual changes go in [CHANGELO
 |---|---|---|
 | **0. Foundation** | Monorepo, Django + Postgres, owner/staff users, JWT login, shop settings, Django admin, test setup | Done 2026-10-01 |
 | **1. Catalogue & stock-in** | Products/variants, units & barcodes, Excel import, purchase bill entry, stock ledger, stock counts, adjustments, low-stock list | Done 2026-10-01 |
-| **2. Counter billing** | Scanner-friendly billing, GST-correct invoices, FY numbering, A4 print, customers & khata, payments, returns/credit notes, quotations | **Awaiting approval (§7)** |
+| **2. Counter billing** | Scanner-friendly billing, GST-correct invoices, FY numbering, A4 print, customers & khata, payments, returns/credit notes, quotations | Approved 2026-10-01, in progress |
 | **3. Back office & reports** | Day-end summary, sales & profit, GST summary for CA, supplier payables, expenses, reorder list → purchase orders, barcode label printing, Excel/DB exports & backups | Later |
 | **4. Growth** | Public website, WhatsApp bills & reminders, read bill photos/PDFs into draft purchase entries automatically, electrician loyalty, demand forecasting | Later |
 
@@ -129,7 +132,7 @@ Changes made while building, beyond the approved design:
 - Owner can import a distributor price list, enter a purchase bill, count a rack and see correct stock and history for every item.
 - Tests cover unit conversion, WAC, count posting, negative-stock flagging, duplicate-bill rejection, and that staff can't reach owner-only actions.
 
-## 7. Phase 2 — Counter billing (FOR APPROVAL)
+## 7. Phase 2 — Counter billing (approved 2026-10-01)
 
 Goal: the father and staff can bill every sale at the counter, correctly for GST, faster than writing by hand —
 and stock, khata and cash all update by themselves.
@@ -222,7 +225,7 @@ Rules:
 - **Returns:** pick the bill (by number, customer or date), tick quantities, choose refund → credit note printed.
 - **Quotations:** same line builder → print → *Convert to bill*.
 - **Home:** today's sales, number of bills, cash / UPI / khata split, cash refunds, total udhaar outstanding.
-- **Customer import (owner):** Excel with name, phone, GSTIN, address, type, opening balance — for moving the paper khata in.
+- ~~Customer import~~ — deferred; opening balances are entered per customer by the owner.
 
 ### 7.7 Who can do what
 
@@ -232,14 +235,14 @@ Rules:
 | Add customers, receive khata payments | ✓ | ✓ |
 | Discounts | ✓ (not below average cost) | ✓ (warning only) |
 | Exceed a credit limit | | ✓ |
-| Returns & refunds | *decision needed* | ✓ |
+| Returns & refunds | | ✓ |
 | Cancel bills, opening balances, credit limits, khata adjustments, customer import | | ✓ |
 
 ### 7.8 Build order (one commit each, tested before the next)
 
 1. **Billing engine:** sales models, GST calculation, numbering, finalise/cancel with stock and khata effects. Tests only, no screens.
 2. **Counter screen + A4 print + bills list.**
-3. **Customers & khata:** statement, payments and receipts, opening balances, customer import.
+3. **Customers & khata:** statement, payments and receipts, opening balances.
 4. **Returns (credit notes), quotations, held bills.**
 5. **Home "today" numbers, remove the old billing/customer screens, docs.** Browser walk-through of a full counter day.
 
@@ -261,7 +264,7 @@ E-invoicing (IRN) and e-way bills (only needed above turnover / value limits —
 - [x] Owner approval of Phase 1 design (§6)
 - [x] Remove the old Flask files from the repo root (preserved under tag `flask-final`)
 - [ ] Remove old React screens once Phase 2/3 replace them (billing, invoices, customers, payments, purchase orders, reports — no longer routed)
-- [ ] Owner approval of Phase 2 design (§7)
+- [x] Owner approval of Phase 2 design (§7)
 - [ ] CA confirmation of items marked *Confirm with CA* in §7 (before go-live)
-- [ ] Last paper invoice number this financial year, if any (§7.4)
+- [x] Last paper invoice number this financial year — none; start at 1
 - [ ] Hosting choice (before first deploy)

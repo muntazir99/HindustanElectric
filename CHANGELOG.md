@@ -5,6 +5,21 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-01 — Phase 2, step 1: billing engine (no screens yet)
+
+**Decided:** Phase 2 plan approved; invoice series starts at 1 with prefix `HE`; returns and refunds are owner-only; customer Excel import deferred (docs/PLAN.md §1).
+
+**Added**
+- **Bill calculation** in one place (`sales/pricing.py`): rates including or excluding GST, line discount %, bill discount shared across lines, CGST/SGST for Bihar or IGST for another state, round-off to the rupee. Every line and the bill add up to the paisa — checked on 500 random bills.
+- **Invoice numbers** `HE/26-27/00001`: one unbroken series per financial year (April–March), taken only when a bill is finalised, so drafts and held bills never leave gaps; within the 16-character GST limit.
+- **Customers** (name, phone, GSTIN, type, credit limit, default discount) and the **khata ledger** (append-only; balance = debits − credits).
+- **Finalising a bill** in one transaction: number, stock out (packs converted to base units, cost recorded for profit), payments by mode, khata updated. Walk-in bills must be paid in full; bills over ₹50,000 to walk-in buyers need name and address.
+- **Controls:** staff can't sell below average cost or exceed a customer's credit limit (the owner gets a warning instead); the staff message never reveals the cost.
+- **Cancelling a bill** (owner): goods back, money refunded by the same mode, khata reversed; the number stays, marked cancelled.
+- Bills keep the item name, unit and HSN as they were when sold.
+- Shop settings: invoice prefix, UPI ID (for a QR on bills), round-off on/off.
+- 57 new tests (211 backend tests).
+
 ### 2026-10-01 — Excel: opening stock and sample sheet
 
 **Why:** the shop has thousands of items already on the shelves; filling current stock in Excel is the practical way to load it.

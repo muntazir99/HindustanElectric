@@ -18,6 +18,7 @@ class StockMovement(models.Model):
         PURCHASE = "purchase", "Purchase"
         SALE = "sale", "Sale"
         SALE_RETURN = "sale_return", "Sale return"
+        SALE_CANCELLED = "sale_cancelled", "Bill cancelled"
         PURCHASE_RETURN = "purchase_return", "Return to supplier"
         ADJUSTMENT = "adjustment", "Adjustment"
 
