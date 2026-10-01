@@ -65,6 +65,7 @@ Changes made while building, beyond the approved design:
 - **Blind counting:** staff don't see the system quantity while counting; the owner sees differences when reviewing.
 - **Rack helper** on the count screen lists everything on a rack, for items without barcodes.
 - An item can only be in one open count at a time (two open counts would apply the same correction twice).
+- **Opening stock from Excel** (approved after Phase 1): Stock (packs) / Stock (loose) columns in the item sheet fill a stock count named after the file, which the owner reviews and posts. A downloadable sample sheet is linked from Add item and Import.
 
 ### 6.1 Data model
 

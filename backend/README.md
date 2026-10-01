@@ -108,4 +108,5 @@ Every endpoint requires login unless it says otherwise. Decimals are sent as str
 | POST | `/api/purchases/bills/{id}/post` | logged in | Add goods to stock |
 | POST | `/api/purchases/bills/{id}/attachment` | logged in | Photo/PDF of the paper bill (`file`) |
 | GET | `/api/import/{catalogue,prices}/template` | owner | Excel template |
-| POST | `/api/import/{catalogue,prices}` | owner | `file`, `commit`, `skip_errors` — preview unless `commit=true` |
+| GET | `/api/import/catalogue/sample` | logged in | Filled-in example sheet |
+| POST | `/api/import/{catalogue,prices}` | owner | `file`, `commit`, `skip_errors` — preview unless `commit=true`. Catalogue stock columns go into a new open stock count (`stock_count_id` in the summary) |

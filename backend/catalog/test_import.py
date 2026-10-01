@@ -5,8 +5,10 @@ import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from openpyxl import Workbook, load_workbook
 
-from catalog.importers import CATALOGUE_COLUMNS
+from catalog.importers import CATALOGUE_COLUMNS, SAMPLE_ROWS
 from catalog.models import Brand, Item, ItemUnit, Product
+from stock.models import StockCount
+from stock.services import count_item
 
 pytestmark = pytest.mark.django_db
 D = Decimal
@@ -160,3 +162,90 @@ class TestPriceImport:
 
     def test_unknown_import_kind(self, owner_api):
         assert owner_api.get("/api/import/nonsense/template").status_code == 404
+
+
+class TestStockColumns:
+    """Stock (packs) / Stock (loose) fill a stock count for the owner to review — never stock directly."""
+
+    def test_stock_goes_into_an_open_count_not_into_stock(self, owner_api):
+        rows = [
+            {**dict(zip([k for _, k, _ in CATALOGUE_COLUMNS], RED)), "stock_packs": 4, "stock_loose": 35},
+            {**dict(zip([k for _, k, _ in CATALOGUE_COLUMNS], SWITCH)), "stock_loose": 12},
+        ]
+        file = xlsx([[r.get(k, "") for _, k, _ in CATALOGUE_COLUMNS] for r in rows])
+        response = upload(owner_api, file, commit="true")
+        summary = response.data["summary"]
+        assert summary["stock_lines"] == 2
+        count = StockCount.objects.get(pk=summary["stock_count_id"])
+        assert count.status == "open" and count.title == "Excel: items.xlsx"
+        lines = {line.item.variant: line.counted_qty for line in count.lines.select_related("item")}
+        assert lines == {"1.5 sq mm Red": D("395"), "6A White": D("12")}
+        assert "4 coil + 35 m" in response.data["rows"][0]["messages"][0]
+        red = Item.objects.get(variant="1.5 sq mm Red")
+        assert red.stock_qty == D("0") and red.counted_at is None  # not until the owner posts
+
+        assert owner_api.post(f"/api/stock/counts/{count.pk}/post").status_code == 200
+        red.refresh_from_db()
+        assert (red.stock_qty, red.counted_at is not None) == (D("395"), True)
+
+    def test_preview_creates_no_count(self, owner_api):
+        file = xlsx([row(product="MCB", variant="16A", stock_loose=5)])
+        response = upload(owner_api, file)
+        assert response.data["summary"]["stock_lines"] == 1
+        assert "stock_count_id" not in response.data["summary"]
+        assert not StockCount.objects.exists()
+
+    def test_no_stock_columns_means_no_count(self, owner_api):
+        response = upload(owner_api, xlsx([RED]), commit="true")
+        assert "stock_lines" not in response.data["summary"]
+        assert not StockCount.objects.exists()
+
+    def test_packs_use_existing_pack_when_row_has_none(self, owner_api):
+        upload(owner_api, xlsx([RED]), commit="true")  # creates the 90 m coil
+        file = xlsx([row(brand="Havells", product="Lifeline wire", variant="1.5 sq mm Red", stock_packs=2)])
+        response = upload(owner_api, file, commit="true")
+        count = StockCount.objects.get(pk=response.data["summary"]["stock_count_id"])
+        assert count.lines.get().counted_qty == D("180")
+
+    def test_packs_without_any_pack_size_is_an_error(self, owner_api):
+        response = upload(owner_api, xlsx([row(product="MCB", variant="16A", stock_packs=2)]))
+        assert response.data["summary"]["errors"] == 1
+        assert "Pack size" in response.data["rows"][0]["messages"][0]
+
+    def test_item_already_in_an_open_count_is_reported(self, owner_api, owner):
+        upload(owner_api, xlsx([RED]), commit="true")
+        red = Item.objects.get()
+        count_item(StockCount.objects.create(title="Rack W1", created_by=owner), red.pk, D("1"), owner)
+        file = xlsx([row(brand="Havells", product="Lifeline wire", variant="1.5 sq mm Red", stock_loose=5)])
+        response = upload(owner_api, file, commit="true")
+        assert response.data["summary"]["errors"] == 1
+        assert "Rack W1" in response.data["rows"][0]["messages"][0]
+        assert StockCount.objects.count() == 1  # nothing committed
+
+    def test_negative_stock_is_rejected(self, owner_api):
+        response = upload(owner_api, xlsx([row(product="MCB", stock_loose=-3)]))
+        assert "can't be negative" in response.data["rows"][0]["messages"][0]
+
+    def test_skipping_errors_keeps_good_stock_rows(self, owner_api):
+        file = xlsx([row(product="MCB", variant="16A", stock_loose=5), row(product="Fan", stock_packs=1)])
+        response = upload(owner_api, file, commit="true", skip_errors="true")
+        assert response.data["summary"]["stock_lines"] == 1
+        assert StockCount.objects.get().lines.count() == 1
+
+
+class TestSampleSheet:
+    def test_staff_can_download_the_filled_sample(self, staff_api):
+        response = staff_api.get("/api/import/catalogue/sample")
+        assert response.status_code == 200
+        sheet = load_workbook(io.BytesIO(response.content)).worksheets[0]
+        assert [cell.value for cell in sheet[1]] == HEADERS
+        filled = [row for row in sheet.iter_rows(min_row=2, values_only=True) if any(row)]
+        assert len(filled) == len(SAMPLE_ROWS)
+
+    def test_sample_imports_cleanly(self, owner_api, staff_api):
+        content = staff_api.get("/api/import/catalogue/sample").content
+        file = SimpleUploadedFile("sample.xlsx", content)
+        response = upload(owner_api, file, commit="true")
+        summary = response.data["summary"]
+        assert (summary["errors"], summary["created"]) == (0, len(SAMPLE_ROWS))
+        assert summary["stock_lines"] == sum(1 for r in SAMPLE_ROWS if r.get("stock_packs") or r.get("stock_loose"))

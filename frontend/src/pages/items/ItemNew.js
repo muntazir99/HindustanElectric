@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { ArrowDownToLine, Plus, Trash2, Wand2 } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowDownToLine, Download, FileSpreadsheet, Plus, Trash2, Wand2 } from "lucide-react";
 import api from "../../api.js";
+import { useAuth } from "../../context/AuthContext.js";
 import { useFetch } from "../../hooks/useFetch.js";
+import { SAMPLE_SHEET_NAME, SAMPLE_SHEET_URL, downloadFile } from "../../lib/download.js";
 import { errorMessage } from "../../lib/errors.js";
 import { BASE_UNITS, GST_RATES } from "../../lib/format.js";
 import { Alert, Button, Card, Field, Input, PageHeader, Select, inputClass } from "../../ui/index.js";
@@ -53,6 +55,50 @@ export function variantsPayload(rows, hasPack) {
     });
     return variant;
   });
+}
+
+/** Pointer to the Excel route for adding many items at once. */
+function ExcelHint() {
+  const { user } = useAuth();
+  const [error, setError] = useState("");
+
+  async function download() {
+    setError("");
+    try {
+      await downloadFile(SAMPLE_SHEET_URL, SAMPLE_SHEET_NAME);
+    } catch (err) {
+      setError(errorMessage(err));
+    }
+  }
+
+  return (
+    <Card className="p-4 mb-6 bg-green-50/60 border-green-200">
+      <div className="flex flex-wrap items-center gap-4">
+        <FileSpreadsheet className="text-green-700 shrink-0" size={28} />
+        <div className="flex-1 min-w-[260px]">
+          <p className="font-semibold">Adding many items? Fill them in Excel instead.</p>
+          <p className="text-sm text-gray-700">
+            The sample sheet shows the format: one row per size/colour, with packs, prices, rack and what's on the shelf.{" "}
+            {user?.role === "owner" ? (
+              <>
+                Upload it under{" "}
+                <Link to="/import" className="underline font-semibold">
+                  Import from Excel
+                </Link>
+                .
+              </>
+            ) : (
+              "Give the filled sheet to the owner to import."
+            )}
+          </p>
+          {error && <p className="text-sm text-red-700 mt-1">{error}</p>}
+        </div>
+        <Button onClick={download}>
+          <Download size={18} /> Download sample sheet
+        </Button>
+      </div>
+    </Card>
+  );
 }
 
 export default function ItemNew() {
@@ -151,6 +197,7 @@ export default function ItemNew() {
   return (
     <>
       <PageHeader title="Add item" subtitle="One product, with all its sizes and colours" />
+      <ExcelHint />
 
       <Card className="p-6 mb-6">
         <h2 className="font-bold text-lg mb-4">Product</h2>

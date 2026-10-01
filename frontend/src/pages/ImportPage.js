@@ -1,14 +1,15 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Download, Upload } from "lucide-react";
+import { Download, FileSpreadsheet, Upload } from "lucide-react";
 import api from "../api.js";
+import { SAMPLE_SHEET_NAME, SAMPLE_SHEET_URL, downloadFile } from "../lib/download.js";
 import { errorMessage } from "../lib/errors.js";
 import { Alert, Badge, Button, Card, PageHeader, Table, td, th } from "../ui/index.js";
 
 const KINDS = {
   catalogue: {
     label: "Items (catalogue)",
-    text: "Add new items or update existing ones: names, sizes, units, packs, barcodes, prices, racks. Quantities are not imported — stock comes from purchases and counts.",
+    text: "Add new items or update existing ones: names, sizes, units, packs, barcodes, prices, racks. Fill the green Stock columns with what's on the shelf: they go into a stock count for you to review and post.",
   },
   prices: {
     label: "Price update",
@@ -40,15 +41,9 @@ export default function ImportPage() {
     setSkipErrors(false);
   }
 
-  async function downloadTemplate() {
+  async function download(url, filename) {
     try {
-      const response = await api.get(`/import/${kind}/template`, { responseType: "blob" });
-      const url = URL.createObjectURL(response.data);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `hindustan-electric-${kind}-template.xlsx`;
-      link.click();
-      URL.revokeObjectURL(url);
+      await downloadFile(url, filename);
     } catch (err) {
       setError(errorMessage(err));
     }
@@ -101,10 +96,15 @@ export default function ImportPage() {
         <ol className="space-y-4">
           <li className="flex flex-wrap items-center gap-3">
             <span className="font-bold">1.</span>
-            <Button onClick={downloadTemplate}>
+            <Button onClick={() => download(`/import/${kind}/template`, `hindustan-electric-${kind}-template.xlsx`)}>
               <Download size={18} /> Download the Excel template
             </Button>
-            <span className="text-sm text-gray-600">Its second sheet explains every column, with examples.</span>
+            {kind === "catalogue" && (
+              <Button onClick={() => download(SAMPLE_SHEET_URL, SAMPLE_SHEET_NAME)}>
+                <FileSpreadsheet size={18} /> Download a filled sample
+              </Button>
+            )}
+            <span className="text-sm text-gray-600">The second sheet explains every column.</span>
           </li>
           <li className="flex flex-wrap items-center gap-3">
             <span className="font-bold">2.</span>
@@ -140,6 +140,16 @@ export default function ImportPage() {
                 <Link to="/items?ordering=updated" className="underline font-semibold">
                   See items
                 </Link>
+                {summary.stock_count_id && (
+                  <p className="mt-2">
+                    Stock for {summary.stock_lines} item{summary.stock_lines === 1 ? "" : "s"} is waiting in the count{" "}
+                    <b>{summary.stock_count_title}</b>.{" "}
+                    <Link to={`/counts/${summary.stock_count_id}`} className="underline font-semibold">
+                      Review and post it
+                    </Link>{" "}
+                    to put it into stock.
+                  </p>
+                )}
               </Alert>
             ) : (
               <div className="flex flex-wrap items-center gap-4">
@@ -148,6 +158,11 @@ export default function ImportPage() {
                 <Badge color="blue">{summary.updated} updates</Badge>
                 {summary.unchanged > 0 && <Badge>{summary.unchanged} no change</Badge>}
                 <Badge color={summary.errors ? "red" : "gray"}>{summary.errors} errors</Badge>
+                {summary.stock_lines > 0 && (
+                  <span className="text-sm text-gray-700">
+                    Stock for {summary.stock_lines} item{summary.stock_lines === 1 ? "" : "s"} will go into a stock count for you to review.
+                  </span>
+                )}
               </div>
             )}
             {!summary.committed && (

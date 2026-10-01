@@ -15,6 +15,10 @@ from django.db import IntegrityError, transaction
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 
+from stock.models import StockCount
+from stock.services import StockError, count_item
+
+from .display import format_quantity
 from .models import GST_RATES, Item, ItemUnit, Product, hsn_validator
 from .services import (
     CatalogError,
@@ -48,9 +52,14 @@ CATALOGUE_COLUMNS = [
     ("Pack MRP", "pack_mrp", "MRP of the whole pack."),
     ("Pack price", "pack_price", "Your price for the whole pack, GST included."),
     ("Rack", "rack", "Where it is kept, e.g. A3."),
+    ("Stock (packs)", "stock_packs", "Full packs on the shelf now, e.g. 4 coils. Blank if not counted."),
+    ("Stock (loose)", "stock_loose", "Loose units on the shelf now, in the Unit column's unit, e.g. 35 (m). Blank if not counted."),
     ("Min stock", "min_stock", "Reorder when stock falls to this (in units)."),
     ("Aliases", "aliases", "Other names customers use, comma separated."),
 ]
+
+# Stock columns don't change stock directly: they fill a stock count for the owner to review and post.
+STOCK_KEYS = {"stock_packs", "stock_loose"}
 
 PRICE_COLUMNS = [
     ("Barcode or code", "code", "Item barcode, pack barcode, or the item code shown in the app."),
@@ -58,11 +67,56 @@ PRICE_COLUMNS = [
     ("Selling price", "selling_price", "New selling price for that unit or pack, GST included. Blank = unchanged."),
 ]
 
-CATALOGUE_EXAMPLES = [
-    ["Wires & Cables", "Havells", "Lifeline Plus HRFR wire", "1.5 sq mm Red", "8544", "18", "m",
-     "", "28", "", "coil", "90", "8901234500011", "2650", "2400", "W1", "180", ""],
-    ["Switches", "Anchor", "Roma 6A switch", "White", "8536", "18", "pc",
-     "45", "38", "8901234500028", "box", "20", "8901234500035", "", "", "S2", "40", "button switch"],
+# A filled-in example sheet anyone can download. Prices and barcodes are made up.
+SAMPLE_ROWS = [
+    {"category": "Wires & Cables", "brand": "Havells", "product": "Lifeline Plus HRFR wire", "variant": "1.5 sq mm Red",
+     "hsn": "8544", "gst": 18, "unit": "m", "selling_price": 28, "pack_unit": "coil", "pack_size": 90,
+     "pack_barcode": "8901234500011", "pack_mrp": 2650, "pack_price": 2400, "rack": "W1",
+     "stock_packs": 4, "stock_loose": 35, "min_stock": 180},
+    {"category": "Wires & Cables", "brand": "Havells", "product": "Lifeline Plus HRFR wire", "variant": "1.5 sq mm Black",
+     "hsn": "8544", "gst": 18, "unit": "m", "selling_price": 28, "pack_unit": "coil", "pack_size": 90,
+     "pack_barcode": "8901234500012", "pack_mrp": 2650, "pack_price": 2400, "rack": "W1",
+     "stock_packs": 3, "min_stock": 180},
+    {"category": "Wires & Cables", "brand": "Havells", "product": "Lifeline Plus HRFR wire", "variant": "2.5 sq mm Red",
+     "hsn": "8544", "gst": 18, "unit": "m", "selling_price": 44, "pack_unit": "coil", "pack_size": 90,
+     "pack_barcode": "8901234500013", "pack_mrp": 4200, "pack_price": 3800, "rack": "W1",
+     "stock_packs": 2, "stock_loose": 60, "min_stock": 180},
+    {"category": "Switches & Sockets", "brand": "Anchor", "product": "Roma 6A switch", "variant": "White",
+     "hsn": "8536", "gst": 18, "unit": "pc", "mrp": 52, "selling_price": 45, "barcode": "8901234500028",
+     "pack_unit": "box", "pack_size": 20, "pack_barcode": "8901234500035", "rack": "S1",
+     "stock_packs": 2, "stock_loose": 7, "min_stock": 40, "aliases": "button switch"},
+    {"category": "Switches & Sockets", "brand": "Anchor", "product": "Roma 6A socket", "variant": "White",
+     "hsn": "8536", "gst": 18, "unit": "pc", "mrp": 78, "selling_price": 68, "barcode": "8901234500042",
+     "pack_unit": "box", "pack_size": 10, "pack_barcode": "8901234500059", "rack": "S1",
+     "stock_loose": 14, "min_stock": 20, "aliases": "plug socket"},
+    {"category": "MCB & DB", "brand": "Havells", "product": "SP MCB C-curve", "variant": "16A",
+     "hsn": "8536", "gst": 18, "unit": "pc", "mrp": 310, "selling_price": 270, "barcode": "8901234500066",
+     "rack": "M2", "stock_loose": 23, "min_stock": 10, "aliases": "mcb"},
+    {"category": "Lighting", "brand": "Syska", "product": "LED bulb B22", "variant": "9W Cool Day Light",
+     "hsn": "8539", "gst": 5, "unit": "pc", "mrp": 120, "selling_price": 90, "barcode": "8901234500073",
+     "pack_unit": "box", "pack_size": 10, "pack_barcode": "8901234500080", "rack": "L1",
+     "stock_packs": 5, "stock_loose": 3, "min_stock": 30, "aliases": "bulb"},
+    {"category": "Fans", "brand": "Crompton", "product": "HS Plus ceiling fan 1200 mm", "variant": "Brown",
+     "hsn": "8414", "gst": 18, "unit": "pc", "mrp": 2900, "selling_price": 2450, "barcode": "8901234500097",
+     "rack": "F1", "stock_loose": 6, "min_stock": 2, "aliases": "pankha"},
+    {"category": "Pipes & Fittings", "product": "PVC conduit pipe 20 mm", "variant": "3 m length",
+     "hsn": "3917", "gst": 18, "unit": "pc", "selling_price": 55, "pack_unit": "bundle", "pack_size": 10,
+     "rack": "P1", "stock_packs": 7, "stock_loose": 4, "min_stock": 20, "aliases": "pipe"},
+    {"category": "Hardware", "product": "Wood screw", "variant": "1 inch", "hsn": "7318", "gst": 18, "unit": "pc",
+     "selling_price": 1, "pack_unit": "box", "pack_size": 100, "pack_barcode": "8901234500103", "pack_price": 80,
+     "rack": "H3", "stock_packs": 3, "stock_loose": 45, "min_stock": 200, "aliases": "pench"},
+    {"category": "Hardware", "brand": "Anchor", "product": "Insulation tape", "variant": "Black", "hsn": "3919",
+     "gst": 18, "unit": "roll", "mrp": 25, "selling_price": 20, "barcode": "8901234500110", "rack": "H1",
+     "stock_loose": 38, "min_stock": 20, "aliases": "tape"},
+    {"category": "Accessories", "brand": "Anchor", "product": "Batten holder", "variant": "Straight", "hsn": "8536",
+     "gst": 18, "unit": "pc", "mrp": 45, "selling_price": 38, "rack": "S3", "aliases": "holder, kit-kat"},
+]
+
+STOCK_GUIDE = [
+    ("Stock example", "4 coils of 90 m and 35 m cut loose  ->  Stock (packs) = 4, Stock (loose) = 35  ->  395 m."),
+    ("", "Item with no pack (e.g. MCB): leave Stock (packs) blank and put the count in Stock (loose)."),
+    ("", "Not counted yet? Leave both stock cells blank. The item is added and shows as 'not counted'."),
+    ("", "Stock goes into a stock count named after your file. The owner reviews it under Stock counts and posts it."),
 ]
 
 TEXT_KEYS = {"barcode", "pack_barcode", "code", "hsn"}
@@ -147,21 +201,31 @@ def _messages(exc):
     return [str(exc)]
 
 
-def _run(rows, handle_row, *, commit, skip_errors):
+def _run(rows, handle_row, *, commit, skip_errors, before=None, after=None):
+    """
+    Run handle_row for every row, each in its own savepoint. `before` runs first and
+    `after` runs last (returning extra summary fields), both inside the same transaction.
+    """
     results = []
+    extra = {}
     with transaction.atomic():
+        if before:
+            before()
         for number, row in rows:
             try:
                 with transaction.atomic():
                     results.append({"row": number, **handle_row(number, row)})
-            except (CatalogError, DjangoValidationError, IntegrityError) as exc:
+            except (CatalogError, StockError, DjangoValidationError, IntegrityError) as exc:
                 label = " ".join(filter(None, [row.get("brand"), row.get("product"), row.get("variant"), row.get("code")]))
                 results.append({"row": number, "status": "error", "item": label, "messages": _messages(exc)})
+        if after:
+            extra = after() or {}
         errors = sum(1 for result in results if result["status"] == "error")
         committed = commit and (errors == 0 or skip_errors)
         if not committed:
             transaction.set_rollback(True)
-            # New items get their real code only when actually saved.
+            # New items and counts get their real ids only when actually saved.
+            extra.pop("stock_count_id", None)
             for result in results:
                 if result["status"] == "created":
                     result.pop("code", None)
@@ -172,15 +236,28 @@ def _run(rows, handle_row, *, commit, skip_errors):
         "unchanged": sum(1 for r in results if r["status"] == "unchanged"),
         "errors": errors,
         "committed": committed,
+        **extra,
     }
     return {"summary": summary, "rows": results}
 
 
 # --- catalogue -----------------------------------------------------------------
 
-def import_catalogue(upload, *, commit=False, skip_errors=False):
+def import_catalogue(upload, *, commit=False, skip_errors=False, user=None):
+    """
+    Create or update items. Rows with Stock (packs) / Stock (loose) also go into one
+    stock count named after the file, for the owner to review and post.
+    """
     rows = read_rows(upload, CATALOGUE_COLUMNS)
+    has_stock = any(row[key] for _, row in rows for key in STOCK_KEYS)
     seen = {}
+    state = {"count": None}
+
+    def before():
+        if has_stock:
+            state["count"] = StockCount.objects.create(
+                title=f"Excel: {upload.name}"[:80], note="Stock quantities imported from Excel", created_by=user
+            )
 
     def handle(number, row):
         if not row["product"]:
@@ -189,9 +266,46 @@ def import_catalogue(upload, *, commit=False, skip_errors=False):
         if key in seen:
             raise CatalogError(f"Same product and variant as row {seen[key]}.")
         seen[key] = number
-        return _catalogue_row(row)
+        result, item = _catalogue_row(row)
+        stock = _stock_quantity(row, item)
+        if stock is not None:
+            count_item(state["count"], item.pk, stock, user)
+            result["messages"] = [f"On shelf: {format_quantity(stock, item.base_unit, item.units.all())} — goes into a stock count to review"]
+        return result
 
-    return _run(rows, handle, commit=commit, skip_errors=skip_errors)
+    def after():
+        count = state["count"]
+        if count is None:
+            return {}
+        lines = count.lines.count()
+        if lines == 0:
+            count.delete()
+            return {}
+        return {"stock_count_id": count.pk, "stock_count_title": count.title, "stock_lines": lines}
+
+    return _run(rows, handle, commit=commit, skip_errors=skip_errors, before=before, after=after)
+
+
+def _stock_quantity(row, item):
+    """Stock on the shelf in base units, from Stock (packs) × pack size + Stock (loose). None if blank."""
+    packs = _decimal(row, "stock_packs", "Stock (packs)")
+    loose = _decimal(row, "stock_loose", "Stock (loose)")
+    if packs is None and loose is None:
+        return None
+    total = loose or Decimal("0")
+    if packs:
+        if row["pack_size"]:
+            factor = _decimal(row, "pack_size", "Pack size")
+        else:
+            item_packs = list(item.units.filter(is_base=False))
+            if len(item_packs) != 1:
+                raise CatalogError(
+                    "Stock (packs) needs Pack unit and Pack size in this row"
+                    + (" (the item has more than one pack size)." if item_packs else ".")
+                )
+            factor = item_packs[0].factor
+        total += packs * factor
+    return total
 
 
 def _catalogue_row(row):
@@ -247,7 +361,7 @@ def _catalogue_row(row):
         item = create_item(
             product, row["variant"], base_unit or "pc", barcode=row["barcode"] or None, pack=pack, **fields
         )
-        return {"status": "created", "item": item.name, "code": item.code}
+        return {"status": "created", "item": item.name, "code": item.code}, item
 
     if base_unit:
         set_base_unit(item, base_unit)
@@ -262,12 +376,12 @@ def _catalogue_row(row):
     if pack:
         set_pack(item, pack["name"], pack["factor"], barcode=pack["barcode"], mrp=pack["mrp"],
                  selling_price=pack["selling_price"])
-    return {"status": "updated", "item": item.name, "code": item.code}
+    return {"status": "updated", "item": item.name, "code": item.code}, item
 
 
 # --- prices ---------------------------------------------------------------------
 
-def import_prices(upload, *, commit=False, skip_errors=False):
+def import_prices(upload, *, commit=False, skip_errors=False, user=None):
     rows = read_rows(upload, PRICE_COLUMNS)
     return _run(rows, _price_row, commit=commit, skip_errors=skip_errors)
 
@@ -302,43 +416,61 @@ def _price_row(number, row):
 
 # --- templates ------------------------------------------------------------------
 
-def build_template(columns, examples=()):
+def build_template(columns, examples=(), *, filled=False, notes=()):
+    """
+    An .xlsx with the column headings and a "How to fill" sheet.
+    examples are dicts keyed by column key: shown on the guide sheet, or written into
+    the Items sheet itself when filled=True (the downloadable sample).
+    """
+    keys = [key for _, key, _ in columns]
     workbook = Workbook()
     sheet = workbook.active
     sheet.title = "Items"
-    header_fill = PatternFill("solid", fgColor="1E3A8A")
+    blue, green = PatternFill("solid", fgColor="1E3A8A"), PatternFill("solid", fgColor="15803D")
     for index, (header, key, _) in enumerate(columns, start=1):
         cell = sheet.cell(row=1, column=index, value=header)
         cell.font = Font(bold=True, color="FFFFFF")
-        cell.fill = header_fill
-        letter = cell.column_letter
-        sheet.column_dimensions[letter].width = max(12, len(header) + 4)
+        cell.fill = green if key in STOCK_KEYS else blue
+        cell.alignment = Alignment(wrap_text=True, vertical="center")
+        sheet.column_dimensions[cell.column_letter].width = max(12, len(header) + 4)
         if key in TEXT_KEYS:
             # Long barcodes lose digits if Excel treats them as numbers.
             for row in range(2, 2001):
                 sheet.cell(row=row, column=index).number_format = "@"
+    if "product" in keys:
+        sheet.column_dimensions[sheet.cell(row=1, column=keys.index("product") + 1).column_letter].width = 30
     sheet.freeze_panes = "A2"
+    if filled:
+        for row_number, example in enumerate(examples, start=2):
+            for column, key in enumerate(keys, start=1):
+                if example.get(key) not in (None, ""):
+                    sheet.cell(row=row_number, column=column, value=example[key])
 
     guide = workbook.create_sheet("How to fill")
     guide.column_dimensions["A"].width = 18
-    guide.column_dimensions["B"].width = 80
+    guide.column_dimensions["B"].width = 90
+    if filled:
+        guide.append(["SAMPLE FILE", "Every row is an example with made-up prices and barcodes. Delete them and enter your own items."])
+        guide.append([])
     guide.append(["Column", "What to enter"])
-    for cell in guide[1]:
-        cell.font = Font(bold=True)
+    guide[guide.max_row][0].font = Font(bold=True)
     for header, _, help_text in columns:
         guide.append([header, help_text])
     guide.append([])
     guide.append(["Notes", "Fill the Items sheet only. One row per item (each size/colour is its own row)."])
     guide.append(["", "Blank cells leave existing values unchanged when the item already exists."])
-    if examples:
+    for label, text in notes:
+        guide.append([label, text])
+    if examples and not filled:
         guide.append([])
         guide.append(["Examples"])
         guide.append([header for header, _, _ in columns])
         for example in examples:
-            guide.append(example)
+            guide.append([example.get(key, "") for key in keys])
     for row in guide.iter_rows():
         for cell in row:
             cell.alignment = Alignment(wrap_text=True, vertical="top")
+    guide["A1"].font = Font(bold=True)
 
     output = io.BytesIO()
     workbook.save(output)
