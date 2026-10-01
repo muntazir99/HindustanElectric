@@ -2,7 +2,7 @@ import logging
 from flask import Blueprint, request, jsonify
 from .db_config import get_db
 from .utils import hash_password, verify_password, validate_password
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, get_jwt
 from marshmallow import Schema, fields, validate
 from datetime import datetime
 

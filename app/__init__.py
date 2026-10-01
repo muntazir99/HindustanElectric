@@ -67,7 +67,7 @@ def create_app():
     
     # Initialize extensions
     JWTManager(app)
-    CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+    # NOTE: CORS is configured in run.py with proper origin restrictions.
 
     configure_logging()
 
@@ -95,5 +95,9 @@ def create_app():
     app.register_blueprint(customer_bp, url_prefix="/customers")
     app.register_blueprint(business_report_bp, url_prefix="/reports")
     app.register_blueprint(payment_bp, url_prefix="/payments") 
+    
+    # Register AI Blueprint
+    from .ai_routes import ai_bp
+    app.register_blueprint(ai_bp, url_prefix="/ai")
 
     return app
