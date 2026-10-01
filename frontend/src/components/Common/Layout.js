@@ -24,16 +24,19 @@ function TopBar() {
         </Link>
 
         {/* On the bill screen the big scan box is the search, so don't show two. */}
-        <div className={`flex-1 min-w-0 hidden ${onBilling ? "" : "md:block"}`}>
-          <ItemSearch
-            compact
-            autoFocus={false}
-            label="Find an item"
-            placeholder="Find an item — type its name or scan the barcode"
-            onSelect={(item) => navigate(`/items/${item.id}`)}
-          />
-        </div>
-        {onBilling && <div className="flex-1 hidden md:block" />}
+        {onBilling ? (
+          <div className="flex-1 hidden md:block" />
+        ) : (
+          <div className="flex-1 min-w-0 hidden md:block">
+            <ItemSearch
+              compact
+              autoFocus={false}
+              label="Find an item"
+              placeholder="Find an item — type its name or scan the barcode"
+              onSelect={(item) => navigate(`/items/${item.id}`)}
+            />
+          </div>
+        )}
 
         <NavLink
           to="/billing"

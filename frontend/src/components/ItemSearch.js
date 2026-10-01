@@ -3,7 +3,6 @@ import { ScanLine } from "lucide-react";
 import api from "../api.js";
 import { money } from "../lib/format.js";
 import { errorMessage } from "../lib/errors.js";
-import { inputClass } from "../ui/index.js";
 
 /**
  * Search box for picking an item. Works with a USB barcode scanner (which types the
@@ -97,7 +96,11 @@ export default function ItemSearch({
         <ScanLine className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={compact ? 20 : 24} />
         <input
           ref={inputRef}
-          className={compact ? `${inputClass} pl-10 py-2.5 bg-gray-50` : `${inputClass} pl-12 py-4 text-xl border-2 border-blue-800`}
+          className={
+            compact
+              ? `w-full pl-10 pr-3 py-2.5 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600`
+              : `w-full pl-12 pr-3 py-4 text-xl rounded-xl border-2 border-blue-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600`
+          }
           value={query}
           placeholder={placeholder}
           autoFocus={autoFocus}

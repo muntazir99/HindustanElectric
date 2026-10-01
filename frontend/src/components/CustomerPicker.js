@@ -51,11 +51,11 @@ export default function CustomerPicker({ value, onChange, inputId = "customer-se
             {[value.phone, value.gstin].filter(Boolean).join(" · ") || "No phone"}
           </p>
           <p className={`text-sm ${owes ? "text-red-700 font-semibold" : "text-gray-600"}`}>
-            Khata: {owes ? `owes ${money(value.balance)}` : "nothing due"}
+            Udhaar: {owes ? `owes ${money(value.balance)}` : "nothing due"}
             {value.credit_limit !== null && value.credit_limit !== undefined && ` · limit ${money(value.credit_limit)}`}
           </p>
         </div>
-        <button type="button" onClick={() => onChange(null)} aria-label="Remove customer (walk-in)" className="text-gray-500 hover:text-red-600">
+        <button type="button" onClick={() => onChange(null)} aria-label="Remove customer (cash customer)" className="text-gray-500 hover:text-red-600">
           <X size={18} />
         </button>
       </div>
@@ -67,7 +67,7 @@ export default function CustomerPicker({ value, onChange, inputId = "customer-se
       <input
         id={inputId}
         className={inputClass}
-        placeholder="Walk-in · type name or phone for a customer"
+        placeholder="Type the customer's name or phone"
         value={query}
         autoComplete="off"
         aria-label="Customer"

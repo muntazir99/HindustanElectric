@@ -5,6 +5,18 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-01 — Simple screens, step 3: New Bill
+
+Same saving, pricing, GST and payment rules as before — only the screen changed.
+
+**Changed**
+- Billing is now **New Bill**: a large scan box with a blue border ("Scan the barcode, or type the item name").
+- Each item reads like a receipt line: name and amount on top; below it **− / + buttons** around the quantity, the unit (only when the item has more than one), **Price ₹** and **Disc %**. Stock hints in plain words ("shelf stock not checked yet", "More than the stock shows — check the shelf").
+- Right side, top to bottom: **Who is buying?** (empty = cash customer), **To pay** in large figures with "GST included", discount on whole bill, tax details folded away; **How are they paying?** with big **Cash / UPI / Udhaar** and smaller Card / Part payment; a large green **Save & Print Bill** (F9) and "Save without printing".
+- Hold / Quotation / Clear are now **Keep for later**, **Make estimate**, **Start over**; held bills are listed as "Kept for later".
+- Customer box: "Type the customer's name or phone"; a chosen customer shows "Udhaar: owes …".
+- Shared fields: number boxes given a width now keep it (they used to stretch); the header search is not shown on New Bill so there is only one search box there.
+
 ### 2026-10-01 — Simple screens, step 2: Home
 
 **Changed**

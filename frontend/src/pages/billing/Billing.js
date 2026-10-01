@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { FileText, PauseCircle, Printer, RotateCcw, Trash2 } from "lucide-react";
+import { Clock, FileText, Minus, Plus, Printer, RotateCcw, Trash2, TriangleAlert } from "lucide-react";
 import api from "../../api.js";
 import CustomerPicker from "../../components/CustomerPicker.js";
 import ItemSearch from "../../components/ItemSearch.js";
 import { useAuth } from "../../context/AuthContext.js";
 import { useFetch } from "../../hooks/useFetch.js";
 import { errorMessage } from "../../lib/errors.js";
-import { money, plain, round2 } from "../../lib/format.js";
+import { bigMoney, money, plain, plural, round2 } from "../../lib/format.js";
 import { HOME_STATE, STATES } from "../../lib/states.js";
-import { Alert, Button, Card, NumberInput, inputClass } from "../../ui/index.js";
+import { Alert, BackLink, Button, Card, NumberInput, inputBase, inputClass } from "../../ui/index.js";
 
 let nextKey = 1;
 
@@ -25,13 +25,15 @@ const EMPTY_HEADER = {
   note: "",
 };
 
+// Cash, UPI and Udhaar are the big buttons; Card and part payment sit below them.
 const PAY_MODES = [
   ["cash", "Cash"],
   ["upi", "UPI"],
+  ["khata", "Udhaar"],
   ["card", "Card"],
-  ["khata", "Khata"],
-  ["split", "Split"],
+  ["split", "Part payment"],
 ];
+const MAIN_MODES = ["cash", "upi", "khata"];
 
 function lineFromItem(item, unitId) {
   return {
@@ -273,7 +275,7 @@ export default function Billing() {
     if (!saved) return;
     reset();
     reloadHeld();
-    setNotice(`Bill held${header.customer ? ` for ${header.customer.name}` : ""}. Resume it from “Held bills”.`);
+    setNotice(`Bill kept for later${header.customer ? ` for ${header.customer.name}` : ""}. Open it again from “Kept for later” at the top.`);
     focusSearch();
   }
 
@@ -313,7 +315,7 @@ export default function Billing() {
 
   async function discard() {
     if (!lines.length && !billId.current) return;
-    if (!window.confirm("Clear this bill and start again?")) return;
+    if (!window.confirm("Start over? Everything on this bill will be cleared.")) return;
     clearTimeout(timer.current);
     await chain.current;
     if (billId.current) {
@@ -402,38 +404,45 @@ export default function Billing() {
   const total = server && lines.length ? Number(server.total) : 0;
   const splitPaid = round2(Object.values(split).reduce((sum, value) => sum + (Number(value) || 0), 0));
   const toKhata = payMode === "khata" ? total : payMode === "split" ? round2(total - splitPaid) : 0;
-  const khataProblem = toKhata > 0 && !header.customer ? "Choose a customer to put the unpaid amount on khata." : "";
-  const overpaid = payMode === "split" && splitPaid > total ? "Split amounts add up to more than the bill." : "";
+  const khataProblem = toKhata > 0 && !header.customer ? "To give udhaar, choose who is buying (above)." : "";
+  const overpaid = payMode === "split" && splitPaid > total ? "The amounts add up to more than the bill." : "";
   const sameState = header.place_of_supply === HOME_STATE;
   const held = heldData?.results || [];
+  const gst = server ? round2(Number(server.cgst_total) + Number(server.sgst_total) + Number(server.igst_total)) : 0;
 
   return (
-    <div className="grid xl:grid-cols-[1fr_340px] gap-5">
-      <div>
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <h1 className="text-2xl font-bold">Billing</h1>
-          <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
-            <span className="hidden lg:inline">F2 item · F4 customer · F8 hold · F9 finish & print</span>
+    <div className="grid lg:grid-cols-[1fr_360px] xl:grid-cols-[1fr_390px] gap-5 items-start">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
+          <div>
+            <BackLink to="/dashboard">Home</BackLink>
+            <h1 className="text-3xl font-bold leading-tight mt-1">New Bill</h1>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="hidden xl:inline text-sm text-gray-500">Keys: F2 item · F4 customer · F8 keep for later · F9 save &amp; print</span>
             {held.length > 0 && (
               <div className="relative">
                 <button
                   type="button"
                   aria-expanded={heldOpen}
                   onClick={() => setHeldOpen(!heldOpen)}
-                  className="px-3 py-1.5 rounded-lg border bg-amber-50 border-amber-300 text-amber-900 font-semibold"
+                  className="inline-flex items-center gap-2 min-h-[44px] px-4 rounded-xl border bg-amber-50 border-amber-300 text-amber-900 font-semibold"
                 >
-                  Held bills ({held.length})
+                  <Clock size={18} /> Kept for later ({held.length})
                 </button>
                 {heldOpen && (
-                <ul className="absolute right-0 z-30 mt-1 w-72 bg-white border rounded-lg shadow-lg">
-                  {held.map((bill) => (
-                    <li key={bill.id}>
-                      <button type="button" onClick={() => resume(bill.id)} className="w-full text-left px-3 py-2 hover:bg-blue-50">
-                        <span className="font-semibold">{bill.buyer_name || "Walk-in"}</span> · {bill.line_count} items · {money(bill.total)}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+                  <ul className="absolute right-0 z-30 mt-1 w-80 bg-white border border-gray-200 rounded-xl shadow-lg p-1">
+                    {held.map((bill) => (
+                      <li key={bill.id}>
+                        <button type="button" onClick={() => resume(bill.id)} className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-blue-50">
+                          <span className="font-semibold">{bill.buyer_name || "Cash customer"}</span>
+                          <span className="block text-sm text-gray-600">
+                            {plural(bill.line_count, "item")} · {money(bill.total)}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
                 )}
               </div>
             )}
@@ -444,119 +453,143 @@ export default function Billing() {
           {notice}
         </Alert>
 
-        <Card className="p-4 mb-4">
-          <ItemSearch onSelect={addItem} />
-        </Card>
+        <ItemSearch onSelect={addItem} />
+        <p className="text-sm text-gray-500 mt-1.5 mb-4 px-1">Scanning the same item again adds one more.</p>
 
         <Card>
+          <h2 className="px-5 py-4 border-b border-gray-200 text-lg font-bold">
+            Items in this bill{lines.length > 0 && ` (${lines.length})`}
+          </h2>
           {lines.length === 0 ? (
-            <p className="py-16 text-center text-gray-500">Scan an item or type its name to start a bill.</p>
+            <p className="py-16 px-5 text-center text-gray-500">Scan an item or type its name above to start the bill.</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="text-xs uppercase text-gray-500 border-b">
-                    <th className="px-3 py-2 min-w-[200px]">Item</th>
-                    <th className="px-1 py-2 w-28">Unit</th>
-                    <th className="px-1 py-2 w-16 text-right">Qty</th>
-                    <th className="px-1 py-2 w-24 text-right">Rate</th>
-                    <th className="px-1 py-2 w-14 text-right">Disc %</th>
-                    <th className="px-2 py-2 w-24 text-right">Amount</th>
-                    <th className="w-8" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {lines.map((line, index) => {
-                    const saved = computed[line.key];
-                    const unit = line.item.units.find((u) => u.id === line.unit);
-                    const wanted = Number(line.quantity || 0) * Number(unit?.factor || 1);
-                    const stock = saved?.item_stock;
-                    const short = stock?.counted && wanted > Number(stock.qty);
-                    return (
-                      <tr key={line.key} className={`border-b border-gray-100 ${saved?.below_cost ? "bg-red-50" : ""}`}>
-                        <td className="px-3 py-2">
-                          <div className="font-semibold leading-tight">{line.item.name}</div>
-                          <div className="text-xs text-gray-500">
-                            #{line.item.code}
-                            {stock && (stock.counted ? ` · in stock ${stock.display}` : " · not counted")}
-                          </div>
-                          {short && <div className="text-xs text-amber-700 font-semibold">More than the stock shows — check the shelf</div>}
-                          {saved?.below_cost && (
-                            <div className="text-xs text-red-700 font-semibold">
-                              {isOwner ? "Below average cost" : "Price too low — ask the owner"}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-1 py-2">
-                          <select
-                            className={`${inputClass} px-1 py-1 text-sm`}
-                            value={line.unit}
-                            aria-label={`Unit line ${index + 1}`}
-                            onChange={(e) => setLine(line.key, { unit: Number(e.target.value), ...(line.rateManual ? {} : { rate: "" }) })}
-                          >
-                            {line.item.units.map((u) => (
-                              <option key={u.id} value={u.id}>
-                                {u.is_base ? u.name : `${u.name} ${plain(u.factor)}${line.item.base_unit}`}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-                        <td className="px-1 py-2">
-                          <NumberInput
-                            className={`px-1.5 py-1 text-right text-sm ${validQuantity(line) ? "" : "border-red-400 bg-red-50"}`}
-                            value={line.quantity}
-                            aria-label={`Quantity line ${index + 1}`}
-                            onChange={(e) => setLine(line.key, { quantity: e.target.value })}
-                            onKeyDown={(e) => e.key === "Enter" && focusSearch()}
-                          />
-                        </td>
-                        <td className="px-1 py-2">
-                          <NumberInput
-                            className="px-1.5 py-1 text-right text-sm"
-                            value={line.rate}
-                            aria-label={`Rate line ${index + 1}`}
-                            onChange={(e) => setLine(line.key, { rate: e.target.value, rateManual: e.target.value !== "" })}
-                            onKeyDown={(e) => e.key === "Enter" && focusSearch()}
-                          />
-                        </td>
-                        <td className="px-1 py-2">
-                          <NumberInput
-                            className="px-1.5 py-1 text-right text-sm"
-                            value={line.discount}
-                            aria-label={`Discount line ${index + 1}`}
-                            onChange={(e) => setLine(line.key, { discount: e.target.value, discountManual: e.target.value !== "" })}
-                            onKeyDown={(e) => e.key === "Enter" && focusSearch()}
-                          />
-                        </td>
-                        <td className={`px-2 py-2 text-right font-semibold whitespace-nowrap ${pending ? "text-gray-400" : ""}`}>
-                          {saved ? money(saved.total) : "…"}
-                        </td>
-                        <td className="pr-2">
-                          <button
-                            type="button"
-                            aria-label={`Remove line ${index + 1}`}
-                            onClick={() => changeLines((current) => current.filter((l) => l.key !== line.key))}
-                            className="text-gray-400 hover:text-red-600"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <ul className="divide-y divide-gray-100">
+              {lines.map((line, index) => {
+                const saved = computed[line.key];
+                const unit = line.item.units.find((u) => u.id === line.unit);
+                const wanted = Number(line.quantity || 0) * Number(unit?.factor || 1);
+                const stock = saved?.item_stock;
+                const short = stock?.counted && wanted > Number(stock.qty);
+                const quantity = Number(line.quantity || 0);
+                return (
+                  <li key={line.key} className={`px-5 py-4 ${saved?.below_cost ? "bg-red-50" : ""}`}>
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-lg font-semibold leading-snug">{line.item.name}</p>
+                        <p className="text-sm text-gray-500">
+                          #{line.item.code}
+                          {stock && (stock.counted ? ` · in stock ${stock.display}` : " · shelf stock not checked yet")}
+                        </p>
+                        {short && (
+                          <p className="flex items-center gap-1.5 text-sm text-amber-800 font-semibold">
+                            <TriangleAlert size={15} /> More than the stock shows — check the shelf
+                          </p>
+                        )}
+                        {saved?.below_cost && (
+                          <p className="text-sm text-red-700 font-semibold">{isOwner ? "Below average cost" : "Price too low — ask the owner"}</p>
+                        )}
+                      </div>
+                      <p className={`pt-0.5 text-right text-xl font-bold whitespace-nowrap ${pending ? "text-gray-400" : ""}`}>
+                        {saved ? money(saved.total) : "…"}
+                      </p>
+                      <button
+                        type="button"
+                        aria-label={`Remove line ${index + 1}`}
+                        onClick={() => changeLines((current) => current.filter((l) => l.key !== line.key))}
+                        className="-mt-1.5 w-11 h-11 shrink-0 flex items-center justify-center rounded-xl text-gray-400 hover:text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 size={20} />
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3 mt-3">
+                      <div className="flex items-center border border-gray-300 rounded-xl overflow-hidden bg-white">
+                        <button
+                          type="button"
+                          aria-label={`One less, line ${index + 1}`}
+                          disabled={quantity <= 1}
+                          onClick={() => setLine(line.key, { quantity: plain(Math.max(1, quantity - 1)) })}
+                          className="w-11 h-11 flex items-center justify-center bg-gray-50 hover:bg-gray-100 disabled:opacity-40"
+                        >
+                          <Minus size={18} />
+                        </button>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          autoComplete="off"
+                          className={`w-14 h-11 text-center text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-600 ${
+                            validQuantity(line) ? "" : "bg-red-50 text-red-700"
+                          }`}
+                          value={line.quantity}
+                          aria-label={`Quantity line ${index + 1}`}
+                          onChange={(e) => setLine(line.key, { quantity: e.target.value })}
+                          onFocus={(e) => e.target.select()}
+                          onKeyDown={(e) => e.key === "Enter" && focusSearch()}
+                        />
+                        <button
+                          type="button"
+                          aria-label={`One more, line ${index + 1}`}
+                          onClick={() => setLine(line.key, { quantity: plain(quantity + 1) })}
+                          className="w-11 h-11 flex items-center justify-center bg-gray-50 hover:bg-gray-100"
+                        >
+                          <Plus size={18} />
+                        </button>
+                      </div>
+
+                      {line.item.units.length > 1 ? (
+                        <select
+                          className={`${inputBase} h-11 py-1`}
+                          value={line.unit}
+                          aria-label={`Unit line ${index + 1}`}
+                          onChange={(e) => setLine(line.key, { unit: Number(e.target.value), ...(line.rateManual ? {} : { rate: "" }) })}
+                        >
+                          {line.item.units.map((u) => (
+                            <option key={u.id} value={u.id}>
+                              {u.is_base ? u.name : `${u.name} (${plain(u.factor)} ${line.item.base_unit})`}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="text-gray-600">{unit?.name}</span>
+                      )}
+
+                      <label className="flex items-center gap-2 text-gray-600">
+                        Price ₹
+                        <NumberInput
+                          className="w-24 py-1.5 text-right text-base"
+                          value={line.rate}
+                          aria-label={`Rate line ${index + 1}`}
+                          onChange={(e) => setLine(line.key, { rate: e.target.value, rateManual: e.target.value !== "" })}
+                          onFocus={(e) => e.target.select()}
+                          onKeyDown={(e) => e.key === "Enter" && focusSearch()}
+                        />
+                      </label>
+                      <label className="flex items-center gap-2 text-gray-600">
+                        Disc %
+                        <NumberInput
+                          className="w-16 py-1.5 text-right text-base"
+                          value={line.discount}
+                          aria-label={`Discount line ${index + 1}`}
+                          onChange={(e) => setLine(line.key, { discount: e.target.value, discountManual: e.target.value !== "" })}
+                          onFocus={(e) => e.target.select()}
+                          onKeyDown={(e) => e.key === "Enter" && focusSearch()}
+                        />
+                      </label>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
           )}
         </Card>
       </div>
 
-      <div className="space-y-4">
-        <Card className="p-4">
-          <p className="text-sm font-semibold text-gray-600 mb-2">Customer</p>
+      <div className="space-y-4 lg:sticky lg:top-24">
+        <Card className="p-5">
+          <h2 className="font-semibold text-gray-600 mb-2">Who is buying?</h2>
           <CustomerPicker value={header.customer} onChange={(customer) => changeHeader({ customer })} />
-          <button type="button" onClick={() => setShowMore(!showMore)} className="text-sm text-blue-800 mt-2 hover:underline">
-            {showMore ? "Fewer options" : "Buyer details, GST options, note"}
+          {!header.customer && <p className="text-sm text-gray-500 mt-1.5">Leave empty for a cash customer. Choose a customer to give udhaar.</p>}
+          <button type="button" onClick={() => setShowMore(!showMore)} className="text-blue-800 mt-2 hover:underline">
+            {showMore ? "Hide buyer details" : "Buyer's name, address, GSTIN, other state…"}
           </button>
           {showMore && (
             <div className="grid gap-2 mt-3">
@@ -568,12 +601,12 @@ export default function Billing() {
                   <input className={inputClass} placeholder="Buyer GSTIN" value={header.buyer_gstin} onChange={(e) => changeHeader({ buyer_gstin: e.target.value.toUpperCase() })} />
                 </>
               )}
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={header.rates_include_tax} onChange={(e) => changeHeader({ rates_include_tax: e.target.checked })} />
-                Rates include GST
+              <label className="flex items-center gap-2">
+                <input type="checkbox" className="w-5 h-5" checked={header.rates_include_tax} onChange={(e) => changeHeader({ rates_include_tax: e.target.checked })} />
+                Prices include GST
               </label>
-              <label className="text-sm">
-                Place of supply
+              <label>
+                Goods going to (state)
                 <select className={`${inputClass} mt-1`} value={header.place_of_supply} onChange={(e) => changeHeader({ place_of_supply: e.target.value })}>
                   {STATES.map(([code, name]) => (
                     <option key={code} value={code}>
@@ -582,118 +615,129 @@ export default function Billing() {
                   ))}
                 </select>
               </label>
-              {!sameState && <p className="text-xs text-amber-800">IGST applies — only when the goods go to another state.</p>}
+              {!sameState && <p className="text-sm text-amber-800">IGST applies — only when the goods go to another state.</p>}
               <input className={inputClass} placeholder="Note on bill" value={header.note} onChange={(e) => changeHeader({ note: e.target.value })} />
             </div>
           )}
         </Card>
 
-        <Card className="p-4">
-          <dl className="space-y-1.5 text-sm">
-            <div className="flex justify-between items-center">
-              <dt>Discount on bill (₹)</dt>
-              <dd className="w-28">
-                <NumberInput className="py-1 text-right" value={header.bill_discount} aria-label="Discount on bill" onChange={(e) => changeHeader({ bill_discount: e.target.value })} />
-              </dd>
-            </div>
-            {server && lines.length > 0 && (
-              <>
-                <div className="flex justify-between text-gray-600">
+        <Card className="p-5">
+          <p className="text-gray-600">To pay</p>
+          <p className={`text-5xl font-bold leading-tight ${pending ? "opacity-50" : ""}`}>{bigMoney(total)}</p>
+          {server && lines.length > 0 && (
+            <p className="text-sm text-gray-500">
+              GST {header.rates_include_tax ? "included" : "added"}: {money(gst)}
+            </p>
+          )}
+          <label className="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-gray-200 text-gray-700">
+            Discount on whole bill (₹)
+            <NumberInput className="w-28 py-1.5 text-right" value={header.bill_discount} aria-label="Discount on bill" onChange={(e) => changeHeader({ bill_discount: e.target.value })} />
+          </label>
+          {server && lines.length > 0 && (
+            <details className="mt-3 text-sm text-gray-600">
+              <summary className="cursor-pointer text-blue-800">Tax details</summary>
+              <dl className="space-y-1 mt-2">
+                <div className="flex justify-between">
                   <dt>Taxable value</dt>
                   <dd>{money(server.taxable_total)}</dd>
                 </div>
                 {sameState ? (
-                  <div className="flex justify-between text-gray-600">
+                  <div className="flex justify-between">
                     <dt>CGST + SGST</dt>
                     <dd>
                       {money(server.cgst_total)} + {money(server.sgst_total)}
                     </dd>
                   </div>
                 ) : (
-                  <div className="flex justify-between text-gray-600">
+                  <div className="flex justify-between">
                     <dt>IGST</dt>
                     <dd>{money(server.igst_total)}</dd>
                   </div>
                 )}
                 {Number(server.discount_total) > 0 && (
-                  <div className="flex justify-between text-gray-600">
+                  <div className="flex justify-between">
                     <dt>Discount given</dt>
                     <dd>{money(server.discount_total)}</dd>
                   </div>
                 )}
-                <div className="flex justify-between text-gray-600">
+                <div className="flex justify-between">
                   <dt>Round off</dt>
                   <dd>{money(server.round_off)}</dd>
                 </div>
-              </>
-            )}
-          </dl>
-          <div className={`flex justify-between items-baseline border-t mt-3 pt-3 ${pending ? "opacity-50" : ""}`}>
-            <span className="text-lg font-bold">Total</span>
-            <span className="text-3xl font-bold">{money(total)}</span>
-          </div>
+              </dl>
+            </details>
+          )}
         </Card>
 
-        <Card className="p-4">
-          <p className="text-sm font-semibold text-gray-600 mb-2">Payment</p>
-          <div className="grid grid-cols-5 gap-1" role="radiogroup" aria-label="Payment">
-            {PAY_MODES.map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                role="radio"
-                aria-checked={payMode === value}
-                onClick={() => setPayMode(value)}
-                className={`py-2 rounded-lg border text-sm font-semibold ${
-                  payMode === value ? "bg-blue-700 text-white border-blue-700" : "bg-white border-gray-300"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
+        <Card className="p-5">
+          <h2 className="font-semibold text-gray-600 mb-2">How are they paying?</h2>
+          <div role="radiogroup" aria-label="Payment" className="grid grid-cols-6 gap-2">
+            {PAY_MODES.map(([value, label]) => {
+              const big = MAIN_MODES.includes(value);
+              const chosen = payMode === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  role="radio"
+                  aria-checked={chosen}
+                  onClick={() => setPayMode(value)}
+                  className={`rounded-xl border-2 font-semibold ${big ? "col-span-2 h-14 text-lg" : "col-span-3 h-11"} ${
+                    chosen ? "bg-blue-800 text-white border-blue-800" : "bg-white border-gray-300 hover:border-gray-400"
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
           </div>
           {payMode === "split" && (
             <div className="grid gap-2 mt-3">
+              <p className="text-sm text-gray-600">Enter how much came in each way. Anything left goes on udhaar.</p>
               {[["cash", "Cash"], ["upi", "UPI"], ["card", "Card"]].map(([mode, label]) => (
-                <label key={mode} className="flex items-center justify-between gap-3 text-sm">
+                <label key={mode} className="flex items-center justify-between gap-3">
                   {label}
-                  <NumberInput className="w-32 py-1 text-right" value={split[mode]} onChange={(e) => setSplit({ ...split, [mode]: e.target.value })} />
+                  <NumberInput className="w-32 py-1.5 text-right" value={split[mode]} onChange={(e) => setSplit({ ...split, [mode]: e.target.value })} />
                 </label>
               ))}
             </div>
           )}
           {toKhata > 0 && (
-            <p className="mt-3 text-sm">
-              On khata: <b className="text-red-700">{money(toKhata)}</b>
+            <p className="mt-3">
+              Goes on udhaar: <b className="text-red-700">{money(toKhata)}</b>
             </p>
           )}
-          {(khataProblem || overpaid) && <p className="mt-2 text-sm text-red-700">{khataProblem || overpaid}</p>}
-          <Alert onClose={() => setError("")}>{error}</Alert>
+          {(khataProblem || overpaid) && <p className="mt-2 text-red-700">{khataProblem || overpaid}</p>}
+          <div className="mt-4">
+            <Alert onClose={() => setError("")}>{error}</Alert>
+          </div>
           <Button
             variant="success"
-            className="w-full mt-4 py-3 text-lg"
+            className="w-full h-16 text-xl"
             onClick={() => finish(true)}
             disabled={!lines.length || busy || Boolean(khataProblem || overpaid) || lines.some((l) => !validQuantity(l))}
           >
-            <Printer size={20} /> {busy ? "Saving…" : "Finish & print (F9)"}
+            <Printer size={24} /> {busy ? "Saving…" : "Save & Print Bill"}
           </Button>
-          <div className="flex flex-wrap justify-between gap-x-4 gap-y-2 mt-3 text-sm">
+          <div className="flex justify-between mt-2 text-sm">
             <button type="button" onClick={() => finish(false)} disabled={!lines.length || busy} className="text-blue-800 hover:underline disabled:opacity-40">
-              Finish without printing
+              Save without printing
             </button>
-            <span className="flex gap-3">
-              <button type="button" onClick={quote} disabled={!lines.length || busy} className="inline-flex items-center gap-1 text-blue-800 hover:underline disabled:opacity-40">
-                <FileText size={16} /> Quotation
-              </button>
-              <button type="button" onClick={hold} disabled={!lines.length} className="inline-flex items-center gap-1 text-amber-800 hover:underline disabled:opacity-40">
-                <PauseCircle size={16} /> Hold (F8)
-              </button>
-              <button type="button" onClick={discard} disabled={!lines.length && !billId.current} className="inline-flex items-center gap-1 text-red-700 hover:underline disabled:opacity-40">
-                <RotateCcw size={16} /> Clear
-              </button>
-            </span>
+            <span className="text-gray-500">Shortcut: F9</span>
           </div>
         </Card>
+
+        <div className="grid grid-cols-3 gap-2">
+          <Button onClick={hold} disabled={!lines.length} className="px-2 text-sm leading-tight">
+            <Clock size={18} className="shrink-0" /> Keep for later
+          </Button>
+          <Button onClick={quote} disabled={!lines.length || busy} className="px-2 text-sm leading-tight">
+            <FileText size={18} className="shrink-0" /> Make estimate
+          </Button>
+          <Button variant="danger" onClick={discard} disabled={!lines.length && !billId.current} className="px-2 text-sm leading-tight">
+            <RotateCcw size={18} className="shrink-0" /> Start over
+          </Button>
+        </div>
       </div>
     </div>
   );

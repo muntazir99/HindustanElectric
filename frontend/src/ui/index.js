@@ -98,16 +98,19 @@ export function Field({ label, hint, children, className = "" }) {
   );
 }
 
-export const inputClass =
-  "w-full px-3 py-2 rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 disabled:bg-gray-100";
+/** Field look without a width, for boxes sized with a w-* class. */
+export const inputBase =
+  "px-3 py-2 rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 disabled:bg-gray-100";
+export const inputClass = `w-full ${inputBase}`;
 
 export function Input(props) {
   return <input className={inputClass} {...props} />;
 }
 
-/** Text input for decimals: no scroll-wheel surprises, numeric keypad on phones. */
+/** Text input for decimals: no scroll-wheel surprises, numeric keypad on phones. Pass a w-* class to size it. */
 export function NumberInput({ className = "", ...props }) {
-  return <input type="text" inputMode="decimal" autoComplete="off" className={`${inputClass} ${className}`} {...props} />;
+  const base = /(^|\s)w-/.test(className) ? inputBase : inputClass;
+  return <input type="text" inputMode="decimal" autoComplete="off" className={`${base} ${className}`} {...props} />;
 }
 
 export function Select({ children, ...props }) {
