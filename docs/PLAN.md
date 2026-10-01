@@ -29,7 +29,7 @@ Living document. Decisions are recorded here; individual changes go in [CHANGELO
 | Phase | Scope | Status |
 |---|---|---|
 | **0. Foundation** | Monorepo, Django + Postgres, owner/staff users, JWT login, shop settings, Django admin, test setup | Done 2026-10-01 (old Flask files still to be removed) |
-| **1. Catalogue & stock-in** | Products/variants, units & barcodes, Excel import, purchase bill entry, stock ledger, stock counts, adjustments, low-stock list | **Awaiting approval (§6)** |
+| **1. Catalogue & stock-in** | Products/variants, units & barcodes, Excel import, purchase bill entry, stock ledger, stock counts, adjustments, low-stock list | Done 2026-10-01 |
 | **2. Counter billing** | Scanner-friendly billing, GST-correct invoices, FY numbering, A4 print, customers & khata, payments, returns/credit notes, quotations | Design summary §7; detailed plan before build |
 | **3. Back office & reports** | Day-end summary, sales & profit, GST summary for CA, supplier payables, expenses, reorder list → purchase orders, barcode label printing, Excel/DB exports & backups | Later |
 | **4. Growth** | Public website, WhatsApp bills & reminders, read bill photos/PDFs into draft purchase entries automatically, electrician loyalty, demand forecasting | Later |
@@ -56,7 +56,15 @@ Rule for staff: *nothing goes on the shelf without a purchase entry; nothing lea
 - Settings from environment; the app **refuses to start** without `DJANGO_SECRET_KEY` / `DATABASE_URL` in production. `.env.example` documents them.
 - Local PostgreSQL 17 via Homebrew on port 5433 (5432 is used by an existing EDB PostgreSQL 16); tests with `pytest-django`.
 
-## 6. Phase 1 — Catalogue & stock-in (FOR APPROVAL)
+## 6. Phase 1 — Catalogue & stock-in (approved and built 2026-10-01)
+
+Changes made while building, beyond the approved design:
+- **Packs have their own MRP** as well as price — distributor price lists quote wire per coil, and a per-metre MRP would lose paise.
+- **"Low stock" only applies to counted items.** An uncounted item reads 0, which would mark everything low after an import.
+- **Paper-bill check** on purchase entry: type the total printed on the bill to catch typing mistakes before posting.
+- **Blind counting:** staff don't see the system quantity while counting; the owner sees differences when reviewing.
+- **Rack helper** on the count screen lists everything on a rack, for items without barcodes.
+- An item can only be in one open count at a time (two open counts would apply the same correction twice).
 
 ### 6.1 Data model
 
@@ -133,7 +141,8 @@ Rule for staff: *nothing goes on the shelf without a purchase entry; nothing lea
 
 ## 8. Open items
 
-- [ ] Owner approval of Phase 1 design (§6)
-- [ ] Remove the old Flask files from the repo root (preserved under tag `flask-final`)
+- [x] Owner approval of Phase 1 design (§6)
+- [x] Remove the old Flask files from the repo root (preserved under tag `flask-final`)
+- [ ] Remove old React screens once Phase 2/3 replace them (billing, invoices, customers, payments, purchase orders, reports — no longer routed)
 - [ ] CA confirmation on invoice types (before Phase 2)
 - [ ] Hosting choice (before first deploy)

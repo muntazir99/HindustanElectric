@@ -1,114 +1,50 @@
-// src/components/Auth/CreateUser.js
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import axios from "../../api.js";
+import { useState } from "react";
+import api from "../../api.js";
+import { errorMessage } from "../../lib/errors.js";
+import { Alert, Button, Card, Field, Input, PageHeader, Select } from "../../ui/index.js";
 
-function CreateUser() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [role, setRole] = useState("user");
+export default function CreateUser() {
+  const [form, setForm] = useState({ username: "", password: "", role: "staff" });
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const navigate = useNavigate();
+  const set = (key) => (event) => setForm({ ...form, [key]: event.target.value });
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  async function save() {
     setError("");
     setMessage("");
     try {
-      const res = await axios.post("/auth/create_user", { username, password, role });
-      setMessage(res.data.message);
-      setUsername("");
-      setPassword("");
-      setRole("user");
-      // Optionally, navigate to another page after success:
-      // navigate("/dashboard");
+      const response = await api.post("/auth/create_user", form);
+      setMessage(response.data.message);
+      setForm({ username: "", password: "", role: "staff" });
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to create user");
+      setError(err.response?.data?.message || errorMessage(err));
     }
-  };
+  }
 
   return (
-    <div
-      className="flex justify-center items-center min-h-screen p-6"
-      style={{
-        background: "#f3f4f6",
-      }}
-    >
-      <div
-        className="p-8 w-full max-w-md rounded-2xl text-white"
-        style={{
-          background: "#e0e0e0",
-          boxShadow: "8px 8px 16px #bebebe, -8px -8px 16px #ffffff",
-          backdropFilter: "blur(4px)",
-        }}
-      >
-        <h2
-          className="text-2xl font-bold mb-6 text-center"
-          style={{ fontFamily: "Reospec", color: "#333" }}
-        >
-          Create User
-        </h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <input
-              type="text"
-              placeholder="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full p-3 rounded-xl text-gray-800 placeholder-gray-500 focus:outline-none"
-              style={{
-                background: "#e0e0e0",
-                border: "1px solid rgba(255,255,255,0.3)",
-                boxShadow: "inset 4px 4px 8px #bebebe, inset -4px -4px 8px #ffffff",
-              }}
-            />
-          </div>
-          <div>
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-3 rounded-xl text-gray-800 placeholder-gray-500 focus:outline-none"
-              style={{
-                background: "#e0e0e0",
-                border: "1px solid rgba(255,255,255,0.3)",
-                boxShadow: "inset 4px 4px 8px #bebebe, inset -4px -4px 8px #ffffff",
-              }}
-            />
-          </div>
-          <div>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              className="w-full p-3 rounded-xl text-gray-800 focus:outline-none"
-              style={{
-                background: "#e0e0e0",
-                border: "1px solid rgba(255,255,255,0.3)",
-                boxShadow: "inset 4px 4px 8px #bebebe, inset -4px -4px 8px #ffffff",
-              }}
-            >
-              <option value="user">User</option>
-              <option value="admin">Admin</option>
-            </select>
-          </div>
-          <button
-            type="submit"
-            className="w-full py-3 rounded-xl font-bold transition-all hover:bg-green-600"
-            style={{
-              background: "#34d399",
-              boxShadow: "8px 8px 16px #bebebe, -8px -8px 16px #ffffff",
-            }}
-          >
-            Create User
-          </button>
-        </form>
-        {error && <p className="mt-4 text-center text-red-500">{error}</p>}
-        {message && <p className="mt-4 text-center text-green-500">{message}</p>}
-      </div>
-    </div>
+    <>
+      <PageHeader title="Add user" subtitle="Give a staff member their own login. Everything they do is recorded under their name." />
+      <Card className="p-6 max-w-lg">
+        <Alert>{error}</Alert>
+        <Alert kind="success">{message}</Alert>
+        <div className="grid gap-4">
+          <Field label="Username">
+            <Input value={form.username} onChange={set("username")} autoComplete="off" />
+          </Field>
+          <Field label="Password" hint="At least 8 characters; not only numbers; not a common password.">
+            <Input type="password" value={form.password} onChange={set("password")} autoComplete="new-password" />
+          </Field>
+          <Field label="Role">
+            <Select value={form.role} onChange={set("role")}>
+              <option value="staff">Staff — daily work: items, purchases, counting</option>
+              <option value="owner">Owner — everything, including prices, adjustments and users</option>
+            </Select>
+          </Field>
+        </div>
+        <Button variant="primary" className="mt-6" onClick={save} disabled={!form.username.trim() || !form.password}>
+          Create user
+        </Button>
+      </Card>
+    </>
   );
 }
-
-export default CreateUser;

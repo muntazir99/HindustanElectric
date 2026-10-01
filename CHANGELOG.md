@@ -5,6 +5,40 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-01 — Phase 1: catalogue & stock-in
+
+**Added — backend**
+- **Catalogue**: categories, brands, products with variants (items), units with pack sizes (coil = 90 m, box = 20 pc). Barcodes per unit, so scanning a box means one box. Short auto item codes for items without barcodes. Packs have their own MRP and price.
+- **Stock ledger**: every stock change is one recorded movement with who, when and why. Item stock is a cached total, changed only by the stock services in the same transaction. `manage.py check_stock` verifies it.
+- **Stock counts**: count a rack or category; scanning adds, typing replaces. Posting applies (counted − system stock at the time of counting), so sales/purchases during a count aren't lost. Staff count blind; only the owner sees differences, posts or cancels. An item can be in only one open count.
+- **Negative stock is allowed but flagged** "needs recount" on counted items, never blocked.
+- **Adjustments** (owner only) with a reason: damaged, lost, sample, own use, correction.
+- **Purchases**: suppliers; purchase bills as drafts, then posted to stock. Lines in any unit, discount %, GST. Posting converts packs to base units and updates weighted average cost (GST excluded). The same bill number from the same supplier can't be entered twice. Photo/PDF of the paper bill can be attached.
+- **Excel/CSV import** (owner only) for the catalogue and for price updates: downloadable template with a how-to sheet; preview shows every row as new / update / error before anything is saved; option to skip error rows. Accepts common unit spellings (mtr, pcs, nos…).
+- Cost prices are never sent to staff. Staff can create items; only the owner changes prices, HSN/GST or deactivates items.
+- 71 API tests + domain tests (144 backend tests in all).
+
+**Added — frontend** (React screens rebuilt for the new backend)
+- Home with stock numbers (not counted, needs recount, low stock, drafts, stock value for owner) and quick actions.
+- Items list with search (any word order, barcodes), status filters, categories; item page with stock shown in packs ("1 coil + 80 m"), units & barcodes, full stock history, edit, owner adjust.
+- Add item: product + all variants at once, size × colour generator, copy-down, Enter moves to the next row's barcode for fast scanning.
+- Purchase bill entry built for a USB barcode scanner, with a new-item shortcut, live totals, and a check against the total printed on the paper bill.
+- Stock counts with scan-to-count and a rack list for items without barcodes.
+- Adjustments, suppliers, Excel import, add user (owner/staff).
+- Phone-friendly menu for counting on a phone.
+- Unit tests for on-screen bill arithmetic (matches server rounding) and error messages.
+
+**Changed**
+- Frontend talks to the Django API (`VITE_API_URL`, default `http://localhost:8000/api`); `frontend/.env` is no longer tracked — see `frontend/.env.example`.
+- Roles are owner/staff (was admin/user). An expired login returns to the login page.
+- Old screens (billing, invoices, customers, payments, purchase orders, reports, logs, calendar) are no longer routed; their files remain for reference until Phase 2/3 replaces them.
+
+**Fixed during testing**
+- "Low stock" no longer shows on items that haven't been counted.
+- Import preview no longer shows item codes that the real import would assign differently.
+- Opening a purchase bill right after posting it no longer keeps the confirmation dialog open.
+- Leaving a new, unsaved purchase bill (refresh/close) now asks first.
+
 ### 2026-10-01 — Phase 0: foundation
 
 **Added**
