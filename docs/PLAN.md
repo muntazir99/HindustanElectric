@@ -264,7 +264,35 @@ Rules:
 E-invoicing (IRN) and e-way bills (only needed above turnover / value limits — CA to confirm), WhatsApp sharing
 (Phase 4), day-end report, GST return export and supplier payables (Phase 3), thermal receipt printers.
 
-## 8. Open items
+## 8. Simple screens for the counter (approved 2026-10-01)
+
+The app is used by the owner's father, who is not used to computers. Design only — **no change to how bills,
+stock, GST or khata work**, and no backend change. Mock-up: the "Shop app — simple redesign" design canvas.
+
+### 8.1 Principles
+
+- **No sidebar.** One short bar on every screen: shop name (goes Home), find an item, a green **New Bill**
+  button, and **More**.
+- **Home shows the four daily jobs** as big tiles: New Bill, Goods Arrived, Take Payment, Add New Item. Below:
+  today's money, udhaar to collect, recent bills, and only the stock warnings that need doing.
+- **Everything else is on More** ("All options"), grouped Bills / Items & stock / Buying / Khata / Setup, each
+  with a one-line explanation. Owner-only options show a lock; staff see them greyed with "Only the owner can do
+  this".
+- **Shop words, not software words** (Khatabook style): New Bill, Old Bills, Kept for Later, Estimate, Return
+  Goods, Goods Arrived, Distributors, Check Stock, Fix Stock, Udhaar, You gave / You got / Owes.
+- **Colour means one thing:** green = money in / go, red = udhaar owed, amber = please check.
+- **Big:** 18px text (Hind font), buttons at least 44px tall, main actions 56–64px.
+- Printed bills, credit notes and receipts are unchanged.
+
+### 8.2 Build order (one commit each)
+
+1. App frame: top bar, All options page, larger shared buttons/fields, plain login page; old sidebar removed.
+2. Home.
+3. New Bill screen.
+4. Khata (customer list and customer page).
+5. Plain names on every other screen.
+
+## 9. Open items
 
 - [x] Owner approval of Phase 1 design (§6)
 - [x] Remove the old Flask files from the repo root (preserved under tag `flask-final`)
@@ -274,4 +302,5 @@ E-invoicing (IRN) and e-way bills (only needed above turnover / value limits —
 - [x] Last paper invoice number this financial year — none; start at 1
 - [ ] Hosting choice (before first deploy)
 - [ ] Fill Shop settings in the back office: GSTIN, address, phone, bank details, bill terms, UPI ID
+- [x] Owner approval of the simple-screens redesign (§8)
 - [ ] Upgrade npm on the dev Mac (npm 10.7 crashes on `npm audit fix`; only dev tools have open advisories)

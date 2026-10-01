@@ -10,7 +10,13 @@ import { inputClass } from "../ui/index.js";
  * code and presses Enter) as well as typing a name.
  * onSelect(item, unitId) — unitId is the scanned pack's unit, or the base unit.
  */
-export default function ItemSearch({ onSelect, placeholder = "Scan barcode or type item name / code", autoFocus = true }) {
+export default function ItemSearch({
+  onSelect,
+  placeholder = "Scan the barcode, or type the item name",
+  autoFocus = true,
+  label = "Find item",
+  compact = false,
+}) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [highlight, setHighlight] = useState(0);
@@ -88,15 +94,15 @@ export default function ItemSearch({ onSelect, placeholder = "Scan barcode or ty
   return (
     <div className="relative">
       <div className="relative">
-        <ScanLine className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+        <ScanLine className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={compact ? 20 : 24} />
         <input
           ref={inputRef}
-          className={`${inputClass} pl-10 py-3 text-lg`}
+          className={compact ? `${inputClass} pl-10 py-2.5 bg-gray-50` : `${inputClass} pl-12 py-4 text-xl border-2 border-blue-800`}
           value={query}
           placeholder={placeholder}
           autoFocus={autoFocus}
           autoComplete="off"
-          aria-label="Find item"
+          aria-label={label}
           onChange={(event) => {
             setQuery(event.target.value);
             setMessage("");
@@ -108,12 +114,12 @@ export default function ItemSearch({ onSelect, placeholder = "Scan barcode or ty
       </div>
       {message && <p className="text-sm text-red-700 mt-1">{message}</p>}
       {open && results.length > 0 && (
-        <ul className="absolute z-30 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-96 overflow-y-auto">
+        <ul className="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-96 overflow-y-auto">
           {results.map((item, index) => (
             <li key={item.id}>
               <button
                 type="button"
-                className={`w-full text-left px-4 py-2 flex justify-between gap-4 ${index === highlight ? "bg-blue-50" : "hover:bg-gray-50"}`}
+                className={`w-full text-left px-4 py-2.5 flex justify-between gap-4 ${index === highlight ? "bg-blue-50" : "hover:bg-gray-50"}`}
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => choose(item)}
                 onMouseEnter={() => setHighlight(index)}
@@ -124,7 +130,7 @@ export default function ItemSearch({ onSelect, placeholder = "Scan barcode or ty
                   {!item.is_active && <span className="text-red-600 text-sm ml-2">inactive</span>}
                 </span>
                 <span className="text-sm text-gray-600 whitespace-nowrap">
-                  {item.counted_at ? item.stock_display : "not counted"} · {money(item.selling_price)}
+                  {item.counted_at ? item.stock_display : "stock not checked"} · {money(item.selling_price)}
                 </span>
               </button>
             </li>

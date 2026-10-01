@@ -7,6 +7,7 @@ import Layout from "./components/Common/Layout.js";
 const Login = lazy(() => import("./components/Auth/LoginAuth.js"));
 const CreateUser = lazy(() => import("./components/Auth/CreateUser.js"));
 const Home = lazy(() => import("./pages/Home.js"));
+const More = lazy(() => import("./pages/More.js"));
 const ItemList = lazy(() => import("./pages/items/ItemList.js"));
 const ItemNew = lazy(() => import("./pages/items/ItemNew.js"));
 const ItemDetail = lazy(() => import("./pages/items/ItemDetail.js"));
@@ -91,6 +92,7 @@ function AppRoutes() {
           >
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<Home />} />
+            <Route path="more" element={<More />} />
             <Route path="billing" element={<Billing />} />
             <Route path="bills" element={<BillList />} />
             <Route path="bills/:id" element={<BillDetail />} />

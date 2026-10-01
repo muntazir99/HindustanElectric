@@ -2,25 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
-@font-face {
-    font-family: 'Reospec';
-    src: url('../src/components/assets/Reospec.otf') format('truetype');
-    font-weight: normal;
-    font-style: normal;
-  }
-
-/* Accessibility & Readability Boost */
+/* Large, plain text for the counter: 18px base. */
 html {
-    font-size: 110%; /* Makes everything slightly bigger */
+  font-size: 112.5%;
 }
 
 body {
-    color: #1f2937; /* Gray-800 for high contrast text */
+  color: #16181d;
+  background: #f4f5f7;
+  line-height: 1.45;
 }
 
 input, button, select, textarea {
-    font-size: 1rem; /* Prevents small text in form controls */
+  font-size: 1rem; /* Prevents small text in form controls */
 }
+
 /* Printing bills: A4, only the bill itself. */
 @media print {
   @page {

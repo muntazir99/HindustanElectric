@@ -1,16 +1,16 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import { X } from "lucide-react";
+import { ArrowLeft, X } from "lucide-react";
 
 const BUTTON = {
-  primary: "bg-blue-700 hover:bg-blue-800 text-white border-blue-700",
-  secondary: "bg-white hover:bg-gray-50 text-gray-800 border-gray-300",
+  primary: "bg-blue-800 hover:bg-blue-900 text-white border-blue-800",
+  secondary: "bg-white hover:bg-gray-50 text-gray-900 border-gray-300",
   danger: "bg-white hover:bg-red-50 text-red-700 border-red-300",
   success: "bg-green-700 hover:bg-green-800 text-white border-green-700",
 };
 
 export function Button({ variant = "secondary", className = "", to, children, ...props }) {
-  const classes = `inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border font-semibold
+  const classes = `inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2 rounded-xl border font-semibold
     transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${BUTTON[variant]} ${className}`;
   if (to) {
     return (
@@ -36,17 +36,27 @@ const BADGE = {
 
 export function Badge({ color = "gray", children }) {
   return (
-    <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold whitespace-nowrap ${BADGE[color]}`}>
+    <span className={`inline-block px-2 py-0.5 rounded-md text-sm font-semibold whitespace-nowrap ${BADGE[color]}`}>
       {children}
     </span>
   );
 }
 
-export function PageHeader({ title, subtitle, children }) {
+/** A plain "← Home" style link back to where this screen is opened from. */
+export function BackLink({ to = "/more", children = "All options" }) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
+    <Link to={to} className="no-print inline-flex items-center gap-1.5 font-semibold text-blue-800 hover:underline">
+      <ArrowLeft size={18} /> {children}
+    </Link>
+  );
+}
+
+export function PageHeader({ title, subtitle, back, children }) {
+  return (
+    <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+        {back && <BackLink to={back[0]}>{back[1]}</BackLink>}
+        <h1 className="text-3xl font-bold text-gray-900 leading-tight mt-1">{title}</h1>
         {subtitle && <p className="text-gray-600 mt-1">{subtitle}</p>}
       </div>
       {children && <div className="flex flex-wrap gap-2">{children}</div>}
@@ -55,7 +65,7 @@ export function PageHeader({ title, subtitle, children }) {
 }
 
 export function Card({ className = "", children }) {
-  return <div className={`bg-white rounded-xl border border-gray-200 shadow-sm ${className}`}>{children}</div>;
+  return <div className={`bg-white rounded-2xl border border-gray-200 ${className}`}>{children}</div>;
 }
 
 export function Alert({ kind = "error", children, onClose }) {
@@ -67,7 +77,7 @@ export function Alert({ kind = "error", children, onClose }) {
     info: "bg-blue-50 border-blue-200 text-blue-900",
   };
   return (
-    <div role={kind === "error" ? "alert" : "status"} className={`flex items-start gap-3 border rounded-lg px-4 py-3 mb-4 ${styles[kind]}`}>
+    <div role={kind === "error" ? "alert" : "status"} className={`flex items-start gap-3 border rounded-xl px-4 py-3 mb-4 ${styles[kind]}`}>
       <div className="flex-1">{children}</div>
       {onClose && (
         <button type="button" onClick={onClose} aria-label="Dismiss" className="opacity-60 hover:opacity-100">
@@ -81,15 +91,15 @@ export function Alert({ kind = "error", children, onClose }) {
 export function Field({ label, hint, children, className = "" }) {
   return (
     <label className={`block ${className}`}>
-      <span className="block text-sm font-semibold text-gray-700 mb-1">{label}</span>
+      <span className="block font-semibold text-gray-700 mb-1">{label}</span>
       {children}
-      {hint && <span className="block text-xs text-gray-500 mt-1">{hint}</span>}
+      {hint && <span className="block text-sm text-gray-500 mt-1">{hint}</span>}
     </label>
   );
 }
 
 export const inputClass =
-  "w-full px-3 py-2 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100";
+  "w-full px-3 py-2 rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 disabled:bg-gray-100";
 
 export function Input(props) {
   return <input className={inputClass} {...props} />;
@@ -128,11 +138,11 @@ export function Modal({ title, onClose, children, wide = false }) {
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`bg-white rounded-xl shadow-xl w-full ${wide ? "max-w-4xl" : "max-w-lg"} mt-12`}
+        className={`bg-white rounded-2xl shadow-xl w-full ${wide ? "max-w-4xl" : "max-w-lg"} mt-12`}
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b">
-          <h2 className="text-lg font-bold">{title}</h2>
+          <h2 className="text-xl font-bold">{title}</h2>
           <button type="button" onClick={onClose} aria-label="Close" className="text-gray-500 hover:text-gray-800">
             <X size={20} />
           </button>
@@ -173,5 +183,5 @@ export function Table({ children }) {
   );
 }
 
-export const th = "px-4 py-3 text-xs font-bold uppercase tracking-wide text-gray-500 bg-gray-50 border-b";
+export const th = "px-4 py-3 text-sm font-semibold text-gray-600 bg-gray-50 border-b";
 export const td = "px-4 py-3 border-b border-gray-100 align-top";

@@ -1,25 +1,14 @@
-module.exports = {
-  content: [
-    "./src/**/*.{js,jsx,ts,tsx}",
-  ],
-  theme: {
-    extend: {},
-  },
-  plugins: [],
+import defaultTheme from "tailwindcss/defaultTheme.js";
+
+export default {
+  content: ["./src/**/*.{js,jsx,ts,tsx}"],
   theme: {
     extend: {
+      // Hind is made for Indian shop signs and forms: clear numbers, and Devanagari if Hindi is added later.
       fontFamily: {
-        reospec: ['Reospec', 'sans-serif'],
-      },
-      backdropBlur: {
-        sm: '4px',
-        md: '8px',
-        lg: '12px',
-        xl: '16px',
+        sans: ["Hind", "Segoe UI", ...defaultTheme.fontFamily.sans],
       },
     },
   },
+  plugins: [],
 };
-
-
-

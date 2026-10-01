@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Download, FileSpreadsheet, Upload } from "lucide-react";
 import api from "../api.js";
 import { SAMPLE_SHEET_NAME, SAMPLE_SHEET_URL, downloadFile } from "../lib/download.js";
@@ -25,7 +25,8 @@ const STATUS = {
 };
 
 export default function ImportPage() {
-  const [kind, setKind] = useState("catalogue");
+  const [params] = useSearchParams();
+  const [kind, setKind] = useState(params.get("kind") === "prices" ? "prices" : "catalogue");
   const [file, setFile] = useState(null);
   const [result, setResult] = useState(null);
   const [errorsOnly, setErrorsOnly] = useState(false);

@@ -5,6 +5,20 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-01 — Simple screens, step 1: top bar and "All options"
+
+Design only: nothing about bills, stock, GST or khata changed. Plan: [PLAN.md §8](docs/PLAN.md).
+
+**Changed**
+- The left sidebar (12 links) is replaced by one short bar on every screen: shop name (goes Home), **Find an item** (shows stock and price, opens the item), a green **New Bill** button, **More**, and the Owner/Staff menu with Log out.
+- New **All options** page (More): Bills, Items & stock, Buying from distributors, Khata, Setup — each a large tile with a one-line explanation in plain words. Owner-only tiles show a lock; staff see them greyed out with "Only the owner can do this".
+- Bills list renamed **Old Bills** with tabs Bills / Kept for later / Estimates / Cancelled; "Return Goods" and "Cancel a Bill" open it with a line saying what to do next. "Update Prices" opens the Excel page on the price-list option.
+- Larger text everywhere (18px, Hind font), taller buttons and fields, plain table headings (no small capitals).
+- Login page: plain form ("Forgot your password? Ask the owner to reset it." instead of a link that went nowhere).
+
+**Removed**
+- Old sidebar, and the login page's unused images and font.
+
 ### 2026-10-01 — Phase 2, step 5: today's numbers, cleanup — Phase 2 complete
 
 **Added**

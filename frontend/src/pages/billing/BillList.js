@@ -1,18 +1,23 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Plus } from "lucide-react";
 import { useFetch } from "../../hooks/useFetch.js";
 import { date, dateTime, money, today } from "../../lib/format.js";
-import { Alert, Badge, Button, Card, Empty, Input, PageHeader, Pagination, Spinner, Table, td, th } from "../../ui/index.js";
+import { Alert, Badge, Card, Empty, Input, PageHeader, Pagination, Spinner, Table, td, th } from "../../ui/index.js";
 
 const TABS = [
   ["", "Bills"],
-  ["held", "Held"],
-  ["quotation", "Quotations"],
+  ["held", "Kept for later"],
+  ["quotation", "Estimates"],
   ["cancelled", "Cancelled"],
 ];
 
-export const BILL_STATUS = { final: ["green", "Paid / final"], draft: ["amber", "Held"], cancelled: ["red", "Cancelled"] };
+export const BILL_STATUS = { final: ["green", "Done"], draft: ["amber", "Kept for later"], cancelled: ["red", "Cancelled"] };
+
+// Opened from "Return Goods" / "Cancel a Bill" on the More page: both start from the bill.
+const HELP = {
+  return: "To take goods back: find the bill below, open it, then press “Return goods”.",
+  cancel: "To cancel a bill: find it below, open it, then press “Cancel bill”.",
+};
 
 export default function BillList() {
   const navigate = useNavigate();
@@ -21,6 +26,7 @@ export default function BillList() {
   const day = params.get("day") ?? today();
   const page = Number(params.get("page") || 1);
   const [search, setSearch] = useState(params.get("search") || "");
+  const help = HELP[params.get("help")];
 
   function update(changes) {
     const next = new URLSearchParams(params);
@@ -43,13 +49,19 @@ export default function BillList() {
   return (
     <>
       <PageHeader
-        title="Bills"
-        subtitle={status === "held" ? "Bills parked at the counter" : status === "quotation" ? "Quotations (estimates) — not bills" : day ? `Bills on ${date(day)}` : "All bills"}
-      >
-        <Button variant="primary" to="/billing">
-          <Plus size={18} /> New bill
-        </Button>
-      </PageHeader>
+        title={status === "held" ? "Kept for Later" : status === "quotation" ? "Estimates" : "Old Bills"}
+        back={["/more", "All options"]}
+        subtitle={
+          status === "held"
+            ? "Bills put on hold at the counter. Open one to finish it."
+            : status === "quotation"
+              ? "Price quotes given to customers. They are not bills."
+              : day
+                ? `Bills on ${date(day)}`
+                : "All bills"
+        }
+      />
+      {help && <Alert kind="info">{help}</Alert>}
       <Card className="p-4 mb-4 flex flex-wrap items-center gap-3">
         <div className="flex gap-2">
           {TABS.map(([value, label]) => (
@@ -57,7 +69,7 @@ export default function BillList() {
               key={value}
               type="button"
               onClick={() => update({ status: value })}
-              className={`px-3 py-1.5 rounded-full text-sm font-semibold border ${
+              className={`px-4 py-1.5 rounded-full font-semibold border ${
                 status === value ? "bg-blue-700 text-white border-blue-700" : "bg-white text-gray-700 border-gray-300"
               }`}
             >
@@ -66,9 +78,9 @@ export default function BillList() {
           ))}
         </div>
         {!undated && (
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex items-center gap-2">
             Date
-            <input type="date" className="border rounded-lg px-2 py-1.5" value={day} max={today()} onChange={(e) => update({ day: e.target.value })} />
+            <input type="date" className="border border-gray-300 rounded-xl px-2 py-1.5" value={day} max={today()} onChange={(e) => update({ day: e.target.value })} />
             <button type="button" className="text-blue-800 underline" onClick={() => update({ day: "" })}>
               all dates
             </button>
@@ -77,7 +89,7 @@ export default function BillList() {
         <div className="flex-1 min-w-[220px]">
           <Input
             value={search}
-            placeholder="Bill number, buyer name or phone"
+            placeholder="Bill number, name or phone — press Enter"
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && update({ search: search.trim(), day: "" })}
           />
@@ -88,7 +100,7 @@ export default function BillList() {
         {loading && !data ? (
           <Spinner />
         ) : rows.length === 0 ? (
-          <Empty>No bills here.</Empty>
+          <Empty>{status === "held" ? "No bills kept for later." : status === "quotation" ? "No estimates yet." : "No bills here."}</Empty>
         ) : (
           <Table>
             <thead>
@@ -98,7 +110,7 @@ export default function BillList() {
                 <th className={th}>Buyer</th>
                 <th className={`${th} text-right`}>Items</th>
                 <th className={`${th} text-right`}>Total</th>
-                <th className={`${th} text-right`}>On khata</th>
+                <th className={`${th} text-right`}>Udhaar</th>
                 <th className={th}>Status</th>
               </tr>
             </thead>
@@ -134,7 +146,7 @@ export default function BillList() {
         )}
         {data && !undated && day && rows.length > 0 && (
           <p className="px-4 py-3 border-t text-sm text-gray-700">
-            Total of final bills on this page: <b>{money(dayTotal)}</b>
+            Total of finished bills on this page: <b>{money(dayTotal)}</b>
           </p>
         )}
         {data && <Pagination page={page} count={data.count} onPage={(next) => update({ page: String(next) })} />}
