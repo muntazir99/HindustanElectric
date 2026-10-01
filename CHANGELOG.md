@@ -5,6 +5,16 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-01 — Simple screens, step 4: Khata
+
+**Changed**
+- Customers page is now **Khata (Udhaar)** with three cards on top: **You will get** (owner: total udhaar and how many customers), **Received today**, **Given on udhaar today**.
+- Customer list is a simple list (no table): a letter badge (red = owes, green = advance), name, phone and type, and the amount with "owes" / "advance" / "nothing due". Filters: Everyone / Owe money.
+- Customer page: name and details with **Owes ₹…** in large red figures, a big green **Take Payment** button, Print khata, Edit details. Owner tools in one quiet row: "Add old udhaar from the register" (was Opening balance) and "Correct the khata" (was Adjust khata).
+- History (was Statement) uses Khatabook words on screen — **You gave / You got / Owes** — and plain line names (Old udhaar from the register, Payment received, Goods returned, Correction…). The printout keeps neutral headings for the customer: Bill amount / Paid / Balance.
+- Payment box: "Take payment from …", "Udhaar now", bigger Paid-by buttons.
+- "Take payment" on Home opens the customer with the payment box ready.
+
 ### 2026-10-01 — Simple screens, step 3: New Bill
 
 Same saving, pricing, GST and payment rules as before — only the screen changed.

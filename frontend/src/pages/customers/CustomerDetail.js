@@ -1,16 +1,28 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft, HandCoins, Pencil, Printer, Receipt } from "lucide-react";
+import { HandCoins, Pencil, Printer, Receipt } from "lucide-react";
 import api from "../../api.js";
 import CustomerForm, { CUSTOMER_KINDS } from "../../components/CustomerForm.js";
 import { useAuth } from "../../context/AuthContext.js";
 import { useFetch } from "../../hooks/useFetch.js";
 import { errorMessage } from "../../lib/errors.js";
-import { date, money } from "../../lib/format.js";
-import { Alert, Badge, Button, Card, Field, Input, Modal, NumberInput, Spinner, Table, td, th } from "../../ui/index.js";
+import { bigMoney, date, money } from "../../lib/format.js";
+import { Alert, BackLink, Badge, Button, Card, Field, Input, Modal, NumberInput, Spinner, Table, td, th } from "../../ui/index.js";
 import { BalanceText } from "./CustomerList.js";
 
 const KIND_LABEL = Object.fromEntries(CUSTOMER_KINDS);
+// What each khata line means, in shop words. The printed statement uses the same words.
+const LINE_LABEL = {
+  opening: "Old udhaar from the register",
+  bill: "Bill",
+  payment: "Payment received",
+  bill_cancelled: "Bill cancelled",
+  refund: "Money given back",
+  return: "Goods returned",
+  receipt_cancelled: "Receipt cancelled",
+  adjustment: "Correction",
+};
+
 const MODES = [
   ["cash", "Cash"],
   ["upi", "UPI"],
@@ -45,10 +57,10 @@ function PaymentModal({ customer, onClose, onDone }) {
   }
 
   return (
-    <Modal title={`Payment from ${customer.name}`} onClose={onClose}>
+    <Modal title={`Take payment from ${customer.name}`} onClose={onClose}>
       <Alert>{error}</Alert>
       <p className="mb-4">
-        Khata now: <BalanceText balance={customer.balance} />
+        Udhaar now: <BalanceText balance={customer.balance} />
       </p>
       <div className="grid gap-4">
         <Field label="Amount received (₹)">
@@ -63,6 +75,7 @@ function PaymentModal({ customer, onClose, onDone }) {
           />
         </Field>
         {Number(amount) > 0 && <p className="text-sm text-gray-700 -mt-2">{money(amount)}</p>}
+        <p className="font-semibold text-gray-700 -mb-2">Paid by</p>
         <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Paid by">
           {MODES.map(([value, label]) => (
             <button
@@ -71,7 +84,7 @@ function PaymentModal({ customer, onClose, onDone }) {
               role="radio"
               aria-checked={mode === value}
               onClick={() => setMode(value)}
-              className={`px-3 py-1.5 rounded-lg border font-semibold ${mode === value ? "bg-blue-700 text-white border-blue-700" : "bg-white border-gray-300"}`}
+              className={`min-h-[44px] px-4 rounded-xl border-2 font-semibold ${mode === value ? "bg-blue-800 text-white border-blue-800" : "bg-white border-gray-300"}`}
             >
               {label}
             </button>
@@ -119,7 +132,7 @@ function CancelReceiptModal({ line, onClose, onDone }) {
     <Modal title={`Cancel receipt ${line.receipt_number}?`} onClose={onClose}>
       <Alert>{error}</Alert>
       <p className="mb-4">
-        For a payment entered by mistake. The receipt ({money(line.credit)}) is marked cancelled and the khata goes back
+        For a payment entered by mistake. The receipt ({money(line.credit)}) is marked cancelled and the udhaar goes back
         up by the same amount. Nothing is deleted.
       </p>
       <Field label="Reason *">
@@ -181,9 +194,12 @@ export default function CustomerDetail() {
   const { data, error, loading, reload } = useFetch(`/sales/customers/${id}/ledger?${query}`);
   const { data: bills } = useFetch(`/sales/invoices?status=all&customer=${id}&page_size=20`);
   const { data: shop } = useFetch("/shop/settings");
-  const [params] = useSearchParams();
-  // "Take payment" on Home opens the customer with the payment box already open.
+  const [params, setParams] = useSearchParams();
+  // "Take payment" on Home opens the customer with the payment box already open (once, not on every refresh).
   const [modal, setModal] = useState(params.get("pay") === "1" ? "payment" : null);
+  useEffect(() => {
+    if (params.has("pay")) setParams({}, { replace: true });
+  }, [params, setParams]);
   const [receipt, setReceipt] = useState(null);
 
   if (loading && !data) return <Spinner />;
@@ -199,9 +215,7 @@ export default function CustomerDetail() {
 
   return (
     <>
-      <Link to="/customers" className="no-print inline-flex items-center gap-1 text-blue-800 mb-3 hover:underline">
-        <ArrowLeft size={16} /> Customers
-      </Link>
+      <BackLink to="/customers">Khata</BackLink>
 
       {/* Printed statement header */}
       <div className="hidden print:block mb-4">
@@ -215,32 +229,44 @@ export default function CustomerDetail() {
         </p>
       </div>
 
-      <div className="no-print flex flex-wrap items-start justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-3">
-            {customer.name} <Badge color="blue">{KIND_LABEL[customer.kind]}</Badge>
-            {!customer.is_active && <Badge>Inactive</Badge>}
-          </h1>
-          <p className="text-gray-600 mt-1">
-            {[customer.phone, customer.gstin && `GSTIN ${customer.gstin}`, customer.address].filter(Boolean).join(" · ") || "No contact details"}
-          </p>
-          <p className="text-sm text-gray-500 mt-1">
-            Credit limit: {customer.credit_limit === null ? "no limit" : money(customer.credit_limit)}
-            {Number(customer.default_discount_percent) > 0 && ` · ${Number(customer.default_discount_percent)}% discount on every bill`}
-          </p>
+      <Card className="no-print p-5 md:p-6 mt-2 mb-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold leading-tight flex flex-wrap items-center gap-3">
+              {customer.name} <Badge color="blue">{KIND_LABEL[customer.kind]}</Badge>
+              {!customer.is_active && <Badge>Inactive</Badge>}
+            </h1>
+            <p className="text-gray-700 mt-1">
+              {[customer.phone, customer.gstin && `GSTIN ${customer.gstin}`, customer.address].filter(Boolean).join(" · ") || "No contact details"}
+            </p>
+            <p className="text-gray-500">
+              {customer.credit_limit === null ? "No udhaar limit" : `Udhaar limit ${money(customer.credit_limit)}`}
+              {Number(customer.default_discount_percent) > 0 && ` · gets ${Number(customer.default_discount_percent)}% off every bill`}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-gray-600">{Number(customer.balance) > 0 ? "Owes" : Number(customer.balance) < 0 ? "Advance" : "Udhaar"}</p>
+            <p
+              className={`text-4xl font-bold leading-tight ${
+                Number(customer.balance) > 0 ? "text-red-700" : Number(customer.balance) < 0 ? "text-green-700" : "text-gray-400"
+              }`}
+            >
+              {Number(customer.balance) === 0 ? "Nothing due" : bigMoney(Math.abs(Number(customer.balance)))}
+            </p>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={() => setModal("edit")}>
-            <Pencil size={18} /> Edit
+        <div className="flex flex-wrap gap-3 mt-5">
+          <Button variant="success" className="h-14 px-6 text-lg grow sm:grow-0" onClick={() => setModal("payment")}>
+            <HandCoins size={22} /> Take Payment
           </Button>
-          <Button onClick={() => window.print()}>
-            <Printer size={18} /> Print statement
+          <Button className="h-14" onClick={() => window.print()}>
+            <Printer size={20} /> Print khata
           </Button>
-          <Button variant="success" onClick={() => setModal("payment")}>
-            <HandCoins size={18} /> Receive payment
+          <Button className="h-14" onClick={() => setModal("edit")}>
+            <Pencil size={18} /> Edit details
           </Button>
         </div>
-      </div>
+      </Card>
 
       <Alert kind="success" onClose={() => setReceipt(null)}>
         {receipt && (
@@ -253,36 +279,27 @@ export default function CustomerDetail() {
         )}
       </Alert>
 
-      <div className="grid md:grid-cols-3 gap-6 mb-6 no-print">
-        <Card className="p-5">
-          <p className="text-sm font-semibold text-gray-500">Khata balance</p>
-          <p className="text-3xl font-bold mt-1">
-            <BalanceText balance={customer.balance} />
-          </p>
-        </Card>
-        {isOwner && (
-          <Card className="p-5 md:col-span-2 flex flex-wrap items-center gap-3">
-            {!hasOpening && (
-              <Button onClick={() => setModal("opening")}>Set opening balance (from paper khata)</Button>
-            )}
-            <Button onClick={() => setModal("adjust")}>Adjust khata</Button>
-            <p className="text-sm text-gray-500 w-full">Owner only. Every change is recorded with a reason.</p>
-          </Card>
-        )}
-      </div>
+      {isOwner && (
+        <div className="no-print flex flex-wrap items-center gap-3 mb-5 px-1">
+          <span className="text-gray-600">Owner:</span>
+          {!hasOpening && <Button onClick={() => setModal("opening")}>Add old udhaar from the register</Button>}
+          <Button onClick={() => setModal("adjust")}>Correct the khata</Button>
+          <span className="text-sm text-gray-500">Every change is recorded with a reason.</span>
+        </div>
+      )}
 
       <Card className="mb-6">
         <div className="no-print flex flex-wrap items-center gap-3 px-5 py-4 border-b">
-          <h2 className="font-bold text-lg mr-auto">Statement</h2>
-          <label className="text-sm flex items-center gap-2">
-            From <input type="date" className="border rounded-lg px-2 py-1" value={range.from} onChange={(e) => setRange({ ...range, from: e.target.value })} />
+          <h2 className="font-bold text-xl mr-auto">History</h2>
+          <label className="flex items-center gap-2">
+            From <input type="date" className="border border-gray-300 rounded-xl px-2 py-1.5" value={range.from} onChange={(e) => setRange({ ...range, from: e.target.value })} />
           </label>
-          <label className="text-sm flex items-center gap-2">
-            To <input type="date" className="border rounded-lg px-2 py-1" value={range.to} onChange={(e) => setRange({ ...range, to: e.target.value })} />
+          <label className="flex items-center gap-2">
+            To <input type="date" className="border border-gray-300 rounded-xl px-2 py-1.5" value={range.to} onChange={(e) => setRange({ ...range, to: e.target.value })} />
           </label>
           {(range.from || range.to) && (
-            <button type="button" className="text-sm text-blue-800 underline" onClick={() => setRange({ from: "", to: "" })}>
-              whole khata
+            <button type="button" className="text-blue-800 underline" onClick={() => setRange({ from: "", to: "" })}>
+              Show everything
             </button>
           )}
         </div>
@@ -290,17 +307,27 @@ export default function CustomerDetail() {
           <thead>
             <tr>
               <th className={th}>Date</th>
-              <th className={th}>Particulars</th>
-              <th className={`${th} text-right`}>Bill / owes</th>
-              <th className={`${th} text-right`}>Paid</th>
-              <th className={`${th} text-right`}>Balance</th>
+              <th className={th}>What happened</th>
+              {/* On screen it's the shop's view (Khatabook style); the printout goes to the customer. */}
+              <th className={`${th} text-right`}>
+                <span className="print:hidden">You gave</span>
+                <span className="hidden print:inline">Bill amount</span>
+              </th>
+              <th className={`${th} text-right`}>
+                <span className="print:hidden">You got</span>
+                <span className="hidden print:inline">Paid</span>
+              </th>
+              <th className={`${th} text-right`}>
+                <span className="print:hidden">Owes</span>
+                <span className="hidden print:inline">Balance</span>
+              </th>
             </tr>
           </thead>
           <tbody>
             {range.from && (
               <tr>
                 <td className={td} />
-                <td className={`${td} italic`}>Brought forward</td>
+                <td className={`${td} italic`}>Owed before {date(range.from)}</td>
                 <td className={td} />
                 <td className={td} />
                 <td className={`${td} text-right font-semibold`}>{money(data.brought_forward)}</td>
@@ -317,7 +344,7 @@ export default function CustomerDetail() {
               <tr key={line.id}>
                 <td className={`${td} whitespace-nowrap`}>{date(line.date)}</td>
                 <td className={td}>
-                  <span className="font-semibold">{line.kind_display}</span>
+                  <span className="font-semibold">{LINE_LABEL[line.kind] || line.kind_display}</span>
                   {line.invoice && (
                     <Link to={`/bills/${line.invoice}`} className="ml-2 text-blue-800 hover:underline font-mono text-sm">
                       {line.invoice_number}
@@ -341,8 +368,8 @@ export default function CustomerDetail() {
                     <div className="text-sm text-gray-600">{line.note}</div>
                   )}
                 </td>
-                <td className={`${td} text-right`}>{Number(line.debit) ? money(line.debit) : ""}</td>
-                <td className={`${td} text-right text-green-800`}>{Number(line.credit) ? money(line.credit) : ""}</td>
+                <td className={`${td} text-right text-red-700`}>{Number(line.debit) ? money(line.debit) : ""}</td>
+                <td className={`${td} text-right text-green-700`}>{Number(line.credit) ? money(line.credit) : ""}</td>
                 <td className={`${td} text-right font-semibold`}>{money(line.balance)}</td>
               </tr>
             ))}
@@ -350,7 +377,8 @@ export default function CustomerDetail() {
           <tfoot>
             <tr>
               <td className={td} colSpan={4}>
-                <b>Closing balance</b>
+                <b className="print:hidden">Owes now</b>
+                <b className="hidden print:inline">Balance due</b>
               </td>
               <td className={`${td} text-right font-bold`}>{money(data.closing_balance)}</td>
             </tr>
@@ -360,7 +388,7 @@ export default function CustomerDetail() {
 
       {bills && bills.results.length > 0 && (
         <Card className="no-print">
-          <h2 className="font-bold text-lg px-5 py-4 border-b">Recent bills</h2>
+          <h2 className="font-bold text-xl px-5 py-4 border-b">Recent bills</h2>
           <Table>
             <tbody>
               {bills.results.map((bill) => (
@@ -372,7 +400,7 @@ export default function CustomerDetail() {
                   </td>
                   <td className={td}>{date(bill.invoice_date)}</td>
                   <td className={`${td} text-right`}>{money(bill.total)}</td>
-                  <td className={`${td} text-right text-red-700`}>{Number(bill.credit_amount) ? `${money(bill.credit_amount)} on khata` : ""}</td>
+                  <td className={`${td} text-right text-red-700`}>{Number(bill.credit_amount) ? `${money(bill.credit_amount)} on udhaar` : ""}</td>
                   <td className={td}>{bill.status === "cancelled" && <Badge color="red">Cancelled</Badge>}</td>
                 </tr>
               ))}
@@ -404,8 +432,8 @@ export default function CustomerDetail() {
       )}
       {modal === "opening" && (
         <AmountModal
-          title="Opening balance"
-          help="What this customer already owed in the paper khata when you started using the app. Can be set once; use Adjust khata to correct it later."
+          title="Old udhaar from the register"
+          help="What this customer already owed in the paper khata when you started using the app. Can be added once; use “Correct the khata” to change it later."
           onClose={() => setModal(null)}
           onSubmit={(body) => post("opening", body)}
         />
@@ -422,8 +450,8 @@ export default function CustomerDetail() {
       )}
       {modal === "adjust" && (
         <AmountModal
-          title="Adjust khata"
-          help="For corrections only — bills and payments update the khata by themselves."
+          title="Correct the khata"
+          help="For mistakes only — bills and payments update the khata by themselves."
           needsNote
           onClose={() => setModal(null)}
           onSubmit={(body) => post("adjust", body)}
