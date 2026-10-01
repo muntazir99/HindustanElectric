@@ -141,7 +141,8 @@ class Item(models.Model):
         return " ".join(part for part in parts if part)
 
     def save(self, *args, **kwargs):
-        self.search_text = " ".join([self.name, self.code, self.aliases, self.rack]).lower()
+        barcodes = list(self.units.exclude(barcode=None).values_list("barcode", flat=True)) if self.pk else []
+        self.search_text = " ".join([self.name, self.code, self.aliases, self.rack, *barcodes]).lower()
         super().save(*args, **kwargs)
         if not self.code:
             self.code = str(10000 + self.pk)
@@ -173,6 +174,10 @@ class ItemUnit(models.Model):
     )
     is_base = models.BooleanField(default=False, editable=False)
     barcode = models.CharField(max_length=64, null=True, blank=True, unique=True)
+    # Pack prices. The base unit's prices live on the Item itself.
+    mrp = models.DecimalField(
+        "MRP", max_digits=12, decimal_places=2, null=True, blank=True, help_text="MRP of the whole pack."
+    )
     selling_price = models.DecimalField(
         max_digits=12, decimal_places=2, null=True, blank=True,
         help_text="Price for this whole pack, GST included. Blank = base price × size.",
@@ -192,3 +197,10 @@ class ItemUnit(models.Model):
     def save(self, *args, **kwargs):
         self.barcode = (self.barcode or "").strip() or None
         super().save(*args, **kwargs)
+        # Keep the item's search text in step with its barcodes.
+        self.item.save(update_fields=["search_text", "updated_at"])
+
+    def delete(self, *args, **kwargs):
+        result = super().delete(*args, **kwargs)
+        self.item.save(update_fields=["search_text", "updated_at"])
+        return result

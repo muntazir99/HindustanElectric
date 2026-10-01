@@ -32,7 +32,7 @@ class ProductAdmin(admin.ModelAdmin):
 
 class ItemUnitInline(admin.TabularInline):
     model = ItemUnit
-    fields = ("name", "factor", "barcode", "selling_price", "is_base")
+    fields = ("name", "factor", "barcode", "mrp", "selling_price", "is_base")
     readonly_fields = ("is_base",)
     extra = 0
 

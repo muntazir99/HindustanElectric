@@ -1,8 +1,11 @@
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.auth.models import Group
 from django.http import JsonResponse
 from django.urls import include, path
 
+from catalog.import_views import ImportTemplate, ImportUpload
 from shop.views import ShopSettingsView
 
 admin.site.site_header = "Hindustan Electric — Back office"
@@ -22,4 +25,12 @@ urlpatterns = [
     path("api/health", health),
     path("api/auth/", include("accounts.urls")),
     path("api/shop/settings", ShopSettingsView.as_view(), name="shop-settings"),
+    path("api/catalog/", include("catalog.urls")),
+    path("api/stock/", include("stock.urls")),
+    path("api/purchases/", include("purchases.urls")),
+    path("api/import/<str:kind>/template", ImportTemplate.as_view(), name="import-template"),
+    path("api/import/<str:kind>", ImportUpload.as_view(), name="import-upload"),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
