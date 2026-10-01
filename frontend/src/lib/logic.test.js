@@ -58,4 +58,14 @@ describe("error messages", () => {
   it("uses the server's detail message", () => {
     expect(errorMessage({ response: { status: 400, data: { detail: "Nothing has been counted yet." } } })).toBe("Nothing has been counted yet.");
   });
+
+  it("asks to wait after too many tries", () => {
+    expect(errorMessage({ response: { status: 429, data: { detail: "Request was throttled." } } })).toMatch(/Wait a minute/);
+  });
+
+  it("never shows a server crash's page or details", () => {
+    expect(errorMessage({ response: { status: 500, data: "<!doctype html><title>Server Error</title>" } })).toMatch(
+      /^Something went wrong on the server/
+    );
+  });
 });

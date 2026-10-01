@@ -124,6 +124,20 @@ class TestCatalogueImport:
         response = upload(owner_api, file, commit="true")
         assert response.data["summary"]["created"] == 1
 
+    def test_csv_saved_by_excel_on_windows(self, owner_api):
+        # Excel's plain "CSV" on Windows is Windows-1252, not UTF-8: "é" is one byte that UTF-8 can't read.
+        text = ",".join(HEADERS) + "\nSwitches,Anchor,Roma switch,6A Café,8536,18,pc,45,38,,,,,,,S2,,\n"
+        file = SimpleUploadedFile("items.csv", text.encode("cp1252"), content_type="text/csv")
+        response = upload(owner_api, file, commit="true")
+        assert response.data["summary"]["created"] == 1
+        assert Item.objects.get().variant == "6A Café"
+
+    def test_broken_excel_file_gives_clear_error(self, owner_api):
+        file = SimpleUploadedFile("items.xlsx", b"not really excel", content_type="application/octet-stream")
+        response = upload(owner_api, file)
+        assert response.status_code == 400
+        assert "save it again" in response.data["detail"]
+
     def test_unknown_headers_give_clear_error(self, owner_api):
         response = upload(owner_api, xlsx([["a", "b"]], headers=["Foo", "Bar"]))
         assert response.status_code == 400

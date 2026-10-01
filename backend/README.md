@@ -85,7 +85,9 @@ A user's role decides their access; Django's `is_staff` / `is_superuser` flags a
 
 ## API
 
-Every endpoint requires login unless it says otherwise. Decimals are sent as strings.
+Every endpoint requires login unless it says otherwise. Decimals are sent as strings. Ids in query
+strings (`customer`, `category`, `brand`, `supplier`) must be numbers (else 400). Errors are JSON
+`{"detail": "..."}`, including 404 and 500 when `DJANGO_DEBUG` is off.
 
 | Method | Path | Who | Purpose |
 |---|---|---|---|
@@ -99,7 +101,7 @@ Every endpoint requires login unless it says otherwise. Decimals are sent as str
 | GET/PATCH | `/api/catalog/items/{id}` | logged in; prices & active: owner | Item detail / edit |
 | GET | `/api/catalog/items/{id}/movements` | logged in | Stock ledger for one item |
 | POST | `/api/catalog/items/{id}/units` | logged in; prices: owner | Add a pack unit |
-| PATCH/DELETE | `/api/catalog/units/{id}` | logged in; prices: owner | Edit barcode/pack, remove unused pack |
+| PATCH/DELETE | `/api/catalog/units/{id}` | PATCH: logged in, prices owner; DELETE: owner | Edit barcode/pack, remove unused pack |
 | GET | `/api/catalog/lookup?code=` | logged in | Item + unit by barcode or item code |
 | GET/POST | `/api/catalog/products` | logged in | List; create product with variants and pack |
 | GET/PATCH | `/api/catalog/products/{id}` | PATCH: owner | Product, HSN, GST |
@@ -116,7 +118,7 @@ Every endpoint requires login unless it says otherwise. Decimals are sent as str
 | GET/POST | `/api/purchases/bills` | logged in | Drafts with lines; `status`, `supplier`, `search`, `date_from`, `date_to` |
 | GET/PATCH/DELETE | `/api/purchases/bills/{id}` | logged in; delete: owner or creator | Drafts only |
 | POST | `/api/purchases/bills/{id}/post` | logged in | Add goods to stock |
-| POST | `/api/purchases/bills/{id}/attachment` | logged in | Photo/PDF of the paper bill (`file`) |
+| GET/POST | `/api/purchases/bills/{id}/attachment` | logged in | GET the photo/PDF (only way to see it; no public link). POST `file`: checked by its contents (PDF, JPG, PNG, WebP, HEIC), max 10 MB, stored under a random name |
 | GET | `/api/import/{catalogue,prices}/template` | owner | Excel template |
 | GET | `/api/import/catalogue/sample` | logged in | Filled-in example sheet |
 | POST | `/api/import/{catalogue,prices}` | owner | `file`, `commit`, `skip_errors` — preview unless `commit=true`. Catalogue stock columns go into a new open stock count (`stock_count_id` in the summary) |
@@ -134,3 +136,22 @@ Every endpoint requires login unless it says otherwise. Decimals are sent as str
 | POST | `/api/sales/invoices/{id}/quotation`, `/convert` | logged in | Draft → quotation `QT/…`; quotation → new draft bill |
 | GET | `/api/sales/credit-notes/{id}` | logged in | Credit note for printing |
 | GET | `/api/sales/today` | logged in; udhaar total: owner | Today's sales, khata, money by mode, returns |
+
+## Going live: settings
+
+Set these in the live server's environment (see `.env.example`):
+
+| Setting | Live value | Why |
+|---|---|---|
+| `DJANGO_DEBUG` | `false` | Never show error details to visitors |
+| `DJANGO_SECURE` | `true` | HTTPS only, secure cookies, browsers told to always use HTTPS (HSTS, 30 days) |
+| `DJANGO_BEHIND_PROXY` | `true` if nginx / the host handles HTTPS | So Django knows the visit was HTTPS |
+| `DJANGO_NUM_PROXIES` | `1` behind one proxy, else `0` | Real visitor address for login limits; never trust a faked `X-Forwarded-For` |
+| `DJANGO_CSRF_TRUSTED_ORIGINS` | `https://your-address` | Back office login form behind HTTPS |
+| `DJANGO_ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS` | the live addresses | Only your own site can use the API |
+| `DJANGO_CACHE_DIR` | a folder, e.g. `/var/cache/hindustan` | Login limits shared by all server processes |
+| `DJANGO_MEDIA_ROOT` | a folder that is backed up | Purchase bill photos |
+
+Check with `DJANGO_DEBUG=false DJANGO_SECURE=true .venv/bin/python manage.py check --deploy`: only the
+two optional HSTS extras (`INCLUDE_SUBDOMAINS`, `PRELOAD`) should remain; leave them off unless every
+sub-address of the domain is HTTPS. Back office login: 5 wrong passwords from one address → 15-minute wait.

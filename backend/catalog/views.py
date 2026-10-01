@@ -7,6 +7,8 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from core.params import id_param
+
 from . import services
 from .models import Brand, Category, Item, ItemUnit, Product
 from .serializers import (
@@ -52,11 +54,12 @@ def filter_items(queryset, params):
         queryset = queryset.filter(needs_recount=True)
     for word in params.get("search", "").lower().split():
         queryset = queryset.filter(search_text__contains=word)
-    if params.get("category"):
-        category = params["category"]
+    category = id_param(params, "category")
+    if category:
         queryset = queryset.filter(Q(product__category_id=category) | Q(product__category__parent_id=category))
-    if params.get("brand"):
-        queryset = queryset.filter(product__brand_id=params["brand"])
+    brand = id_param(params, "brand")
+    if brand:
+        queryset = queryset.filter(product__brand_id=brand)
     if params.get("rack"):
         queryset = queryset.filter(rack__iexact=params["rack"])
     ordering = {
@@ -174,6 +177,8 @@ class UnitDetail(APIView):
         return Response(ItemSerializer(ITEMS.get(pk=unit.item_id), context={"request": request}).data)
 
     def delete(self, request, pk):
+        if not is_owner({"request": request}):
+            raise PermissionDenied("Only the owner can remove a pack size.")
         unit = get_object_or_404(ItemUnit, pk=pk)
         if unit.is_base:
             raise services.CatalogError("The base unit can't be removed.")

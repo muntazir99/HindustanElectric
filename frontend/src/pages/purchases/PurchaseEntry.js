@@ -5,6 +5,7 @@ import api from "../../api.js";
 import ItemSearch from "../../components/ItemSearch.js";
 import { useFetch } from "../../hooks/useFetch.js";
 import { useGoBack } from "../../hooks/useTrail.js";
+import { openFile } from "../../lib/download.js";
 import { errorMessage } from "../../lib/errors.js";
 import { GST_RATES, date, money, plain, plural, round2, today } from "../../lib/format.js";
 import {
@@ -314,7 +315,7 @@ export default function PurchaseEntry() {
     form.append("file", file);
     try {
       const response = await api.post(`/purchases/bills/${bill.id}/attachment`, form);
-      setBill({ ...bill, attachment: response.data.attachment });
+      setBill({ ...bill, has_attachment: response.data.has_attachment });
       setNotice("Bill photo attached.");
     } catch (err) {
       setError(errorMessage(err));
@@ -377,10 +378,14 @@ export default function PurchaseEntry() {
             <Input value={header.notes} onChange={setH("notes")} disabled={posted} />
           </Field>
           <Field label="Photo / PDF of bill">
-            {bill?.attachment ? (
-              <a href={bill.attachment} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 py-2 text-blue-800 hover:underline">
+            {bill?.has_attachment ? (
+              <button
+                type="button"
+                onClick={() => openFile(`/purchases/bills/${bill.id}/attachment`).catch((err) => setError(errorMessage(err)))}
+                className="inline-flex items-center gap-1 py-2 text-blue-800 hover:underline"
+              >
                 <Paperclip size={16} /> View attached bill
-              </a>
+              </button>
             ) : bill ? (
               <input type="file" accept="image/*,application/pdf" onChange={attach} className="py-2 text-sm" />
             ) : (

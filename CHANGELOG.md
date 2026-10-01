@@ -5,6 +5,28 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-02 — Security fixes and error pages
+
+From a review of all 56 API endpoints. Already sound and unchanged: every endpoint needs a login (except login and health); staff are refused all 18 owner-only actions; the server (not just the screen) stops staff selling below cost or over a credit limit; costs stay hidden from staff; a switched-off user is locked out at once; no known vulnerabilities in server or browser packages.
+
+**Security**
+- **Bill photos are private.** They are no longer files anyone with the link can open: the app fetches them through the API with the login. Uploads are checked by their contents, not the name or the browser's label (a web page called "photo.png" is refused), stored under a random name, and replacing a photo removes the old file.
+- **Back office login** now allows 5 wrong passwords from one address, then a 15-minute wait (it had no limit).
+- **App login limit can't be dodged** by faking the `X-Forwarded-For` header; the number of proxies in front of the server is now a setting (`DJANGO_NUM_PROXIES`, default 0).
+- **Live-server settings**: `DJANGO_SECURE` turns on HTTPS-only, secure cookies and HSTS; `DJANGO_BEHIND_PROXY`, `DJANGO_CSRF_TRUSTED_ORIGINS`, `DJANGO_CACHE_DIR` (login limits shared by all server processes), `DJANGO_MEDIA_ROOT`. Listed in `backend/README.md` and `.env.example`.
+- Only the owner can remove a pack size from an item.
+
+**Fixed**
+- Searches by customer, category, brand or distributor answer "must be a number" instead of crashing when given letters.
+- Excel/CSV upload: a CSV saved by Excel on Windows is read correctly; a broken file gets a clear message; oversized sheets are refused before they can slow the server.
+- Server errors are JSON for the API and never show details; they are written to the server log (they were not logged at all with DEBUG off).
+
+**Added**
+- **Page not found** screen with Go to Home (an unknown address used to jump to Home silently).
+- Clearer **"something went wrong"** screen: work is safe, Try again / Go to Home.
+- Login page says "You were logged out after a long time away" when the 12-hour login ends; "Too many tries. Wait a minute" after repeated wrong passwords; plain wording for a server error or no connection.
+- 16 backend tests (280) and 2 frontend tests (16).
+
 ### 2026-10-02 — Getting back Home
 
 Screens only; how stock, bills and khata work is unchanged. Plan: [PLAN.md §8.3](docs/PLAN.md).

@@ -29,9 +29,14 @@ function flatten(value, prefix = "") {
 
 /** Turn an API error into a sentence for the screen. */
 export function errorMessage(error, fallback = "Something went wrong. Please try again.") {
-  if (!error?.response) return "Can't reach the server. Check the internet connection.";
-  if (error.response.status === 403) {
+  if (!error?.response) return "Can't reach the server. Check the internet connection, then try again.";
+  const { status } = error.response;
+  if (status === 403) {
     return error.response.data?.detail || "You don't have permission to do this.";
+  }
+  if (status === 429) return "Too many tries. Wait a minute, then try again.";
+  if (status >= 500) {
+    return "Something went wrong on the server. Please try again; if it keeps happening, tell the owner.";
   }
   const messages = flatten(error.response.data);
   return messages.length ? messages.join(" ") : fallback;

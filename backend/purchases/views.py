@@ -1,18 +1,49 @@
+import uuid
+from pathlib import Path
+
 from django.db.models import Count, Q
+from django.http import FileResponse
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 
 from catalog.serializers import is_owner
+from core.params import id_param
 
 from .models import PurchaseBill, Supplier
 from .serializers import PurchaseBillListSerializer, PurchaseBillSerializer, SupplierSerializer
 from .services import post_bill
 
-ATTACHMENT_TYPES = {"application/pdf", "image/jpeg", "image/png", "image/webp", "image/heic"}
 ATTACHMENT_MAX_BYTES = 10 * 1024 * 1024
+# What each kind of file is served as. Anything else is offered as a download, never shown in the browser.
+ATTACHMENT_CONTENT_TYPES = {
+    ".pdf": "application/pdf",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",  # older uploads kept their own names
+    ".png": "image/png",
+    ".webp": "image/webp",
+    ".heic": "image/heic",
+}
+HEIC_BRANDS = {b"heic", b"heix", b"hevc", b"heim", b"heis", b"mif1", b"msf1"}
+
+
+def attachment_kind(upload):
+    """The file's real type from its first bytes (".pdf", ".jpg"...), or None. The browser's label is not trusted."""
+    head = upload.read(16)
+    upload.seek(0)
+    if head.startswith(b"%PDF-"):
+        return ".pdf"
+    if head.startswith(b"\xff\xd8\xff"):
+        return ".jpg"
+    if head.startswith(b"\x89PNG\r\n\x1a\n"):
+        return ".png"
+    if head[:4] == b"RIFF" and head[8:12] == b"WEBP":
+        return ".webp"
+    if head[4:8] == b"ftyp" and head[8:12] in HEIC_BRANDS:
+        return ".heic"
+    return None
 
 
 class SupplierViewSet(viewsets.ModelViewSet):
@@ -40,8 +71,9 @@ class PurchaseBillViewSet(viewsets.ModelViewSet):
             queryset = queryset.annotate(line_count=Count("lines")).order_by("-bill_date", "-id")
             if params.get("status"):
                 queryset = queryset.filter(status=params["status"])
-            if params.get("supplier"):
-                queryset = queryset.filter(supplier_id=params["supplier"])
+            supplier = id_param(params, "supplier")
+            if supplier:
+                queryset = queryset.filter(supplier_id=supplier)
             if params.get("search"):
                 queryset = queryset.filter(
                     Q(bill_number__icontains=params["search"]) | Q(supplier__name__icontains=params["search"])
@@ -75,16 +107,33 @@ class PurchaseBillViewSet(viewsets.ModelViewSet):
         post_bill(self.get_object(), request.user)
         return Response(PurchaseBillSerializer(self.get_queryset().get(pk=pk), context={"request": request}).data)
 
-    @action(detail=True, methods=["post"], parser_classes=[MultiPartParser])
+    @action(detail=True, methods=["get", "post"], parser_classes=[MultiPartParser])
     def attachment(self, request, pk=None):
-        """Attach a photo or PDF of the paper bill (field name: file)."""
+        """
+        GET: the photo or PDF of the paper bill, for logged-in users only.
+        POST: attach one (field name: file). It is checked by its contents and stored under a random name.
+        """
         bill = self.get_object()
+        if request.method == "GET":
+            if not bill.attachment:
+                raise NotFound("No photo is attached to this bill.")
+            ext = Path(bill.attachment.name).suffix.lower()
+            content_type = ATTACHMENT_CONTENT_TYPES.get(ext)
+            return FileResponse(
+                bill.attachment.open("rb"),
+                content_type=content_type or "application/octet-stream",
+                as_attachment=content_type is None,
+                filename=f"bill-{bill.pk}{ext}",
+            )
         upload = request.FILES.get("file")
         if upload is None:
             raise ValidationError({"file": "Choose a photo or PDF of the bill."})
-        if upload.content_type not in ATTACHMENT_TYPES:
-            raise ValidationError({"file": "Only PDF or photo (JPG, PNG, WebP, HEIC) files."})
         if upload.size > ATTACHMENT_MAX_BYTES:
             raise ValidationError({"file": "File is larger than 10 MB."})
-        bill.attachment.save(upload.name, upload, save=True)
+        kind = attachment_kind(upload)
+        if kind is None:
+            raise ValidationError({"file": "Only PDF or photo (JPG, PNG, WebP, HEIC) files."})
+        if bill.attachment:
+            bill.attachment.delete(save=False)  # replacing the photo: don't leave the old file behind
+        bill.attachment.save(f"{uuid.uuid4().hex}{kind}", upload, save=True)
         return Response(PurchaseBillSerializer(self.get_queryset().get(pk=pk), context={"request": request}).data)

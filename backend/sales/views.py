@@ -11,6 +11,7 @@ from rest_framework.views import APIView
 
 from catalog.models import ItemUnit
 from catalog.serializers import is_owner
+from core.params import id_param
 
 from . import services
 from .models import CreditNote, Customer, Invoice, InvoiceLine, Payment
@@ -168,8 +169,9 @@ class InvoiceViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(invoice_date__gte=params["date_from"])
         if params.get("date_to"):
             queryset = queryset.filter(invoice_date__lte=params["date_to"])
-        if params.get("customer"):
-            queryset = queryset.filter(customer_id=params["customer"])
+        customer = id_param(params, "customer")
+        if customer:
+            queryset = queryset.filter(customer_id=customer)
         search = params.get("search", "").strip()
         if search:
             queryset = queryset.filter(

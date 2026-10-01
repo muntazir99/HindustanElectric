@@ -23,7 +23,7 @@ api.interceptors.response.use(
       localStorage.removeItem("token");
       localStorage.removeItem("role");
       if (window.location.pathname !== "/login") {
-        window.location.assign("/login");
+        window.location.assign("/login?expired=1"); // the login page explains why
       }
     }
     return Promise.reject(error);

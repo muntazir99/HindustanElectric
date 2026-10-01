@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../../api.js";
 import { useAuth } from "../../context/AuthContext.js";
+import { errorMessage } from "../../lib/errors.js";
 import { Alert, Button, Field, Input } from "../../ui/index.js";
 
 function Login() {
@@ -11,6 +12,8 @@ function Login() {
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const expired = params.get("expired") === "1" && !error;
   const { login } = useAuth();
 
   const handleLogin = async (e) => {
@@ -26,9 +29,8 @@ function Login() {
         setError("Invalid credentials, please try again.");
       }
     } catch (err) {
-      const errorMsg = err.response?.data?.message || "Login failed";
-      setError(errorMsg);
-      console.error("Login error:", err);
+      // Wrong password: the server's own sentence. Too many tries, no connection: the usual wording.
+      setError(err.response?.status === 401 ? err.response.data?.message || "Login failed" : errorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -43,6 +45,7 @@ function Login() {
         </div>
         <form onSubmit={handleLogin} className="bg-white border border-gray-200 rounded-2xl p-6 space-y-4">
           <Alert>{error}</Alert>
+          {expired && <Alert kind="info">You were logged out after a long time away. Please log in again.</Alert>}
           <Field label="Username">
             <Input value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" autoFocus />
           </Field>

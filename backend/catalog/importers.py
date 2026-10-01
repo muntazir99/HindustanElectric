@@ -8,7 +8,9 @@ existing data, and then rolls everything back.
 
 import csv
 import io
+import logging
 from decimal import Decimal, InvalidOperation
+from itertools import islice
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import IntegrityError, transaction
@@ -33,6 +35,12 @@ from .services import (
 )
 
 MAX_ROWS = 10000
+# Never read more than this from a sheet, however big the file claims to be (a 5 MB .xlsx can unpack to
+# millions of cells). Extra columns beyond these are ignored.
+MAX_READ_ROWS = MAX_ROWS + 1000
+MAX_READ_COLUMNS = 60
+
+logger = logging.getLogger(__name__)
 
 # (header, key, help text)
 CATALOGUE_COLUMNS = [
@@ -136,16 +144,29 @@ def read_rows(upload, columns):
     """Return [(row_number, {key: text})] from an .xlsx or .csv upload."""
     name = (upload.name or "").lower()
     if name.endswith(".csv"):
-        text = upload.read().decode("utf-8-sig")
-        raw = list(csv.reader(io.StringIO(text)))
+        data = upload.read()
+        # "CSV UTF-8" from Excel, or plain "CSV" from Excel on Windows (Windows-1252).
+        for encoding in ("utf-8-sig", "cp1252"):
+            try:
+                text = data.decode(encoding)
+                break
+            except UnicodeDecodeError:
+                continue
+        else:
+            raise CatalogError("Could not read the CSV file. In Excel use Save As › “CSV UTF-8”, or upload the .xlsx.")
+        raw = [row[:MAX_READ_COLUMNS] for row in islice(csv.reader(io.StringIO(text)), MAX_READ_ROWS + 1)]
     elif name.endswith(".xlsx"):
         try:
             sheet = load_workbook(upload, read_only=True, data_only=True).worksheets[0]
+            rows = sheet.iter_rows(max_col=MAX_READ_COLUMNS, values_only=True)
+            raw = [list(row) for row in islice(rows, MAX_READ_ROWS + 1)]
         except Exception as exc:
-            raise CatalogError(f"Could not read the Excel file: {exc}") from exc
-        raw = [list(row) for row in sheet.iter_rows(values_only=True)]
+            logger.warning("Unreadable Excel upload %r: %s", upload.name, exc)
+            raise CatalogError("Could not read this Excel file. Open it in Excel, save it again as .xlsx, and retry.") from exc
     else:
         raise CatalogError("Upload an .xlsx (Excel) or .csv file.")
+    if len(raw) > MAX_READ_ROWS:
+        raise CatalogError(f"Too many rows. Split the file into parts of {MAX_ROWS}.")
 
     header_index = next((i for i, row in enumerate(raw) if any(_cell_text(c) for c in row)), None)
     if header_index is None:

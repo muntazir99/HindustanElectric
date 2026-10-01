@@ -317,4 +317,7 @@ getting back Home" design canvas.
 - [ ] Hosting choice (before first deploy)
 - [ ] Fill Shop settings in the back office: GSTIN, address, phone, bank details, bill terms, UPI ID
 - [x] Owner approval of the simple-screens redesign (§8)
+- [x] Security review of all 56 API endpoints (2026-10-02); fixes 1–3 and 6–8 done
+- [ ] Decide: staff price floor for items with no cost yet (review item 4) — block more than X% below the set price?
+- [ ] Decide: "log out everywhere", also on password change (review item 5)
 - [ ] Upgrade npm on the dev Mac (npm 10.7 crashes on `npm audit fix`; only dev tools have open advisories)

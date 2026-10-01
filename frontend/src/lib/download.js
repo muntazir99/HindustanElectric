@@ -12,3 +12,21 @@ export async function downloadFile(url, filename) {
 
 export const SAMPLE_SHEET_URL = "/import/catalogue/sample";
 export const SAMPLE_SHEET_NAME = "hindustan-electric-sample-items.xlsx";
+
+/**
+ * Open a protected file (e.g. a bill photo) in a new tab. The file needs the login token, so it is
+ * fetched first; the tab is opened straight away so the browser doesn't block it as a pop-up.
+ */
+export async function openFile(url) {
+  const tab = window.open("", "_blank");
+  try {
+    const response = await api.get(url, { responseType: "blob" });
+    const objectUrl = URL.createObjectURL(response.data);
+    if (tab) tab.location.href = objectUrl;
+    else window.location.assign(objectUrl);
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+  } catch (error) {
+    tab?.close();
+    throw error;
+  }
+}

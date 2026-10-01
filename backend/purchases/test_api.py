@@ -1,3 +1,4 @@
+import os
 from decimal import Decimal
 
 import pytest
@@ -96,18 +97,58 @@ class TestPosting:
         assert drafts[0]["line_count"] == 1
 
 
+PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 24
+
+
 class TestAttachment:
-    def test_pdf_is_attached(self, staff_api, supplier, wire, settings, tmp_path):
+    def attach(self, client, bill_id, name, content, content_type):
+        upload = SimpleUploadedFile(name, content, content_type=content_type)
+        return client.post(f"/api/purchases/bills/{bill_id}/attachment", {"file": upload}, format="multipart")
+
+    def test_pdf_is_attached_under_a_random_name(self, staff_api, supplier, wire, settings, tmp_path):
         settings.MEDIA_ROOT = tmp_path
         bill_id = staff_api.post("/api/purchases/bills", bill_payload(supplier, wire), format="json").data["id"]
-        upload = SimpleUploadedFile("bill.pdf", b"%PDF-1.4 test", content_type="application/pdf")
-        response = staff_api.post(f"/api/purchases/bills/{bill_id}/attachment", {"file": upload}, format="multipart")
+        response = self.attach(staff_api, bill_id, "Sharma bill 101.pdf", b"%PDF-1.4 test", "application/pdf")
         assert response.status_code == 200
-        assert "purchase-bills/" in response.data["attachment"]
-        assert PurchaseBill.objects.get(pk=bill_id).attachment
+        assert response.data["has_attachment"] is True
+        assert "attachment" not in response.data  # no public link to the file
+        stored = PurchaseBill.objects.get(pk=bill_id).attachment.name
+        assert stored.startswith("purchase-bills/") and stored.endswith(".pdf") and "Sharma" not in stored
 
     def test_other_file_types_rejected(self, staff_api, supplier, wire):
         bill_id = staff_api.post("/api/purchases/bills", bill_payload(supplier, wire), format="json").data["id"]
-        upload = SimpleUploadedFile("bill.exe", b"MZ", content_type="application/octet-stream")
-        response = staff_api.post(f"/api/purchases/bills/{bill_id}/attachment", {"file": upload}, format="multipart")
+        response = self.attach(staff_api, bill_id, "bill.exe", b"MZ", "application/octet-stream")
         assert response.status_code == 400
+
+    def test_web_page_disguised_as_photo_rejected(self, staff_api, supplier, wire, settings, tmp_path):
+        settings.MEDIA_ROOT = tmp_path
+        bill_id = staff_api.post("/api/purchases/bills", bill_payload(supplier, wire), format="json").data["id"]
+        response = self.attach(staff_api, bill_id, "bill.png", b"<html><script>alert(1)</script>", "image/png")
+        assert response.status_code == 400
+        assert not PurchaseBill.objects.get(pk=bill_id).attachment
+
+    def test_photo_only_for_logged_in_users(self, api, staff_api, supplier, wire, settings, tmp_path):
+        settings.MEDIA_ROOT = tmp_path
+        bill_id = staff_api.post("/api/purchases/bills", bill_payload(supplier, wire), format="json").data["id"]
+        self.attach(staff_api, bill_id, "photo.png", PNG, "image/png")
+        assert api.get(f"/api/purchases/bills/{bill_id}/attachment").status_code == 401
+        response = staff_api.get(f"/api/purchases/bills/{bill_id}/attachment")
+        assert response.status_code == 200
+        assert response["Content-Type"] == "image/png"
+        assert b"".join(response.streaming_content) == PNG
+
+    def test_no_photo_is_404(self, staff_api, supplier, wire):
+        bill_id = staff_api.post("/api/purchases/bills", bill_payload(supplier, wire), format="json").data["id"]
+        assert staff_api.get(f"/api/purchases/bills/{bill_id}/attachment").status_code == 404
+
+    def test_replacing_a_photo_removes_the_old_file(self, staff_api, supplier, wire, settings, tmp_path):
+        settings.MEDIA_ROOT = tmp_path
+        bill_id = staff_api.post("/api/purchases/bills", bill_payload(supplier, wire), format="json").data["id"]
+        self.attach(staff_api, bill_id, "first.png", PNG, "image/png")
+        first = PurchaseBill.objects.get(pk=bill_id).attachment.path
+        self.attach(staff_api, bill_id, "second.pdf", b"%PDF-1.4 again", "application/pdf")
+        assert not os.path.exists(first)
+
+
+def test_supplier_filter_must_be_a_number(staff_api):
+    assert staff_api.get("/api/purchases/bills?supplier=abc").status_code == 400

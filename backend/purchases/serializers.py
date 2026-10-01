@@ -61,15 +61,20 @@ class PurchaseBillSerializer(serializers.ModelSerializer):
     created_by = serializers.CharField(source="created_by.username", read_only=True)
     posted_by = serializers.CharField(source="posted_by.username", read_only=True, default=None)
     lines = PurchaseLineSerializer(many=True, required=False)
+    # Only whether there is one: the file itself comes from GET .../attachment, for logged-in users.
+    has_attachment = serializers.SerializerMethodField()
 
     class Meta:
         model = PurchaseBill
         fields = [
             "id", "supplier", "supplier_name", "bill_number", "bill_date", "status", "status_display",
-            "attachment", "notes", "round_off", "taxable_total", "tax_total", "total",
+            "has_attachment", "notes", "round_off", "taxable_total", "tax_total", "total",
             "created_by", "created_at", "posted_by", "posted_at", "lines",
         ]
-        read_only_fields = ["status", "attachment", "taxable_total", "tax_total", "total", "created_at", "posted_at"]
+        read_only_fields = ["status", "taxable_total", "tax_total", "total", "created_at", "posted_at"]
+
+    def get_has_attachment(self, bill):
+        return bool(bill.attachment)
 
     def validate(self, attrs):
         if self.instance and self.instance.status != PurchaseBill.Status.DRAFT:

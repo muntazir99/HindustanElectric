@@ -9,6 +9,7 @@ const Login = lazy(() => import("./components/Auth/LoginAuth.js"));
 const CreateUser = lazy(() => import("./components/Auth/CreateUser.js"));
 const Home = lazy(() => import("./pages/Home.js"));
 const More = lazy(() => import("./pages/More.js"));
+const NotFound = lazy(() => import("./pages/NotFound.js"));
 const ItemList = lazy(() => import("./pages/items/ItemList.js"));
 const ItemNew = lazy(() => import("./pages/items/ItemNew.js"));
 const ItemDetail = lazy(() => import("./pages/items/ItemDetail.js"));
@@ -118,6 +119,7 @@ function AppRoutes() {
             <Route path="adjustments" element={<OwnerRoute><Adjustments /></OwnerRoute>} />
             <Route path="import" element={<OwnerRoute><ImportPage /></OwnerRoute>} />
             <Route path="create-user" element={<OwnerRoute><CreateUser /></OwnerRoute>} />
+            <Route path="*" element={<NotFound />} />
           </Route>
           <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
         </Routes>
