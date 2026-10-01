@@ -19,3 +19,13 @@ env/
 # Ignore logs
 logs/
 *.log
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+staticfiles/
+
+# Local Claude Code launch config
+.claude/
