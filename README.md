@@ -1,6 +1,6 @@
 # Hindustan Electric — Shop System
 
-Stock, purchases and (soon) billing for Hindustan Electric, Muzaffarpur.
+Billing, khata, stock and purchases for Hindustan Electric, Muzaffarpur.
 
 | Folder | What |
 |---|---|

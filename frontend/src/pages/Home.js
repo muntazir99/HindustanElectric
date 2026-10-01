@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ClipboardCheck, FileSpreadsheet, PackagePlus, Truck } from "lucide-react";
+import { ClipboardCheck, FileSpreadsheet, PackagePlus, Receipt, Truck } from "lucide-react";
 import { useAuth } from "../context/AuthContext.js";
 import { useFetch } from "../hooks/useFetch.js";
 import { money } from "../lib/format.js";
@@ -32,11 +32,61 @@ export default function Home() {
   const { user } = useAuth();
   const isOwner = user?.role === "owner";
   const { data, error, loading } = useFetch("/stock/summary");
+  const { data: today, error: todayError } = useFetch("/sales/today");
 
   return (
     <>
-      <PageHeader title="Home" subtitle="Stock at a glance" />
-      <Alert>{error}</Alert>
+      <PageHeader title="Home" subtitle="Today at the counter, and stock at a glance" />
+      <Alert>{error || todayError}</Alert>
+      {today && (
+        <>
+          <h2 className="text-lg font-bold mb-3">Today</h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            <Stat label="Sales" value={money(today.sales)} to="/bills" hint={`${today.bills} bill${today.bills === 1 ? "" : "s"}`} />
+            <Stat label="Put on khata" value={money(today.on_khata)} to="/customers?owing=1" />
+            <Stat label="Khata collected" value={money(today.khata_collected)} />
+            <Stat label="Returns" value={money(today.returns)} tone={Number(today.returns) ? "text-amber-700" : "text-gray-900"} />
+            {isOwner && today.udhaar_outstanding !== undefined && (
+              <Stat
+                label="Total udhaar outstanding"
+                value={money(today.udhaar_outstanding)}
+                to="/customers?owing=1"
+                tone={Number(today.udhaar_outstanding) ? "text-red-700" : "text-gray-900"}
+                hint={today.customers_owing === 1 ? "1 customer owes money" : `${today.customers_owing} customers owe money`}
+              />
+            )}
+          </div>
+          <Card className="p-5 mb-8">
+            <p className="text-sm font-semibold text-gray-500 mb-2">Money received today (after refunds)</p>
+            {Object.keys(today.by_mode).length === 0 ? (
+              <p className="text-gray-500">Nothing yet.</p>
+            ) : (
+              <div className="flex flex-wrap gap-x-10 gap-y-3">
+                {Object.entries(today.by_mode).map(([mode, row]) => (
+                  <div key={mode}>
+                    <p className="text-sm text-gray-600">{row.label}</p>
+                    <p className="text-2xl font-bold">{money(row.net)}</p>
+                    {Number(row.refunded) > 0 && (
+                      <p className="text-xs text-gray-500">
+                        {money(row.received)} in − {money(row.refunded)} refunded
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+            {today.held_bills > 0 && (
+              <p className="mt-3 text-sm text-amber-800">
+                {today.held_bills} held bill{today.held_bills === 1 ? "" : "s"} waiting —{" "}
+                <Link to="/bills?status=held" className="underline">
+                  see them
+                </Link>
+              </p>
+            )}
+          </Card>
+        </>
+      )}
+      <h2 className="text-lg font-bold mb-3">Stock</h2>
       {loading && !data ? (
         <Spinner />
       ) : (
@@ -73,6 +123,7 @@ export default function Home() {
 
       <h2 className="text-lg font-bold mb-3">Quick actions</h2>
       <div className="grid md:grid-cols-2 gap-4">
+        <Action to="/billing" icon={Receipt} title="New bill" text="Scan items, take payment, print the bill." />
         <Action to="/purchases/new" icon={Truck} title="Enter a purchase bill" text="Goods arrived from a distributor? Add them to stock." />
         <Action to="/counts" icon={ClipboardCheck} title="Count a rack" text="Scan what's on the shelf to set the true stock." />
         <Action to="/items/new" icon={PackagePlus} title="Add an item" text="A product and its sizes/colours, with barcodes." />

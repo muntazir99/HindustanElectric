@@ -153,3 +153,25 @@ class TestCustomers:
         assert [(c["name"], c["balance"]) for c in found] == [("Ramesh", "2000.00")]
         assert staff_api.get("/api/sales/customers?owing=1").data["count"] == 1
         assert Invoice.objects.get().buyer_name == "Ramesh"
+
+
+class TestToday:
+    def test_counter_numbers(self, staff_api, owner_api, stocked_wire, owner):
+        customer = Customer.objects.create(name="Ramesh", created_by=owner)
+        cash_bill = staff_api.post("/api/sales/invoices", {"lines": lines_for(stocked_wire)}, format="json").data
+        staff_api.post(f"/api/sales/invoices/{cash_bill['id']}/finalise", {"payments": [{"mode": "cash", "amount": "2400"}]}, format="json")
+        khata_bill = staff_api.post("/api/sales/invoices", {"customer": customer.pk, "lines": lines_for(stocked_wire)}, format="json").data
+        staff_api.post(f"/api/sales/invoices/{khata_bill['id']}/finalise", {"payments": [{"mode": "upi", "amount": "400"}]}, format="json")
+        staff_api.post(f"/api/sales/customers/{customer.pk}/payments", {"amount": "500", "mode": "cash"}, format="json")
+        owner_api.post(
+            f"/api/sales/invoices/{cash_bill['id']}/returns",
+            {"lines": [{"line": owner_api.get(f"/api/sales/invoices/{cash_bill['id']}").data["lines"][0]["id"], "quantity": "1"}], "refund_mode": "cash", "reason": "x"},
+            format="json",
+        )
+        data = staff_api.get("/api/sales/today").data
+        assert (data["bills"], data["sales"], data["on_khata"], data["khata_collected"]) == (2, "4800.00", "2000.00", "500.00")
+        assert data["by_mode"]["cash"] == {"label": "Cash", "received": "2900.00", "refunded": "2400.00", "net": "500.00"}
+        assert data["by_mode"]["upi"]["net"] == "400.00"
+        assert data["returns"] == "2400.00"
+        assert "udhaar_outstanding" not in data
+        assert owner_api.get("/api/sales/today").data["udhaar_outstanding"] == "1500.00"

@@ -5,6 +5,19 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-01 — Phase 2, step 5: today's numbers, cleanup — Phase 2 complete
+
+**Added**
+- Home **Today**: sales and number of bills, put on khata, khata collected, returns, money received by mode after refunds (for the end-of-day cash count), held bills waiting; owner also sees total udhaar outstanding and how many customers owe. "New bill" is the first quick action.
+- `GET /api/sales/today`; 1 new test (264 backend tests).
+
+**Removed**
+- 57 old frontend files no longer reachable from the app (old billing, invoices, customers, payments, purchase orders, reports, dashboard, Redux store, unused icons, the old jsPDF invoice with the 18% bug). Still in git history.
+- 16 unused npm packages (Redux, jsPDF, charts, calendar, number-to-words, old Node polyfills).
+
+**Security**
+- axios 1.20 and react-router-dom 7.18: packages shipped to the browser now have 0 known vulnerabilities. Dev-only tools still have advisories; npm 10.7 crashes on `npm audit fix` — upgrade npm, then run it.
+
 ### 2026-10-01 — Phase 2, step 4: returns (credit notes) and quotations
 
 **Added**

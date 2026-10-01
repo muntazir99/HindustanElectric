@@ -1,11 +1,13 @@
 from decimal import Decimal
 
 from django.db.models import Count, DecimalField, Prefetch, Q, Sum, Value
+from django.utils import timezone
 from django.db.models.functions import Coalesce
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from catalog.models import ItemUnit
 from catalog.serializers import is_owner
@@ -27,6 +29,7 @@ from .serializers import (
 )
 
 MONEY = DecimalField(max_digits=12, decimal_places=2)
+ZERO = Decimal("0")
 
 
 def customers_with_balance():
@@ -269,3 +272,39 @@ class CreditNoteViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewse
     queryset = CREDIT_NOTES
     serializer_class = CreditNoteSerializer
 
+
+
+class TodaySummary(APIView):
+    """Today's counter numbers for the home screen and the end-of-day cash handover."""
+
+    def get(self, request):
+        today = timezone.localdate()
+        bills = Invoice.objects.filter(kind=Invoice.Kind.INVOICE, status=Invoice.Status.FINAL, invoice_date=today)
+        totals = bills.aggregate(count=Count("id"), total=Sum("total"), khata=Sum("credit_amount"))
+        money_in = Payment.objects.filter(
+            date=today, kind__in=[Payment.Kind.SALE, Payment.Kind.KHATA], cancelled_at__isnull=True
+        )
+        refunds = Payment.objects.filter(date=today, kind=Payment.Kind.REFUND)
+        by_mode = {}
+        for mode, label in Payment.Mode.choices:
+            received = money_in.filter(mode=mode).aggregate(total=Sum("amount"))["total"] or ZERO
+            refunded = refunds.filter(mode=mode).aggregate(total=Sum("amount"))["total"] or ZERO
+            if received or refunded:
+                by_mode[mode] = {"label": label, "received": str(received), "refunded": str(refunded), "net": str(received - refunded)}
+        data = {
+            "date": today,
+            "bills": totals["count"],
+            "sales": str(totals["total"] or ZERO),
+            "on_khata": str(totals["khata"] or ZERO),
+            "khata_collected": str(
+                money_in.filter(kind=Payment.Kind.KHATA).aggregate(total=Sum("amount"))["total"] or ZERO
+            ),
+            "returns": str(CreditNote.objects.filter(date=today).aggregate(total=Sum("total"))["total"] or ZERO),
+            "by_mode": by_mode,
+            "held_bills": Invoice.objects.filter(kind=Invoice.Kind.INVOICE, status=Invoice.Status.DRAFT, held=True).count(),
+        }
+        if is_owner({"request": request}):
+            owing = customers_with_balance().filter(balance_value__gt=0)
+            data["udhaar_outstanding"] = str(owing.aggregate(total=Sum("balance_value"))["total"] or ZERO)
+            data["customers_owing"] = owing.count()
+        return Response(data)

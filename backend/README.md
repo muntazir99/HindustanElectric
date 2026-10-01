@@ -63,6 +63,16 @@ Fill in `DJANGO_SECRET_KEY` (the command to generate one is in the file), then:
 
 A user's role decides their access; Django's `is_staff` / `is_superuser` flags are set from it automatically.
 
+## How billing works
+
+- `sales/pricing.py` is the only place a bill is calculated (GST incl./excl., discounts, CGST/SGST or IGST,
+  round-off). The screen, print and records all use its saved results.
+- Numbers come from `sales/numbering.py`: one unbroken series per financial year per document type
+  (`HE/26-27/00001` invoices, `CN/` credit notes, `RC/` receipts, `QT/` quotations), taken only when the
+  document is finalised.
+- `sales/services.py` finalises, cancels, returns and receives payments, each in one transaction that updates
+  stock, payments and the khata ledger together. Khata = `LedgerEntry` rows, append-only; nothing is deleted.
+
 ## How stock works
 
 - Stock is kept in each item's **base unit** (m, pc…). Packs (coil = 90 m, box = 20 pc) convert to it.
@@ -110,3 +120,17 @@ Every endpoint requires login unless it says otherwise. Decimals are sent as str
 | GET | `/api/import/{catalogue,prices}/template` | owner | Excel template |
 | GET | `/api/import/catalogue/sample` | logged in | Filled-in example sheet |
 | POST | `/api/import/{catalogue,prices}` | owner | `file`, `commit`, `skip_errors` — preview unless `commit=true`. Catalogue stock columns go into a new open stock count (`stock_count_id` in the summary) |
+| GET/POST/PATCH | `/api/sales/customers` | logged in; credit limit & discount: owner | `search`, `owing=1`; balance included |
+| GET | `/api/sales/customers/{id}/ledger` | logged in | Khata statement with running balance; `date_from`, `date_to` |
+| POST | `/api/sales/customers/{id}/payments` | logged in | Receive khata payment → receipt `RC/…` |
+| POST | `/api/sales/customers/{id}/opening`, `/adjust` | owner | Opening balance (once) / correction with reason |
+| GET | `/api/sales/receipts/{id}`; POST `…/cancel` | logged in; cancel: owner | Receipt for printing; cancel a mistaken receipt |
+| GET/POST | `/api/sales/invoices` | logged in | `status` = final (default) / held / cancelled / quotation / all; `date_from`, `date_to`, `customer`, `search`. POST creates a draft |
+| GET/PUT/DELETE | `/api/sales/invoices/{id}` | logged in; delete: owner or creator | PUT replaces a draft's header and lines (autosave) |
+| GET | `/api/sales/invoices/current` | logged in | This user's unfinished counter bill (204 if none) |
+| POST | `/api/sales/invoices/{id}/finalise` | logged in | `{payments: [{mode, amount}]}`; unpaid part goes on khata → number `HE/…` |
+| POST | `/api/sales/invoices/{id}/cancel` | owner | `{reason}` |
+| POST | `/api/sales/invoices/{id}/returns` | owner | `{lines: [{line, quantity}], refund_mode, reason}` → credit note `CN/…` |
+| POST | `/api/sales/invoices/{id}/quotation`, `/convert` | logged in | Draft → quotation `QT/…`; quotation → new draft bill |
+| GET | `/api/sales/credit-notes/{id}` | logged in | Credit note for printing |
+| GET | `/api/sales/today` | logged in; udhaar total: owner | Today's sales, khata, money by mode, returns |
