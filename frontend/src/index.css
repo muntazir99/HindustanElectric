@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+    font-family: 'Reospec';
+    src: url('../src/components/assets/Reospec.otf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+  }
+
+/* Accessibility & Readability Boost */
+html {
+    font-size: 110%; /* Makes everything slightly bigger */
+}
+
+body {
+    color: #1f2937; /* Gray-800 for high contrast text */
+}
+
+input, button, select, textarea {
+    font-size: 1rem; /* Prevents small text in form controls */
+}

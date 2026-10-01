@@ -1,0 +1,22 @@
+/* Ensure body fills the viewport */
+
+body {
+    @apply bg-gray-100 text-gray-800;
+  }
+  
+  table {
+    @apply w-full table-auto text-left;
+  }
+  
+  th, td {
+    @apply px-4 py-2;
+  }
+  
+  th {
+    @apply bg-gray-200 font-bold;
+  }
+  
+  button {
+    @apply cursor-pointer hover:shadow-lg;
+  }
+  
