@@ -5,6 +5,16 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-01 — Simple screens, step 2: Home
+
+**Changed**
+- Home opens with a greeting and the date, then **four big tiles** for the daily jobs: **New Bill** (blue), Goods Arrived, Take Payment, Add New Item.
+- **Today's business**: total sales and number of bills, cash in the drawer, UPI/card if any (with "came in / given back" when there were refunds), given on udhaar (red), udhaar paid back (green), goods returned when any; bills kept for later with a link.
+- **Udhaar to collect** (owner): total and number of customers, with the first five and a **Take payment** button each (opens the customer with the payment box ready).
+- **Recent bills**: last five with Udhaar / Paid and the amount.
+- **Needs your attention** (amber) lists only what needs doing — running low, check again, purchase bills not added to stock, stock checks not finished, items not checked yet — or says "Nothing needs your attention". Item count and (owner) stock value at cost in one quiet line.
+- Headline amounts drop ".00" (₹2,535, but ₹386.69 when there are paise).
+
 ### 2026-10-01 — Simple screens, step 1: top bar and "All options"
 
 Design only: nothing about bills, stock, GST or khata changed. Plan: [PLAN.md §8](docs/PLAN.md).

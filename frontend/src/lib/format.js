@@ -13,6 +13,15 @@ export function money(value) {
   return rupees.format(Number(value));
 }
 
+const wholeRupees = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
+
+/** For big headline amounts: "₹2,535" when there are no paise, "₹386.69" when there are. */
+export function bigMoney(value) {
+  if (value === null || value === undefined || value === "") return "—";
+  const number = Number(value);
+  return Number.isInteger(round2(number)) ? wholeRupees.format(number) : rupees.format(number);
+}
+
 /** "90.000" -> "90", "12.500" -> "12.5" */
 export function plain(value) {
   if (value === null || value === undefined || value === "") return "";

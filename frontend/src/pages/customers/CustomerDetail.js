@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, HandCoins, Pencil, Printer, Receipt } from "lucide-react";
 import api from "../../api.js";
 import CustomerForm, { CUSTOMER_KINDS } from "../../components/CustomerForm.js";
@@ -181,7 +181,9 @@ export default function CustomerDetail() {
   const { data, error, loading, reload } = useFetch(`/sales/customers/${id}/ledger?${query}`);
   const { data: bills } = useFetch(`/sales/invoices?status=all&customer=${id}&page_size=20`);
   const { data: shop } = useFetch("/shop/settings");
-  const [modal, setModal] = useState(null);
+  const [params] = useSearchParams();
+  // "Take payment" on Home opens the customer with the payment box already open.
+  const [modal, setModal] = useState(params.get("pay") === "1" ? "payment" : null);
   const [receipt, setReceipt] = useState(null);
 
   if (loading && !data) return <Spinner />;
