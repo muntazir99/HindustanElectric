@@ -4,7 +4,7 @@ import api from "../../api.js";
 import { useFetch } from "../../hooks/useFetch.js";
 import { errorMessage } from "../../lib/errors.js";
 import { dateTime } from "../../lib/format.js";
-import { Alert, Badge, Button, Card, Empty, Field, Input, PageHeader, Pagination, Spinner, Table, td, th } from "../../ui/index.js";
+import { Alert, Badge, Button, Empty, Field, Input, PageHeader, Pagination, Section, Spinner, Table, td, th } from "../../ui/index.js";
 
 export const COUNT_STATUS_COLOR = { open: "blue", posted: "green", cancelled: "gray" };
 export const COUNT_STATUS_LABEL = { open: "In progress", posted: "Saved to stock", cancelled: "Cancelled" };
@@ -33,7 +33,7 @@ export default function CountList() {
         back={["/more", "All options"]}
         subtitle="Count one rack or one kind of item at a time. What's on the shelf becomes the stock."
       />
-      <Card className="p-5 mb-6">
+      <Section title="Start a stock check" className="mb-5" bodyClassName="p-4">
         <div className="flex flex-wrap items-end gap-3">
           <Field label="What are you counting?" className="flex-1 min-w-[240px]">
             <Input
@@ -48,9 +48,9 @@ export default function CountList() {
           </Button>
         </div>
         <Alert>{error}</Alert>
-      </Card>
+      </Section>
       <Alert>{loadError}</Alert>
-      <Card>
+      <Section title={data ? `Stock checks · ${data.count}` : "Stock checks"}>
         {loading && !data ? (
           <Spinner />
         ) : !data?.results.length ? (
@@ -68,7 +68,7 @@ export default function CountList() {
             </thead>
             <tbody>
               {data.results.map((count) => (
-                <tr key={count.id} className="hover:bg-blue-50/50 cursor-pointer" onClick={() => navigate(`/counts/${count.id}`)}>
+                <tr key={count.id} className="hover:!bg-steel-50 cursor-pointer" onClick={() => navigate(`/counts/${count.id}`)}>
                   <td className={`${td} font-semibold`}>{count.title}</td>
                   <td className={td}>
                     <Badge color={COUNT_STATUS_COLOR[count.status]}>{COUNT_STATUS_LABEL[count.status] || count.status_display}</Badge>
@@ -92,7 +92,7 @@ export default function CountList() {
           </Table>
         )}
         {data && <Pagination page={page} count={data.count} onPage={setPage} />}
-      </Card>
+      </Section>
     </>
   );
 }

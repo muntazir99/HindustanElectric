@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import ItemSearch from "../../components/ItemSearch.js";
 import { useFetch } from "../../hooks/useFetch.js";
 import { dateTime, signed } from "../../lib/format.js";
-import { Alert, Card, Empty, PageHeader, Pagination, Spinner, Table, td, th } from "../../ui/index.js";
+import { Alert, Empty, PageHeader, Pagination, Section, Spinner, Table, td, th } from "../../ui/index.js";
 import AdjustModal from "./AdjustModal.js";
 
 export default function Adjustments() {
@@ -19,15 +19,15 @@ export default function Adjustments() {
         back={["/more", "All options"]}
         subtitle="Broken, lost, used in the shop, or a mistake. Every change is recorded with a reason."
       />
-      <Card className="p-5 mb-6">
+      <Section title="Fix an item's stock" className="mb-5" bodyClassName="p-4">
         <p className="font-semibold mb-2">Which item?</p>
         <ItemSearch onSelect={(selected) => setItem(selected)} />
-      </Card>
+      </Section>
       <Alert kind="success" onClose={() => setMessage("")}>
         {message}
       </Alert>
       <Alert>{error}</Alert>
-      <Card>
+      <Section title="Stock fixed so far">
         {loading && !data ? (
           <Spinner />
         ) : !data?.results.length ? (
@@ -65,7 +65,7 @@ export default function Adjustments() {
           </Table>
         )}
         {data && <Pagination page={page} count={data.count} onPage={setPage} />}
-      </Card>
+      </Section>
       {item && (
         <AdjustModal
           item={item}

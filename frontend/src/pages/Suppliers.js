@@ -3,7 +3,7 @@ import { Plus } from "lucide-react";
 import api from "../api.js";
 import { useFetch } from "../hooks/useFetch.js";
 import { errorMessage } from "../lib/errors.js";
-import { Alert, Badge, Button, Card, Empty, Field, Input, Modal, PageHeader, Spinner, Table, td, th } from "../ui/index.js";
+import { Alert, Badge, Button, Empty, Field, Input, Modal, PageHeader, Section, Spinner, Table, td, th } from "../ui/index.js";
 
 function SupplierForm({ supplier, onClose, onSaved }) {
   const [form, setForm] = useState({
@@ -71,12 +71,16 @@ export default function Suppliers() {
           <Plus size={18} /> Add distributor
         </Button>
       </PageHeader>
-      <label className="flex items-center gap-2 mb-4 text-sm">
-        <input type="checkbox" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />
-        Also show ones we don't buy from any more
-      </label>
       <Alert>{error}</Alert>
-      <Card>
+      <Section
+        title={data ? `Distributors · ${data.length}` : "Distributors"}
+        right={
+          <label className="flex items-center gap-2 font-normal normal-case">
+            <input type="checkbox" className="w-4 h-4" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />
+            Also show ones we don't buy from any more
+          </label>
+        }
+      >
         {loading && !data ? (
           <Spinner />
         ) : !data?.length ? (
@@ -93,7 +97,7 @@ export default function Suppliers() {
             </thead>
             <tbody>
               {data.map((supplier) => (
-                <tr key={supplier.id} className="hover:bg-blue-50/50 cursor-pointer" onClick={() => setEditing(supplier)}>
+                <tr key={supplier.id} className="hover:!bg-steel-50 cursor-pointer" onClick={() => setEditing(supplier)}>
                   <td className={`${td} font-semibold`}>
                     {supplier.name} {!supplier.is_active && <Badge>Former</Badge>}
                   </td>
@@ -105,7 +109,7 @@ export default function Suppliers() {
             </tbody>
           </Table>
         )}
-      </Card>
+      </Section>
       {editing && (
         <SupplierForm
           supplier={editing === "new" ? null : editing}

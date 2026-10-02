@@ -5,6 +5,13 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-02 — Middle-ground look, step 4: lists
+
+**Changed**
+- **Old Bills**: the bills table sits in a labelled box ("Today · 3 bills", with the total on the right); search at the top; a **Show** box on the right with Day (Today / Yesterday / Any day / pick a date) and Kind (Bills / Kept for later / Estimates / Cancelled).
+- **Khata**: the udhaar figures in one box; customers are a striped table (Name, Phone, Type, Udhaar) with Everyone / Owe money and search above it.
+- **All Items, Purchase Bills, Distributors, Check Stock, Fix Stock**: each list in a labelled box with its count, its filters as pills inside the box, and striped rows.
+
 ### 2026-10-02 — Middle-ground look, step 3: New Bill
 
 **Changed**

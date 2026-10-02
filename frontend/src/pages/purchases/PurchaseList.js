@@ -2,7 +2,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Paperclip, Plus } from "lucide-react";
 import { useFetch } from "../../hooks/useFetch.js";
 import { date, money } from "../../lib/format.js";
-import { Alert, Badge, Button, Card, Empty, Input, PageHeader, Pagination, Spinner, Table, td, th } from "../../ui/index.js";
+import { Alert, Badge, Button, Empty, Input, PageHeader, Pagination, Pills, Section, Spinner, Table, td, th } from "../../ui/index.js";
 
 const TABS = [
   ["", "All"],
@@ -39,27 +39,14 @@ export default function PurchaseList() {
           <Plus size={18} /> Goods Arrived
         </Button>
       </PageHeader>
-      <Card className="p-4 mb-4 flex flex-wrap gap-3 items-center">
-        <div className="flex flex-wrap gap-2">
-          {TABS.map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => update({ status: value })}
-              className={`px-3 py-1.5 rounded-full text-sm font-semibold border ${
-                status === value ? "bg-blue-700 text-white border-blue-700" : "bg-white text-gray-700 border-gray-300"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        <div className="flex-1 min-w-[220px]">
-          <Input defaultValue={search} placeholder="Bill number or distributor" onChange={(e) => update({ search: e.target.value.trim() })} />
-        </div>
-      </Card>
       <Alert>{error}</Alert>
-      <Card>
+      <Section title={data ? `Purchase bills · ${data.count}` : "Purchase bills"}>
+        <div className="px-4 py-3 flex flex-wrap gap-3 items-center border-b border-gray-100">
+          <Pills options={TABS} value={status} onChange={(value) => update({ status: value })} />
+          <div className="flex-1 min-w-[220px]">
+            <Input defaultValue={search} placeholder="Bill number or distributor" onChange={(e) => update({ search: e.target.value.trim() })} />
+          </div>
+        </div>
         {loading && !data ? (
           <Spinner />
         ) : !data?.results.length ? (
@@ -78,7 +65,7 @@ export default function PurchaseList() {
             </thead>
             <tbody>
               {data.results.map((bill) => (
-                <tr key={bill.id} className="hover:bg-blue-50/50 cursor-pointer" onClick={() => navigate(`/purchases/${bill.id}`)}>
+                <tr key={bill.id} className="hover:!bg-steel-50 cursor-pointer" onClick={() => navigate(`/purchases/${bill.id}`)}>
                   <td className={`${td} whitespace-nowrap`}>{date(bill.bill_date)}</td>
                   <td className={`${td} font-semibold`}>{bill.supplier_name}</td>
                   <td className={td}>
@@ -96,7 +83,7 @@ export default function PurchaseList() {
           </Table>
         )}
         {data && <Pagination page={page} count={data.count} onPage={(next) => update({ page: String(next) })} />}
-      </Card>
+      </Section>
     </>
   );
 }

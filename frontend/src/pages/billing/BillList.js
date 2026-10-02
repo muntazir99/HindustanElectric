@@ -4,7 +4,8 @@ import { useAuth } from "../../context/AuthContext.js";
 import { useFetch } from "../../hooks/useFetch.js";
 import { A } from "../../lib/access.js";
 import { date, dateTime, money, today } from "../../lib/format.js";
-import { Alert, Badge, Card, Empty, Input, PageHeader, Pagination, Spinner, Table, td, th } from "../../ui/index.js";
+import { Search } from "lucide-react";
+import { Alert, Badge, Empty, PageHeader, Pagination, Pills, Section, Spinner, Table, td, th } from "../../ui/index.js";
 
 const TABS = [
   ["", "Bills"],
@@ -20,6 +21,13 @@ const HELP = {
   return: "To take goods back: find the bill below, open it, then press “Return goods”.",
   cancel: "To cancel a bill: find it below, open it, then press “Cancel bill”.",
 };
+
+/** "2026-10-02" -> "2026-10-01" (local dates, not UTC). */
+function dayBefore(iso) {
+  const day = new Date(`${iso}T12:00:00`);
+  day.setDate(day.getDate() - 1);
+  return day.toISOString().slice(0, 10);
+}
 
 export default function BillList() {
   const navigate = useNavigate();
@@ -51,6 +59,10 @@ export default function BillList() {
   const rows = data?.results || [];
   const dayTotal = rows.filter((bill) => bill.status === "final").reduce((sum, bill) => sum + Number(bill.total), 0);
 
+  const yesterday = dayBefore(today());
+  const listTitle =
+    status === "held" ? "Kept for later" : status === "quotation" ? "Estimates" : !day ? "All dates" : day === today() ? "Today" : date(day);
+
   return (
     <>
       <PageHeader
@@ -65,97 +77,106 @@ export default function BillList() {
                 ? `Bills on ${date(day)}`
                 : "All bills"
         }
-      />
-      {help && <Alert kind="info">{help}</Alert>}
-      <Card className="p-4 mb-4 flex flex-wrap items-center gap-3">
-        <div className="flex flex-wrap gap-2">
-          {(allTabs ? TABS : []).map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => update({ status: value })}
-              className={`px-4 py-1.5 rounded-full font-semibold border ${
-                status === value ? "bg-blue-700 text-white border-blue-700" : "bg-white text-gray-700 border-gray-300"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        {!undated && (
-          <label className="flex items-center gap-2">
-            Date
-            <input type="date" className="border border-gray-300 rounded-xl px-2 py-1.5" value={day} max={today()} onChange={(e) => update({ day: e.target.value })} />
-            <button type="button" className="text-blue-800 underline" onClick={() => update({ day: "" })}>
-              all dates
-            </button>
-          </label>
-        )}
-        <div className="flex-1 min-w-[220px]">
-          <Input
+      >
+        <label className="flex items-center gap-2 h-11 px-3 w-[min(380px,100%)] rounded-lg border border-gray-300 bg-white focus-within:ring-2 focus-within:ring-steel-700">
+          <Search size={18} className="text-gray-500 shrink-0" />
+          <input
             value={search}
+            aria-label="Search bills"
             placeholder="Bill number, name or phone — press Enter"
+            className="flex-1 min-w-0 bg-transparent focus:outline-none"
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && update({ search: search.trim(), day: "" })}
           />
-        </div>
-      </Card>
+        </label>
+      </PageHeader>
+      {help && <Alert kind="info">{help}</Alert>}
       <Alert>{error}</Alert>
-      <Card>
-        {loading && !data ? (
-          <Spinner />
-        ) : rows.length === 0 ? (
-          <Empty>{status === "held" ? "No bills kept for later." : status === "quotation" ? "No estimates yet." : "No bills here."}</Empty>
-        ) : (
-          <Table>
-            <thead>
-              <tr>
-                <th className={th}>Bill</th>
-                <th className={th}>When</th>
-                <th className={th}>Buyer</th>
-                <th className={`${th} text-right`}>Items</th>
-                <th className={`${th} text-right`}>Total</th>
-                <th className={`${th} text-right`}>Udhaar</th>
-                <th className={th}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((bill) => (
-                <tr
-                  key={bill.id}
-                  className="hover:bg-blue-50/50 cursor-pointer"
-                  onClick={() => navigate(bill.kind === "invoice" && bill.status === "draft" ? `/billing?resume=${bill.id}` : `/bills/${bill.id}`)}
-                >
-                  <td className={`${td} font-mono text-sm font-semibold`}>{bill.number || "—"}</td>
-                  <td className={`${td} whitespace-nowrap`}>{bill.kind === "quotation" ? date(bill.invoice_date) : dateTime(bill.finalised_at || bill.updated_at)}</td>
-                  <td className={td}>
-                    {bill.buyer_name || "Cash sale"}
-                    {bill.buyer_phone && <span className="text-sm text-gray-500"> · {bill.buyer_phone}</span>}
-                  </td>
-                  <td className={`${td} text-right`}>{bill.line_count}</td>
-                  <td className={`${td} text-right font-semibold`}>{money(bill.total)}</td>
-                  <td className={`${td} text-right ${Number(bill.credit_amount) > 0 ? "text-red-700" : "text-gray-400"}`}>
-                    {Number(bill.credit_amount) > 0 ? money(bill.credit_amount) : "—"}
-                  </td>
-                  <td className={td}>
-                    {bill.kind === "quotation" ? (
-                      <Badge color="blue">{bill.converted_to ? "Converted" : `Valid till ${date(bill.valid_until)}`}</Badge>
-                    ) : (
-                      <Badge color={BILL_STATUS[bill.status][0]}>{BILL_STATUS[bill.status][1]}</Badge>
-                    )}
-                  </td>
+
+      <div className="flex flex-wrap gap-5 items-start">
+        <Section
+          className="flex-[1_1_620px] min-w-0"
+          title={data ? `${listTitle} · ${data.count} ${data.count === 1 ? "bill" : "bills"}` : listTitle}
+          right={!undated && day && rows.length > 0 && <>Total <b className="text-gray-900">{money(dayTotal)}</b></>}
+        >
+          {loading && !data ? (
+            <Spinner />
+          ) : rows.length === 0 ? (
+            <Empty>{status === "held" ? "No bills kept for later." : status === "quotation" ? "No estimates yet." : "No bills here."}</Empty>
+          ) : (
+            <Table>
+              <thead>
+                <tr>
+                  <th className={th}>Bill</th>
+                  <th className={th}>When</th>
+                  <th className={th}>Buyer</th>
+                  <th className={`${th} text-right`}>Items</th>
+                  <th className={`${th} text-right`}>Total</th>
+                  <th className={`${th} text-right`}>Udhaar</th>
+                  <th className={th}>Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </Table>
-        )}
-        {data && !undated && day && rows.length > 0 && (
-          <p className="px-4 py-3 border-t text-sm text-gray-700">
-            Total of finished bills on this page: <b>{money(dayTotal)}</b>
-          </p>
-        )}
-        {data && <Pagination page={page} count={data.count} onPage={(next) => update({ page: String(next) })} />}
-      </Card>
+              </thead>
+              <tbody>
+                {rows.map((bill) => (
+                  <tr
+                    key={bill.id}
+                    className="hover:!bg-steel-50 cursor-pointer"
+                    onClick={() => navigate(bill.kind === "invoice" && bill.status === "draft" ? `/billing?resume=${bill.id}` : `/bills/${bill.id}`)}
+                  >
+                    <td className={`${td} whitespace-nowrap font-semibold text-blue-800`}>{bill.number || "—"}</td>
+                    <td className={`${td} whitespace-nowrap`}>{bill.kind === "quotation" ? date(bill.invoice_date) : dateTime(bill.finalised_at || bill.updated_at)}</td>
+                    <td className={td}>
+                      {bill.buyer_name || "Cash sale"}
+                      {bill.buyer_phone && <span className="text-sm text-gray-500"> · {bill.buyer_phone}</span>}
+                    </td>
+                    <td className={`${td} text-right`}>{bill.line_count}</td>
+                    <td className={`${td} text-right text-lg font-bold whitespace-nowrap`}>{money(bill.total)}</td>
+                    <td className={`${td} text-right whitespace-nowrap ${Number(bill.credit_amount) > 0 ? "text-red-700 font-semibold" : "text-gray-400"}`}>
+                      {Number(bill.credit_amount) > 0 ? money(bill.credit_amount) : "—"}
+                    </td>
+                    <td className={td}>
+                      {bill.kind === "quotation" ? (
+                        <Badge color="blue">{bill.converted_to ? "Converted" : `Valid till ${date(bill.valid_until)}`}</Badge>
+                      ) : (
+                        <Badge color={BILL_STATUS[bill.status][0]}>{BILL_STATUS[bill.status][1]}</Badge>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          )}
+          {data && <Pagination page={page} count={data.count} onPage={(next) => update({ page: String(next) })} />}
+        </Section>
+
+        <Section className="flex-[1_1_260px] lg:max-w-[300px]" title="Show" bodyClassName="p-4 space-y-4">
+          {!undated && (
+            <div className="space-y-2">
+              <Pills
+                label="Day"
+                options={[
+                  [today(), "Today"],
+                  [yesterday, "Yesterday"],
+                  ["", "Any day"],
+                ]}
+                value={day}
+                onChange={(value) => update({ day: value })}
+              />
+              <label className="flex items-center gap-2 text-[15px] text-gray-700">
+                Or pick a date
+                <input
+                  type="date"
+                  className="border border-gray-300 rounded-lg px-2 py-1.5"
+                  value={day}
+                  max={today()}
+                  onChange={(e) => update({ day: e.target.value })}
+                />
+              </label>
+            </div>
+          )}
+          {allTabs && <Pills label="Kind" options={TABS} value={status} onChange={(value) => update({ status: value })} />}
+        </Section>
+      </div>
     </>
   );
 }

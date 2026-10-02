@@ -5,7 +5,7 @@ import { useAuth } from "../../context/AuthContext.js";
 import { A } from "../../lib/access.js";
 import { useFetch } from "../../hooks/useFetch.js";
 import { money } from "../../lib/format.js";
-import { Alert, Badge, Button, Card, Empty, PageHeader, Pagination, Select, Spinner, Table, inputClass, td, th } from "../../ui/index.js";
+import { Alert, Badge, Button, Empty, PageHeader, Pagination, Pills, Section, Select, Spinner, Table, inputClass, td, th } from "../../ui/index.js";
 
 const FILTERS = [
   ["", "All"],
@@ -73,50 +73,36 @@ export default function ItemList() {
         )}
       </PageHeader>
 
-      <Card className="p-4 mb-4">
-        <div className="flex flex-wrap gap-3 items-center">
-          <div className="relative flex-1 min-w-[260px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-            <input
-              className={`${inputClass} pl-10`}
-              placeholder="Search name, brand, size, code or scan a barcode"
-              value={search}
-              autoFocus
-              onChange={(event) => setSearch(event.target.value)}
-              aria-label="Search items"
-            />
-          </div>
-          <div className="w-56">
-            <Select value={category} onChange={(event) => update({ category: event.target.value })} aria-label="Category">
-              <option value="">All categories</option>
-              {(categories || []).map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
-            </Select>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2 mt-3" role="tablist">
-          {FILTERS.map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              role="tab"
-              aria-selected={status === value}
-              onClick={() => update({ status: value })}
-              className={`px-3 py-1.5 rounded-full text-sm font-semibold border ${
-                status === value ? "bg-blue-700 text-white border-blue-700" : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </Card>
-
       <Alert>{error}</Alert>
-      <Card>
+      <Section title={data ? `${status === "low" ? "Running low" : "Items"} · ${data.count}` : "Items"}>
+        <div className="px-4 py-3 border-b border-gray-100">
+          <div className="flex flex-wrap gap-3 items-center">
+            <div className="relative flex-1 min-w-[260px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <input
+                className={`${inputClass} pl-10`}
+                placeholder="Search name, brand, size, code or scan a barcode"
+                value={search}
+                autoFocus
+                onChange={(event) => setSearch(event.target.value)}
+                aria-label="Search items"
+              />
+            </div>
+            <div className="w-56">
+              <Select value={category} onChange={(event) => update({ category: event.target.value })} aria-label="Category">
+                <option value="">All categories</option>
+                {(categories || []).map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          </div>
+          <div className="mt-3">
+            <Pills options={FILTERS} value={status} onChange={(value) => update({ status: value })} />
+          </div>
+        </div>
         {loading && !data ? (
           <Spinner />
         ) : data?.results.length === 0 ? (
@@ -139,10 +125,10 @@ export default function ItemList() {
               </thead>
               <tbody>
                 {data.results.map((item) => (
-                  <tr key={item.id} className="hover:bg-blue-50/50 cursor-pointer" onClick={() => navigate(`/items/${item.id}`)}>
+                  <tr key={item.id} className="hover:!bg-steel-50 cursor-pointer" onClick={() => navigate(`/items/${item.id}`)}>
                     <td className={`${td} text-gray-500 font-mono text-sm`}>{item.code}</td>
                     <td className={td}>
-                      <div className="font-semibold">{item.name}</div>
+                      <div className="font-semibold text-blue-800">{item.name}</div>
                       <div className="text-sm text-gray-500 flex flex-wrap gap-2 items-center">
                         {item.category && <span>{item.category}</span>}
                         <StatusBadges item={item} />
@@ -173,7 +159,7 @@ export default function ItemList() {
           )
         )}
         {data && <Pagination page={page} count={data.count} onPage={(next) => update({ page: String(next) })} />}
-      </Card>
+      </Section>
     </>
   );
 }
