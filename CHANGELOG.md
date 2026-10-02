@@ -5,6 +5,13 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-02 — Middle-ground look, step 2: Home and All options
+
+**Changed**
+- Home: greeting and date on one line; the task tiles are shorter (icon beside the name); **Today** is one box of figures; **Recent bills** is a striped table; **Udhaar to collect** and **Needs attention** are labelled boxes.
+- New **Other things** box on Home: plain links to Old bills, Kept for later, Khata, All items, Check stock, Purchase bills and Distributors (each only for those allowed), "Everything else is in More", and the item count / stock value.
+- All options: each group is one labelled box with its options as rows inside it, instead of separate cards.
+
 ### 2026-10-02 — Middle-ground look, step 1: frame and shared pieces
 
 Look only — no rules, switches, numbers or printouts changed. Plan: [PLAN.md §10](docs/PLAN.md).

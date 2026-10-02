@@ -24,7 +24,7 @@ import {
 import { BACK_OFFICE_URL } from "../api.js";
 import { useAuth } from "../context/AuthContext.js";
 import { A, OWNER } from "../lib/access.js";
-import { PageHeader } from "../ui/index.js";
+import { PageHeader, Section } from "../ui/index.js";
 
 // Everything that isn't needed every hour. Each tile shows only to someone allowed to use it
 // (`need`: any of these switches, or OWNER); a tile without `need` is for everyone.
@@ -83,7 +83,7 @@ const SECTIONS = [
 ];
 
 const ICON_TONE = {
-  blue: "bg-blue-50 text-blue-800",
+  blue: "bg-steel-50 text-steel-800",
   amber: "bg-amber-50 text-amber-800",
   green: "bg-green-50 text-green-800",
   owner: "bg-stone-100 text-stone-700",
@@ -93,16 +93,17 @@ function Tile({ tile }) {
   const Icon = tile.icon;
   const body = (
     <>
-      <span className={`shrink-0 flex items-center justify-center w-11 h-11 rounded-xl ${ICON_TONE[tile.tone || "blue"]}`}>
-        <Icon size={24} />
+      <span className={`shrink-0 flex items-center justify-center w-10 h-10 rounded-lg ${ICON_TONE[tile.tone || "blue"]}`}>
+        <Icon size={22} />
       </span>
       <span className="min-w-0">
-        <span className="block text-lg font-bold leading-snug">{tile.name}</span>
+        <span className="block text-lg font-bold leading-snug text-blue-900">{tile.name}</span>
         <span className="block text-gray-600 leading-snug">{tile.text}</span>
       </span>
     </>
   );
-  const classes = "flex gap-3.5 items-start min-h-[92px] p-4 rounded-2xl bg-white border border-gray-200 hover:border-blue-400 hover:bg-blue-50/30";
+  // A row inside the group's box, not a separate card.
+  const classes = "flex gap-3 items-start min-h-[72px] px-4 py-3 border-b border-gray-100 sm:border-r hover:bg-steel-50";
   if (tile.href) {
     return (
       <a href={tile.href} target="_blank" rel="noreferrer" className={classes}>
@@ -127,18 +128,13 @@ export default function More() {
   return (
     <>
       <PageHeader title="All options" back={["/dashboard", "Home"]} subtitle="Everything that isn't needed every hour." />
-      <div className="space-y-7">
+      <div className="space-y-5">
         {sections.map((section) => (
-          <section key={section.title} aria-labelledby={`more-${section.title}`}>
-            <h2 id={`more-${section.title}`} className="text-xl font-bold mb-3">
-              {section.title}
-            </h2>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-              {section.tiles.map((tile) => (
-                <Tile key={tile.name} tile={tile} />
-              ))}
-            </div>
-          </section>
+          <Section key={section.title} title={section.title} bodyClassName="grid sm:grid-cols-2 lg:grid-cols-3 -mb-px sm:-mr-px">
+            {section.tiles.map((tile) => (
+              <Tile key={tile.name} tile={tile} />
+            ))}
+          </Section>
         ))}
 
         <section className="flex flex-wrap items-center gap-x-6 gap-y-3 pt-5 border-t border-gray-200">
