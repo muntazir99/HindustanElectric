@@ -1,16 +1,18 @@
 import { Link } from "react-router-dom";
-import { ChevronRight, CircleCheck, HandCoins, PackagePlus, Receipt, TriangleAlert, Truck } from "lucide-react";
+import { ChevronRight, CircleCheck, ClipboardCheck, HandCoins, PackagePlus, Receipt, TriangleAlert, Truck } from "lucide-react";
 import { useAuth } from "../context/AuthContext.js";
+import { A } from "../lib/access.js";
 import { useFetch } from "../hooks/useFetch.js";
 import { bigMoney, dateTime, money, plural } from "../lib/format.js";
 import { Alert, Card } from "../ui/index.js";
 
-// The four jobs done every day. Everything else is on the More page.
+// The jobs done every day, as big tiles: the first four this person may do. Everything else is on More.
 const TASKS = [
-  { to: "/billing", icon: Receipt, name: "New Bill", text: "Make a bill for a customer", main: true },
-  { to: "/purchases/new", icon: Truck, name: "Goods Arrived", text: "Enter the distributor's bill" },
-  { to: "/customers?owing=1", icon: HandCoins, name: "Take Payment", text: "A customer pays their udhaar", tone: "text-green-700" },
-  { to: "/items/new", icon: PackagePlus, name: "Add New Item", text: "A new product, size or colour" },
+  { to: "/billing", icon: Receipt, name: "New Bill", text: "Make a bill for a customer", main: true, need: A.BILLING },
+  { to: "/purchases/new", icon: Truck, name: "Goods Arrived", text: "Enter the distributor's bill", need: A.PURCHASES },
+  { to: "/customers?owing=1", icon: HandCoins, name: "Take Payment", text: "A customer pays their udhaar", tone: "text-green-700", need: A.PAYMENTS },
+  { to: "/items/new", icon: PackagePlus, name: "Add New Item", text: "A new product, size or colour", need: A.ADD_ITEMS },
+  { to: "/counts", icon: ClipboardCheck, name: "Check Stock", text: "Count a rack and set the real stock", need: A.COUNT_STOCK },
 ];
 
 function greeting() {
@@ -59,8 +61,9 @@ function SectionTitle({ children, to, link }) {
   );
 }
 
-function TodayCard({ today }) {
+function TodayCard({ today, canBill }) {
   const cash = today.by_mode.cash;
+  const khata = today.on_khata !== undefined;
   const others = Object.entries(today.by_mode).filter(([mode]) => mode !== "cash");
   const backHint = (row) => (Number(row.refunded) > 0 ? `${money(row.received)} came in, ${money(row.refunded)} given back` : null);
   return (
@@ -74,27 +77,36 @@ function TodayCard({ today }) {
         {others.map(([mode, row]) => (
           <Figure key={mode} label={row.label} value={bigMoney(row.net)} hint={backHint(row)} />
         ))}
-        <Figure
-          label="Given on udhaar"
-          value={bigMoney(today.on_khata)}
-          tone={Number(today.on_khata) ? "text-red-700" : "text-gray-900"}
-        />
-        <Figure
-          label="Udhaar paid back"
-          value={bigMoney(today.khata_collected)}
-          tone={Number(today.khata_collected) ? "text-green-700" : "text-gray-900"}
-        />
+        {khata && (
+          <Figure
+            label="Given on udhaar"
+            value={bigMoney(today.on_khata)}
+            tone={Number(today.on_khata) ? "text-red-700" : "text-gray-900"}
+          />
+        )}
+        {khata && (
+          <Figure
+            label="Udhaar paid back"
+            value={bigMoney(today.khata_collected)}
+            tone={Number(today.khata_collected) ? "text-green-700" : "text-gray-900"}
+          />
+        )}
         {Number(today.returns) > 0 && <Figure label="Goods returned" value={bigMoney(today.returns)} tone="text-amber-800" />}
       </div>
-      {today.held_bills > 0 && (
-        <p className="mt-5 pt-4 border-t border-gray-200 text-amber-900">
-          {today.held_bills === 1 ? "1 bill is" : `${today.held_bills} bills are`} kept for later.{" "}
-          <Link to="/bills?status=held" className="font-semibold underline">
-            Open {today.held_bills === 1 ? "it" : "them"}
-          </Link>
-        </p>
-      )}
+      {canBill && today.held_bills > 0 && <HeldNote count={today.held_bills} />}
     </Card>
+  );
+}
+
+/** Bills kept for later are picked up on New Bill ("Kept for later" at the top). */
+function HeldNote({ count, alone = false }) {
+  return (
+    <p className={alone ? "text-amber-900" : "mt-5 pt-4 border-t border-gray-200 text-amber-900"}>
+      {count === 1 ? "1 bill is" : `${count} bills are`} kept for later.{" "}
+      <Link to="/billing" className="font-semibold underline">
+        Open New Bill to finish {count === 1 ? "it" : "them"}
+      </Link>
+    </p>
   );
 }
 
@@ -134,7 +146,7 @@ function RecentBills() {
   );
 }
 
-function UdhaarCard({ today }) {
+function UdhaarCard({ today, canTakePayment }) {
   const { data } = useFetch("/sales/customers?owing=1&page_size=5");
   const customers = data?.results || [];
   return (
@@ -156,12 +168,14 @@ function UdhaarCard({ today }) {
                 <span className="block font-semibold truncate">{customer.name}</span>
                 <span className="block text-sm text-red-700">owes {money(customer.balance)}</span>
               </Link>
-              <Link
-                to={`/customers/${customer.id}?pay=1`}
-                className="shrink-0 inline-flex items-center min-h-[40px] px-3 rounded-xl border border-green-700 text-green-800 font-semibold hover:bg-green-50"
-              >
-                Take payment
-              </Link>
+              {canTakePayment && (
+                <Link
+                  to={`/customers/${customer.id}?pay=1`}
+                  className="shrink-0 inline-flex items-center min-h-[40px] px-3 rounded-xl border border-green-700 text-green-800 font-semibold hover:bg-green-50"
+                >
+                  Take payment
+                </Link>
+              )}
             </li>
           ))}
         </ul>
@@ -170,14 +184,15 @@ function UdhaarCard({ today }) {
   );
 }
 
-function AttentionCard({ stock, isOwner }) {
+function AttentionCard({ stock, can }) {
+  // Only what this person can act on.
   const rows = [
-    [stock.low_stock, "/items?status=low", (n) => `${plural(n, "item")} running low`, "Order again"],
-    [stock.needs_recount, "/items?status=needs_recount", (n) => `${plural(n, "item")} to check again`, "Stock went below zero"],
-    [stock.draft_bills, "/purchases?status=draft", (n) => `${plural(n, "purchase bill")} not added to stock`, "Finish entering them"],
-    [stock.open_counts, "/counts", (n) => `${plural(n, "stock check")} not finished`, null],
-    [stock.not_counted, "/items?status=not_counted", (n) => `${plural(n, "item")} not checked yet`, "Stock shows after a count"],
-  ].filter(([count]) => count > 0);
+    [stock.low_stock, "/items?status=low", (n) => `${plural(n, "item")} running low`, "Order again", true],
+    [stock.needs_recount, "/items?status=needs_recount", (n) => `${plural(n, "item")} to check again`, "Stock went below zero", true],
+    [stock.draft_bills, "/purchases?status=draft", (n) => `${plural(n, "purchase bill")} not added to stock`, "Finish entering them", can(A.PURCHASES)],
+    [stock.open_counts, "/counts", (n) => `${plural(n, "stock check")} not finished`, null, can(A.COUNT_STOCK, A.FIX_STOCK)],
+    [stock.not_counted, "/items?status=not_counted", (n) => `${plural(n, "item")} not checked yet`, "Stock shows after a count", true],
+  ].filter(([count, , , , allowed]) => count > 0 && allowed);
 
   return (
     <>
@@ -209,16 +224,16 @@ function AttentionCard({ stock, isOwner }) {
         <Link to="/items" className="hover:underline">
           {plural(stock.active_items, "item")} in the shop
         </Link>
-        {isOwner && stock.stock_value !== undefined && <> · stock worth {bigMoney(stock.stock_value)} at cost</>}
+        {stock.stock_value !== undefined && <> · stock worth {bigMoney(stock.stock_value)} at cost</>}
       </p>
     </>
   );
 }
 
 export default function Home() {
-  const { user } = useAuth();
-  const isOwner = user?.role === "owner";
+  const { can } = useAuth();
   const { data: stock, error } = useFetch("/stock/summary");
+  const tasks = TASKS.filter((task) => can(task.need)).slice(0, 4);
   const { data: today, error: todayError } = useFetch("/sales/today");
   const dateLine = new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
@@ -230,20 +245,27 @@ export default function Home() {
       </div>
       <Alert>{error || todayError}</Alert>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
-        {TASKS.map((task) => (
-          <Task key={task.name} task={task} />
-        ))}
-      </div>
+      {tasks.length > 0 && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
+          {tasks.map((task) => (
+            <Task key={task.name} task={task} />
+          ))}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-5 items-start">
         <div className="space-y-5 min-w-0">
-          {today && <TodayCard today={today} />}
-          <RecentBills />
+          {today?.sales !== undefined && <TodayCard today={today} canBill={can(A.BILLING)} />}
+          {today?.sales === undefined && today?.held_bills > 0 && (
+            <Card className="p-5">
+              <HeldNote count={today.held_bills} alone />
+            </Card>
+          )}
+          {can(A.VIEW_BILLS) && <RecentBills />}
         </div>
         <div className="space-y-5">
-          {today && isOwner && today.udhaar_outstanding !== undefined && <UdhaarCard today={today} />}
-          {stock && <AttentionCard stock={stock} isOwner={isOwner} />}
+          {today?.udhaar_outstanding !== undefined && <UdhaarCard today={today} canTakePayment={can(A.PAYMENTS)} />}
+          {stock && <AttentionCard stock={stock} can={can} />}
         </div>
       </div>
     </>

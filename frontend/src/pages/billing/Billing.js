@@ -5,6 +5,7 @@ import api from "../../api.js";
 import CustomerPicker from "../../components/CustomerPicker.js";
 import ItemSearch from "../../components/ItemSearch.js";
 import { useAuth } from "../../context/AuthContext.js";
+import { A } from "../../lib/access.js";
 import { useFetch } from "../../hooks/useFetch.js";
 import { errorMessage } from "../../lib/errors.js";
 import { bigMoney, money, plain, plural, round2 } from "../../lib/format.js";
@@ -107,8 +108,8 @@ function payload(lines, header, held) {
 export default function Billing() {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
-  const { user } = useAuth();
-  const isOwner = user?.role === "owner";
+  const { can } = useAuth();
+  const mayGoLow = can(A.LOW_PRICES);
 
   const [lines, setLines] = useState([]);
   const [header, setHeader] = useState(EMPTY_HEADER);
@@ -486,7 +487,7 @@ export default function Billing() {
                           </p>
                         )}
                         {saved?.below_cost && (
-                          <p className="text-sm text-red-700 font-semibold">{isOwner ? "Below average cost" : "Price too low — ask the owner"}</p>
+                          <p className="text-sm text-red-700 font-semibold">{mayGoLow ? "Below cost — allowed for you, with a warning" : "Price too low — ask the owner"}</p>
                         )}
                       </div>
                       <p className={`pt-0.5 text-right text-xl font-bold whitespace-nowrap ${pending ? "text-gray-400" : ""}`}>

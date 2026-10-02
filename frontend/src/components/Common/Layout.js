@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { ChevronDown, Home, LayoutGrid, LogOut, Plus } from "lucide-react";
 import { useAuth } from "../../context/AuthContext.js";
+import { A } from "../../lib/access.js";
 import ItemSearch from "../ItemSearch.js";
 
 /**
@@ -9,7 +10,7 @@ import ItemSearch from "../ItemSearch.js";
  * one press away. Everything that isn't needed every hour lives on the More page, not in a menu.
  */
 function TopBar() {
-  const { user, logout } = useAuth();
+  const { user, logout, can, isOwner } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [accountOpen, setAccountOpen] = useState(false);
@@ -49,12 +50,14 @@ function TopBar() {
         >
           <Home size={22} /> Home
         </NavLink>
+        {can(A.BILLING) && (
         <NavLink
           to="/billing"
           className="shrink-0 inline-flex items-center gap-1.5 h-12 px-3 sm:px-4 md:px-5 rounded-xl bg-green-700 hover:bg-green-800 text-white sm:text-lg font-semibold"
         >
           <Plus size={20} strokeWidth={2.5} /> New Bill
         </NavLink>
+        )}
         <NavLink
           to="/more"
           aria-label="More — all options"
@@ -75,7 +78,7 @@ function TopBar() {
             onBlur={() => setTimeout(() => setAccountOpen(false), 150)}
             className="inline-flex items-center gap-1 h-12 px-3 rounded-xl text-gray-700 hover:bg-gray-100 font-semibold"
           >
-            {user?.role === "owner" ? "Owner" : "Staff"} <ChevronDown size={18} />
+            {user?.name || (isOwner ? "Owner" : "Staff")} <ChevronDown size={18} />
           </button>
           {accountOpen && (
             <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-200 rounded-xl shadow-lg p-1">

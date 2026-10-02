@@ -4,6 +4,7 @@ import { Trash2 } from "lucide-react";
 import api from "../../api.js";
 import ItemSearch from "../../components/ItemSearch.js";
 import { useAuth } from "../../context/AuthContext.js";
+import { A } from "../../lib/access.js";
 import { useFetch } from "../../hooks/useFetch.js";
 import { errorMessage } from "../../lib/errors.js";
 import { dateTime, plain, plural, signed } from "../../lib/format.js";
@@ -81,8 +82,8 @@ function RackHelper({ countedIds, onCount, disabled }) {
 
 export default function CountSheet() {
   const { id } = useParams();
-  const { user } = useAuth();
-  const isOwner = user?.role === "owner";
+  const { can } = useAuth();
+  const canSave = can(A.FIX_STOCK); // sees differences and saves the count to stock
   const { data: count, error: loadError, loading, setData } = useFetch(`/stock/counts/${id}`);
   const [error, setError] = useState("");
   const [flash, setFlash] = useState("");
@@ -155,7 +156,7 @@ export default function CountSheet() {
             Started {dateTime(count.created_at)} by {count.created_by} · {plural(count.lines.length, "item")}
           </p>
         </div>
-        {isOwner && open && (
+        {canSave && open && (
           <div className="flex gap-2">
             <Button variant="danger" onClick={() => window.confirm("Cancel this count? Nothing will change in stock.") && finish("cancel")}>
               Cancel this count
@@ -167,7 +168,7 @@ export default function CountSheet() {
         )}
       </div>
 
-      {open && !isOwner && (
+      {open && !canSave && (
         <Alert kind="info">Count what you see on the shelf. The owner will check it and save it to stock.</Alert>
       )}
       <Alert onClose={() => setError("")}>{error}</Alert>
@@ -191,8 +192,8 @@ export default function CountSheet() {
                 <th className={th}>Item</th>
                 <th className={th}>Rack</th>
                 <th className={`${th} text-right`}>Counted</th>
-                {isOwner && <th className={`${th} text-right`}>System said</th>}
-                {isOwner && <th className={`${th} text-right`}>Difference</th>}
+                {canSave && <th className={`${th} text-right`}>System said</th>}
+                {canSave && <th className={`${th} text-right`}>Difference</th>}
                 <th className={th} />
               </tr>
             </thead>
@@ -216,8 +217,8 @@ export default function CountSheet() {
                       onSet={(qty) => record({ item: line.item, quantity: qty, mode: "set" }, "Set")}
                     />
                   </td>
-                  {isOwner && <td className={`${td} text-right`}>{plain(line.system_qty)}</td>}
-                  {isOwner && (
+                  {canSave && <td className={`${td} text-right`}>{plain(line.system_qty)}</td>}
+                  {canSave && (
                     <td
                       className={`${td} text-right font-bold ${
                         Number(line.difference) < 0 ? "text-red-700" : Number(line.difference) > 0 ? "text-green-700" : "text-gray-400"

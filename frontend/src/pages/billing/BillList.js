@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext.js";
 import { useFetch } from "../../hooks/useFetch.js";
+import { A } from "../../lib/access.js";
 import { date, dateTime, money, today } from "../../lib/format.js";
 import { Alert, Badge, Card, Empty, Input, PageHeader, Pagination, Spinner, Table, td, th } from "../../ui/index.js";
 
@@ -22,7 +24,10 @@ const HELP = {
 export default function BillList() {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
-  const status = params.get("status") || "";
+  const { can } = useAuth();
+  // Someone who only takes returns sees the bills list to find a bill, not the other tabs.
+  const allTabs = can(A.VIEW_BILLS);
+  const status = allTabs ? params.get("status") || "" : "";
   const day = params.get("day") ?? today();
   const page = Number(params.get("page") || 1);
   const [search, setSearch] = useState(params.get("search") || "");
@@ -64,7 +69,7 @@ export default function BillList() {
       {help && <Alert kind="info">{help}</Alert>}
       <Card className="p-4 mb-4 flex flex-wrap items-center gap-3">
         <div className="flex flex-wrap gap-2">
-          {TABS.map(([value, label]) => (
+          {(allTabs ? TABS : []).map(([value, label]) => (
             <button
               key={value}
               type="button"

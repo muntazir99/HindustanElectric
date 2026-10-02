@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Download, FileSpreadsheet, Upload } from "lucide-react";
 import api from "../api.js";
+import { useAuth } from "../context/AuthContext.js";
+import { A } from "../lib/access.js";
 import { SAMPLE_SHEET_NAME, SAMPLE_SHEET_URL, downloadFile } from "../lib/download.js";
 import { errorMessage } from "../lib/errors.js";
 import { Alert, Badge, Button, Card, PageHeader, Table, td, th } from "../ui/index.js";
@@ -24,9 +26,15 @@ const STATUS = {
   error: ["red", "Error"],
 };
 
+// Which switch each kind of upload needs.
+const KIND_NEEDS = { catalogue: A.IMPORT, prices: A.EDIT_ITEMS };
+
 export default function ImportPage() {
   const [params] = useSearchParams();
-  const [kind, setKind] = useState(params.get("kind") === "prices" ? "prices" : "catalogue");
+  const { can } = useAuth();
+  const kinds = Object.entries(KINDS).filter(([value]) => can(KIND_NEEDS[value]));
+  const wanted = params.get("kind") === "prices" ? "prices" : "catalogue";
+  const [kind, setKind] = useState(can(KIND_NEEDS[wanted]) ? wanted : kinds[0]?.[0]);
   const [file, setFile] = useState(null);
   const [result, setResult] = useState(null);
   const [errorsOnly, setErrorsOnly] = useState(false);
@@ -82,7 +90,7 @@ export default function ImportPage() {
       />
 
       <div className="flex flex-wrap gap-2 mb-4" role="tablist">
-        {Object.entries(KINDS).map(([value, { label }]) => (
+        {kinds.length > 1 && kinds.map(([value, { label }]) => (
           <button
             key={value}
             type="button"

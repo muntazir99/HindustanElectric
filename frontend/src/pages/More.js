@@ -8,74 +8,75 @@ import {
   FileSpreadsheet,
   FileText,
   HandCoins,
-  Lock,
   LogOut,
   Package,
   PackagePlus,
   ReceiptText,
+  ShieldCheck,
   SlidersHorizontal,
   Store,
   Tag,
   TriangleAlert,
   Truck,
   Undo2,
-  UserPlus,
   Users,
 } from "lucide-react";
 import { BACK_OFFICE_URL } from "../api.js";
 import { useAuth } from "../context/AuthContext.js";
+import { A, OWNER } from "../lib/access.js";
 import { PageHeader } from "../ui/index.js";
 
-// Everything that isn't needed every hour. Names say what the person wants to do, in shop words.
+// Everything that isn't needed every hour. Each tile shows only to someone allowed to use it
+// (`need`: any of these switches, or OWNER); a tile without `need` is for everyone.
 const SECTIONS = [
   {
     title: "Bills",
     tiles: [
-      { to: "/bills", icon: ReceiptText, name: "Old Bills", text: "See or reprint any bill" },
-      { to: "/bills?status=held", icon: Clock, name: "Kept for Later", text: "Bills put on hold at the counter" },
-      { to: "/bills?status=quotation", icon: FileText, name: "Estimates", text: "Price quotes given to customers" },
-      { to: "/bills?help=return", icon: Undo2, name: "Return Goods", text: "A customer brings items back", owner: true },
-      { to: "/bills?help=cancel", icon: Ban, name: "Cancel a Bill", text: "Undo a bill made by mistake", owner: true },
+      { to: "/bills", icon: ReceiptText, name: "Old Bills", text: "See or reprint any bill", need: [A.VIEW_BILLS] },
+      { to: "/bills?status=held", icon: Clock, name: "Kept for Later", text: "Bills put on hold at the counter", need: [A.VIEW_BILLS] },
+      { to: "/bills?status=quotation", icon: FileText, name: "Estimates", text: "Price quotes given to customers", need: [A.VIEW_BILLS] },
+      { to: "/bills?help=return", icon: Undo2, name: "Return Goods", text: "A customer brings items back", need: [A.RETURNS], tone: "owner" },
+      { to: "/bills?help=cancel", icon: Ban, name: "Cancel a Bill", text: "Undo a bill made by mistake", need: [A.RETURNS], tone: "owner" },
     ],
   },
   {
     title: "Items & stock",
     tiles: [
       { to: "/items", icon: Package, name: "All Items", text: "Prices and what's on the shelf" },
-      { to: "/items/new", icon: PackagePlus, name: "Add New Item", text: "A new product, size or colour" },
-      { to: "/counts", icon: ClipboardCheck, name: "Check Stock", text: "Count a rack and set the real stock" },
+      { to: "/items/new", icon: PackagePlus, name: "Add New Item", text: "A new product, size or colour", need: [A.ADD_ITEMS] },
+      { to: "/counts", icon: ClipboardCheck, name: "Check Stock", text: "Count a rack and set the real stock", need: [A.COUNT_STOCK, A.FIX_STOCK] },
       { to: "/items?status=low", icon: TriangleAlert, name: "Running Low", text: "Items to order again", tone: "amber" },
-      { to: "/adjustments", icon: SlidersHorizontal, name: "Fix Stock", text: "Broken, lost or used in the shop", owner: true },
+      { to: "/adjustments", icon: SlidersHorizontal, name: "Fix Stock", text: "Broken, lost or used in the shop", need: [A.FIX_STOCK], tone: "owner" },
     ],
   },
   {
     title: "Buying from distributors",
     tiles: [
-      { to: "/purchases/new", icon: Truck, name: "Goods Arrived", text: "Enter a distributor's bill" },
-      { to: "/purchases", icon: FileText, name: "Purchase Bills", text: "All bills from distributors" },
-      { to: "/suppliers", icon: Building2, name: "Distributors", text: "Names, phone numbers, GSTIN" },
+      { to: "/purchases/new", icon: Truck, name: "Goods Arrived", text: "Enter a distributor's bill", need: [A.PURCHASES] },
+      { to: "/purchases", icon: FileText, name: "Purchase Bills", text: "All bills from distributors", need: [A.PURCHASES] },
+      { to: "/suppliers", icon: Building2, name: "Distributors", text: "Names, phone numbers, GSTIN", need: [A.PURCHASES] },
     ],
   },
   {
     title: "Khata",
     tiles: [
-      { to: "/customers", icon: Users, name: "Customers", text: "Who owes what" },
-      { to: "/customers?owing=1", icon: HandCoins, name: "Take Payment", text: "A customer pays their udhaar", tone: "green" },
+      { to: "/customers", icon: Users, name: "Customers", text: "Who owes what", need: [A.VIEW_KHATA, A.PAYMENTS] },
+      { to: "/customers?owing=1", icon: HandCoins, name: "Take Payment", text: "A customer pays their udhaar", tone: "green", need: [A.PAYMENTS] },
     ],
   },
   {
     title: "Setup",
-    owner: true,
     tiles: [
-      { to: "/import", icon: FileSpreadsheet, name: "Upload from Excel", text: "Add many items at once", owner: true },
-      { to: "/import?kind=prices", icon: Tag, name: "Update Prices", text: "New price list from a distributor", owner: true },
-      { to: "/create-user", icon: UserPlus, name: "Staff Logins", text: "Give each helper their own login", owner: true },
+      { to: "/import", icon: FileSpreadsheet, name: "Upload from Excel", text: "Add many items at once", need: [A.IMPORT], tone: "owner" },
+      { to: "/import?kind=prices", icon: Tag, name: "Update Prices", text: "New price list from a distributor", need: [A.EDIT_ITEMS], tone: "owner" },
+      { to: "/staff", icon: ShieldCheck, name: "Staff & Access", text: "Logins, and what each person can do", need: OWNER, tone: "owner" },
       {
         href: `${BACK_OFFICE_URL}shop/shopsettings/`,
         icon: Store,
         name: "Shop Details",
         text: "Name, GSTIN, bank — printed on bills",
-        owner: true,
+        need: OWNER,
+        tone: "owner",
       },
     ],
   },
@@ -88,78 +89,63 @@ const ICON_TONE = {
   owner: "bg-stone-100 text-stone-700",
 };
 
-function OwnerTag() {
-  return (
-    <span className="inline-flex items-center gap-1 px-2 rounded-full bg-stone-100 text-stone-700 text-sm font-semibold">
-      <Lock size={13} strokeWidth={2.4} /> Owner
-    </span>
-  );
-}
-
-function Tile({ tile, isOwner }) {
+function Tile({ tile }) {
   const Icon = tile.icon;
-  const locked = tile.owner && !isOwner;
   const body = (
     <>
-      <span className={`shrink-0 flex items-center justify-center w-11 h-11 rounded-xl ${ICON_TONE[tile.owner ? "owner" : tile.tone || "blue"]}`}>
+      <span className={`shrink-0 flex items-center justify-center w-11 h-11 rounded-xl ${ICON_TONE[tile.tone || "blue"]}`}>
         <Icon size={24} />
       </span>
       <span className="min-w-0">
-        <span className="flex items-center gap-2 text-lg font-bold leading-snug">
-          {tile.name}
-          {tile.owner && <Lock size={15} strokeWidth={2.4} className="text-stone-600" aria-label="Owner only" />}
-        </span>
-        <span className="block text-gray-600 leading-snug">{locked ? "Only the owner can do this" : tile.text}</span>
+        <span className="block text-lg font-bold leading-snug">{tile.name}</span>
+        <span className="block text-gray-600 leading-snug">{tile.text}</span>
       </span>
     </>
   );
-  const classes = "flex gap-3.5 items-start min-h-[92px] p-4 rounded-2xl bg-white border border-gray-200";
-  if (locked) return <div className={`${classes} opacity-60`}>{body}</div>;
+  const classes = "flex gap-3.5 items-start min-h-[92px] p-4 rounded-2xl bg-white border border-gray-200 hover:border-blue-400 hover:bg-blue-50/30";
   if (tile.href) {
     return (
-      <a href={tile.href} target="_blank" rel="noreferrer" className={`${classes} hover:border-blue-400 hover:bg-blue-50/30`}>
+      <a href={tile.href} target="_blank" rel="noreferrer" className={classes}>
         {body}
       </a>
     );
   }
   return (
-    <Link to={tile.to} className={`${classes} hover:border-blue-400 hover:bg-blue-50/30`}>
+    <Link to={tile.to} className={classes}>
       {body}
     </Link>
   );
 }
 
 export default function More() {
-  const { user, logout } = useAuth();
-  const isOwner = user?.role === "owner";
+  const { user, logout, can, isOwner } = useAuth();
+  const allowed = (tile) => !tile.need || (tile.need === OWNER ? isOwner : can(...tile.need));
+  const sections = SECTIONS.map((section) => ({ ...section, tiles: section.tiles.filter(allowed) })).filter(
+    (section) => section.tiles.length > 0
+  );
 
   return (
     <>
-      <PageHeader
-        title="All options"
-        back={["/dashboard", "Home"]}
-        subtitle={
-          <span className="inline-flex flex-wrap items-center gap-1.5">
-            Everything that isn't needed every hour. Things only the owner can do show <OwnerTag />
-          </span>
-        }
-      />
+      <PageHeader title="All options" back={["/dashboard", "Home"]} subtitle="Everything that isn't needed every hour." />
       <div className="space-y-7">
-        {SECTIONS.map((section) => (
+        {sections.map((section) => (
           <section key={section.title} aria-labelledby={`more-${section.title}`}>
-            <h2 id={`more-${section.title}`} className="flex items-center gap-2 text-xl font-bold mb-3">
-              {section.title} {section.owner && <OwnerTag />}
+            <h2 id={`more-${section.title}`} className="text-xl font-bold mb-3">
+              {section.title}
             </h2>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
               {section.tiles.map((tile) => (
-                <Tile key={tile.name} tile={tile} isOwner={isOwner} />
+                <Tile key={tile.name} tile={tile} />
               ))}
             </div>
           </section>
         ))}
 
         <section className="flex flex-wrap items-center gap-x-6 gap-y-3 pt-5 border-t border-gray-200">
-          <p className="text-gray-600 mr-auto">Signed in as {isOwner ? "the owner" : "staff"}.</p>
+          <p className="text-gray-600 mr-auto">
+            Signed in as {user?.name || (isOwner ? "the owner" : "staff")}.
+            {!isOwner && " Need something that isn't here? Ask the owner."}
+          </p>
           {isOwner && (
             <a href={BACK_OFFICE_URL} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-gray-700 hover:underline">
               <ExternalLink size={16} /> Back office (advanced)

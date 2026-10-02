@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ChevronRight, Plus } from "lucide-react";
 import CustomerForm, { CUSTOMER_KINDS } from "../../components/CustomerForm.js";
-import { useAuth } from "../../context/AuthContext.js";
 import { useFetch } from "../../hooks/useFetch.js";
 import { bigMoney, money, plural } from "../../lib/format.js";
 import { Alert, Button, Card, Empty, Input, PageHeader, Pagination, Spinner } from "../../ui/index.js";
@@ -57,8 +56,6 @@ function CustomerRow({ customer }) {
 
 export default function CustomerList() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const isOwner = user?.role === "owner";
   const [params, setParams] = useSearchParams();
   const owing = params.get("owing") === "1";
   const page = Number(params.get("page") || 1);
@@ -85,9 +82,10 @@ export default function CustomerList() {
         </Button>
       </PageHeader>
 
-      {today && (
+      {/* The money cards need "See khata"; someone who only takes payments sees just the list. */}
+      {today?.khata_collected !== undefined && (
         <div className="grid sm:grid-cols-3 gap-4 mb-5">
-          {isOwner && today.udhaar_outstanding !== undefined && (
+          {today.udhaar_outstanding !== undefined && (
             <Summary
               label="You will get"
               value={bigMoney(today.udhaar_outstanding)}

@@ -58,10 +58,12 @@ Fill in `DJANGO_SECRET_KEY` (the command to generate one is in the file), then:
 
 | Role | Can do |
 |---|---|
-| Owner | Everything, including Django admin, users, shop settings |
-| Staff | Daily work in the React app only; no Django admin |
+| Owner | Everything, including Django admin, Staff & Access, shop settings |
+| Staff | Only the jobs the owner switched on for them (`accounts/access.py`, 15 switches); no Django admin |
 
-A user's role decides their access; Django's `is_staff` / `is_superuser` flags are set from it automatically.
+Django's `is_staff` / `is_superuser` flags are set from the role automatically. Every API view lists the
+switch each action needs in an `access` map (`accounts.permissions.HasAccess`); an action not listed is
+owner-only, so a new endpoint is never open to staff by accident. Finding items is open to everyone.
 
 ## How billing works
 
@@ -94,7 +96,10 @@ strings (`customer`, `category`, `brand`, `supplier`) must be numbers (else 400)
 | GET | `/api/health` | anyone | Server is up |
 | POST | `/api/auth/login` | anyone (10/min limit) | `{username, password}` → `{success, token, refresh, role, name}` |
 | GET | `/api/auth/me` | logged in | Current user |
-| POST | `/api/auth/create_user` | owner | `{username, password, role}` |
+| GET/POST | `/api/auth/staff` | owner | Everyone who can log in; POST `{username, name, password, role?, access?}` (new staff start with the Counter set) |
+| PATCH | `/api/auth/staff/{id}` | owner | `{access?, name?, is_active?}` — switches apply at once; can't switch off your own login |
+| POST | `/api/auth/staff/{id}/password` | owner | `{password}` — set a new password |
+| GET | `/api/auth/access` | owner | The 15 switches (group, label, help) and the starting sets |
 | POST | `/api/auth/change_password` | logged in | `{old_password, new_password}` |
 | GET | `/api/shop/settings` | logged in | Shop name, GSTIN, address, bank details, bill terms |
 | GET | `/api/catalog/items` | logged in | `search`, `status` (low, not_counted, needs_recount, inactive), `category`, `brand`, `rack`, `ordering`, `page` |

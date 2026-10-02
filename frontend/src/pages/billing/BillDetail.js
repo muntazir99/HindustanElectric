@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { Ban, FileOutput, Printer, Undo2 } from "lucide-react";
 import api from "../../api.js";
 import { useAuth } from "../../context/AuthContext.js";
+import { A } from "../../lib/access.js";
 import { useFetch } from "../../hooks/useFetch.js";
 import { errorMessage } from "../../lib/errors.js";
 import { date, dateTime, money, plain } from "../../lib/format.js";
@@ -153,7 +154,7 @@ function ReturnModal({ bill, onClose, onDone }) {
 
 export default function BillDetail() {
   const { id } = useParams();
-  const { user } = useAuth();
+  const { can } = useAuth();
   const navigate = useNavigate();
   const { data: bill, error, loading, setData, reload } = useFetch(`/sales/invoices/${id}`);
   const [cancelling, setCancelling] = useState(false);
@@ -164,7 +165,6 @@ export default function BillDetail() {
   if (!bill) return <Alert>{error || "Bill not found."}</Alert>;
   const quotation = bill.kind === "quotation";
   const [color, label] = quotation ? ["blue", "Estimate"] : BILL_STATUS[bill.status];
-  const isOwner = user?.role === "owner";
 
   async function convert() {
     setActionError("");
@@ -210,17 +210,17 @@ export default function BillDetail() {
           <Button variant="primary" to={`/bills/${bill.id}/print`}>
             <Printer size={18} /> Print
           </Button>
-          {quotation && (
+          {quotation && can(A.BILLING) && (
             <Button variant="success" onClick={convert}>
               <FileOutput size={18} /> Make it a bill
             </Button>
           )}
-          {isOwner && bill.status === "final" && (
+          {can(A.RETURNS) && bill.status === "final" && (
             <Button onClick={() => setReturning(true)}>
               <Undo2 size={18} /> Return goods
             </Button>
           )}
-          {isOwner && bill.status === "final" && bill.credit_notes.length === 0 && (
+          {can(A.RETURNS) && bill.status === "final" && bill.credit_notes.length === 0 && (
             <Button variant="danger" onClick={() => setCancelling(true)}>
               <Ban size={18} /> Cancel bill
             </Button>

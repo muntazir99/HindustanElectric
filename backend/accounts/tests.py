@@ -58,7 +58,8 @@ class TestEndpointsNeedLogin:
         "method, url",
         [
             ("get", "/api/auth/me"),
-            ("post", "/api/auth/create_user"),
+            ("get", "/api/auth/staff"),
+            ("post", "/api/auth/staff"),
             ("post", "/api/auth/change_password"),
             ("get", "/api/shop/settings"),
         ],
@@ -72,29 +73,24 @@ class TestEndpointsNeedLogin:
         assert response.data["data"]["role"] == "staff"
 
 
-class TestCreateUser:
-    def test_staff_cannot_create_users(self, staff_api):
-        response = staff_api.post(
-            "/api/auth/create_user", {"username": "new", "password": "Another-pass-99"}, format="json"
-        )
+class TestAddStaff:
+    def test_staff_cannot_add_users(self, staff_api):
+        response = staff_api.post("/api/auth/staff", {"username": "new", "password": "Another-pass-99"}, format="json")
         assert response.status_code == 403
         assert not User.objects.filter(username="new").exists()
 
-    def test_owner_creates_staff_by_default(self, owner_api):
-        response = owner_api.post(
-            "/api/auth/create_user", {"username": "new", "password": "Another-pass-99"}, format="json"
-        )
+    def test_owner_adds_staff_by_default(self, owner_api):
+        response = owner_api.post("/api/auth/staff", {"username": "new", "password": "Another-pass-99"}, format="json")
         assert response.status_code == 201
         assert User.objects.get(username="new").role == User.Role.STAFF
 
     def test_duplicate_username_is_rejected_ignoring_case(self, owner_api, staff):
-        response = owner_api.post(
-            "/api/auth/create_user", {"username": "STAFF", "password": "Another-pass-99"}, format="json"
-        )
-        assert response.status_code == 409
+        response = owner_api.post("/api/auth/staff", {"username": "STAFF", "password": "Another-pass-99"}, format="json")
+        assert response.status_code == 400
+        assert "already exists" in str(response.data)
 
     def test_weak_password_is_rejected(self, owner_api):
-        response = owner_api.post("/api/auth/create_user", {"username": "new", "password": "12345678"}, format="json")
+        response = owner_api.post("/api/auth/staff", {"username": "new", "password": "12345678"}, format="json")
         assert response.status_code == 400
         assert not User.objects.filter(username="new").exists()
 

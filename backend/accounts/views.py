@@ -87,43 +87,6 @@ class MeView(APIView):
         )
 
 
-class CreateUserSerializer(serializers.Serializer):
-    username = serializers.CharField(min_length=3, max_length=150)
-    password = serializers.CharField()
-    role = serializers.ChoiceField(choices=User.Role.choices, default=User.Role.STAFF)
-
-
-class CreateUserView(APIView):
-    permission_classes = [IsOwner]
-
-    def post(self, request):
-        serializer = CreateUserSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(
-                {"success": False, "message": "Validation error", "errors": serializer.errors},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        data = serializer.validated_data
-        if User.objects.filter(username__iexact=data["username"]).exists():
-            return Response(
-                {"success": False, "message": "A user with this username already exists."},
-                status=status.HTTP_409_CONFLICT,
-            )
-        errors = password_errors(data["password"], User(username=data["username"]))
-        if errors:
-            return Response(
-                {"success": False, "message": " ".join(errors)},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        User.objects.create_user(
-            username=data["username"], password=data["password"], role=data["role"], access=access.NEW_STAFF
-        )
-        return Response(
-            {"success": True, "message": f"User '{data['username']}' created."},
-            status=status.HTTP_201_CREATED,
-        )
-
-
 class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField()
     new_password = serializers.CharField()

@@ -23,7 +23,7 @@ function Login() {
     try {
       const response = await api.post("/auth/login", { username, password });
       if (response.data.success) {
-        login(response.data.token);
+        login(response.data.token, response.data);
         navigate("/dashboard");
       } else {
         setError("Invalid credentials, please try again.");

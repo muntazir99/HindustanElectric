@@ -4,6 +4,7 @@ import { HandCoins, Pencil, Printer, Receipt } from "lucide-react";
 import api from "../../api.js";
 import CustomerForm, { CUSTOMER_KINDS } from "../../components/CustomerForm.js";
 import { useAuth } from "../../context/AuthContext.js";
+import { A } from "../../lib/access.js";
 import { useFetch } from "../../hooks/useFetch.js";
 import { errorMessage } from "../../lib/errors.js";
 import { bigMoney, date, money } from "../../lib/format.js";
@@ -201,18 +202,17 @@ function AmountModal({ title, help, needsNote, onClose, onSubmit }) {
 
 export default function CustomerDetail() {
   const { id } = useParams();
-  const { user } = useAuth();
-  const isOwner = user?.role === "owner";
+  const { can } = useAuth();
   const [range, setRange] = useState({ from: "", to: "" });
   const query = new URLSearchParams();
   if (range.from) query.set("date_from", range.from);
   if (range.to) query.set("date_to", range.to);
   const { data, error, loading, reload } = useFetch(`/sales/customers/${id}/ledger?${query}`);
-  const { data: bills } = useFetch(`/sales/invoices?status=all&customer=${id}&page_size=20`);
+  const { data: bills } = useFetch(can(A.VIEW_BILLS) ? `/sales/invoices?status=all&customer=${id}&page_size=20` : null);
   const { data: shop } = useFetch("/shop/settings");
   const [params, setParams] = useSearchParams();
   // "Take payment" on Home opens the customer with the payment box already open (once, not on every refresh).
-  const [modal, setModal] = useState(params.get("pay") === "1" ? "payment" : null);
+  const [modal, setModal] = useState(params.get("pay") === "1" && can(A.PAYMENTS) ? "payment" : null);
   useEffect(() => {
     if (params.has("pay")) setParams({}, { replace: true });
   }, [params, setParams]);
@@ -298,21 +298,25 @@ export default function CustomerDetail() {
           </div>
         </div>
         <div className="flex flex-wrap gap-3 mt-5">
-          <Button variant="success" className="h-14 px-6 text-lg grow sm:grow-0" onClick={() => setModal("payment")}>
-            <HandCoins size={22} /> Take Payment
-          </Button>
+          {can(A.PAYMENTS) && (
+            <Button variant="success" className="h-14 px-6 text-lg grow sm:grow-0" onClick={() => setModal("payment")}>
+              <HandCoins size={22} /> Take Payment
+            </Button>
+          )}
           <Button className="h-14" onClick={() => window.print()}>
             <Printer size={20} /> Print khata
           </Button>
-          <Button className="h-14" onClick={() => setModal("edit")}>
-            <Pencil size={18} /> Edit details
-          </Button>
+          {can(A.VIEW_KHATA, A.KHATA_CONTROL) && (
+            <Button className="h-14" onClick={() => setModal("edit")}>
+              <Pencil size={18} /> Edit details
+            </Button>
+          )}
         </div>
       </Card>
 
-      {isOwner && (
+      {can(A.KHATA_CONTROL) && (
         <div className="no-print flex flex-wrap items-center gap-3 mb-5 px-1">
-          <span className="text-gray-600">Owner:</span>
+          <span className="text-gray-600">Corrections:</span>
           {!hasOpening && <Button onClick={() => setModal("opening")}>Add old udhaar from the register</Button>}
           <Button onClick={() => setModal("adjust")}>Correct the khata</Button>
           <span className="text-sm text-gray-500">Every change is recorded with a reason.</span>
@@ -390,7 +394,7 @@ export default function CustomerDetail() {
                       {line.receipt_number}
                     </Link>
                   )}
-                  {line.kind === "payment" && line.receipt_number && !line.receipt_cancelled && isOwner && (
+                  {line.kind === "payment" && line.receipt_number && !line.receipt_cancelled && can(A.RETURNS) && (
                     <button type="button" onClick={() => setModal({ cancelReceipt: line })} className="no-print ml-3 text-sm text-red-700 hover:underline">
                       cancel receipt
                     </button>

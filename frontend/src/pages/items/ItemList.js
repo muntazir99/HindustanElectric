@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { FileSpreadsheet, Plus, Search } from "lucide-react";
 import { useAuth } from "../../context/AuthContext.js";
+import { A } from "../../lib/access.js";
 import { useFetch } from "../../hooks/useFetch.js";
 import { money } from "../../lib/format.js";
 import { Alert, Badge, Button, Card, Empty, PageHeader, Pagination, Select, Spinner, Table, inputClass, td, th } from "../../ui/index.js";
@@ -26,8 +27,8 @@ export function StatusBadges({ item }) {
 }
 
 export default function ItemList() {
-  const { user } = useAuth();
-  const isOwner = user?.role === "owner";
+  const { can } = useAuth();
+  const canCost = can(A.SEE_COSTS);
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const [search, setSearch] = useState(params.get("search") || "");
@@ -60,14 +61,16 @@ export default function ItemList() {
         back={["/more", "All options"]}
         subtitle={data ? `${data.count} item${data.count === 1 ? "" : "s"}` : ""}
       >
-        {isOwner && (
+        {can(A.IMPORT) && (
           <Button to="/import">
             <FileSpreadsheet size={18} /> Upload from Excel
           </Button>
         )}
-        <Button variant="primary" to="/items/new">
-          <Plus size={18} /> Add New Item
-        </Button>
+        {can(A.ADD_ITEMS) && (
+          <Button variant="primary" to="/items/new">
+            <Plus size={18} /> Add New Item
+          </Button>
+        )}
       </PageHeader>
 
       <Card className="p-4 mb-4">
@@ -131,7 +134,7 @@ export default function ItemList() {
                   <th className={`${th} text-right`}>Stock</th>
                   <th className={`${th} text-right`}>Price</th>
                   <th className={`${th} text-right`}>MRP</th>
-                  {isOwner && <th className={`${th} text-right`}>Avg cost</th>}
+                  {canCost && <th className={`${th} text-right`}>Avg cost</th>}
                 </tr>
               </thead>
               <tbody>
@@ -162,7 +165,7 @@ export default function ItemList() {
                       <span className="text-gray-500 text-sm">/{item.base_unit}</span>
                     </td>
                     <td className={`${td} text-right whitespace-nowrap text-gray-600`}>{money(item.mrp)}</td>
-                    {isOwner && <td className={`${td} text-right whitespace-nowrap text-gray-600`}>{money(item.cost_price)}</td>}
+                    {canCost && <td className={`${td} text-right whitespace-nowrap text-gray-600`}>{money(item.cost_price)}</td>}
                   </tr>
                 ))}
               </tbody>

@@ -5,6 +5,19 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-02 — Staff access switches, step 2: screens — done
+
+**Added**
+- **Staff & Access** page (More › Setup, owner only; replaces Add user): each person with their switches grouped as Daily jobs / Seeing / Owner-type, each with what it allows. Changes save as you flip them and apply at once. Quick sets: Counter, Store, All off. Add staff (name, username, password, switches — Counter set to start), set a new password, switch a login off or on.
+- Staff see **only** what they're allowed: Home tiles (the first four of New Bill, Goods Arrived, Take Payment, Add New Item, Check Stock), the New Bill button, All options tiles (empty sections disappear), and the buttons inside screens (Return goods, Cancel bill, Fix stock, prices, credit limits, cost columns, count differences…). The greyed-out "Only the owner can do this" tiles are gone.
+- Opening a screen you're not allowed to use shows "You don't have access to this — ask the owner".
+- The app asks the server for the person's switches when it starts and when its window comes back to the front, so changes show without logging in again.
+- The top bar shows the person's name.
+- 2 app tests (18).
+
+**Removed**
+- Add user page and `/api/auth/create_user` (replaced by Staff & Access and `/api/auth/staff`).
+
 ### 2026-10-02 — Staff access switches, step 1: server
 
 Plan: [PLAN.md §9](docs/PLAN.md).

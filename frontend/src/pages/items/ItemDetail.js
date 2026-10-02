@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { Pencil, Plus, SlidersHorizontal, Trash2 } from "lucide-react";
 import api from "../../api.js";
 import { useAuth } from "../../context/AuthContext.js";
+import { A } from "../../lib/access.js";
 import { useFetch } from "../../hooks/useFetch.js";
 import { errorMessage } from "../../lib/errors.js";
 import { BASE_UNITS, GST_RATES, dateTime, money, plain, signed } from "../../lib/format.js";
@@ -19,7 +20,7 @@ function Info({ label, children }) {
   );
 }
 
-function EditItemModal({ item, isOwner, hasHistory, onClose, onSaved }) {
+function EditItemModal({ item, canPrice, hasHistory, onClose, onSaved }) {
   const [form, setForm] = useState({
     variant: item.variant,
     rack: item.rack,
@@ -36,7 +37,7 @@ function EditItemModal({ item, isOwner, hasHistory, onClose, onSaved }) {
   async function save() {
     const body = { variant: form.variant, rack: form.rack, min_stock: form.min_stock || "0", aliases: form.aliases };
     if (!hasHistory) body.base_unit = form.base_unit;
-    if (isOwner) {
+    if (canPrice) {
       body.selling_price = form.selling_price === "" ? null : form.selling_price;
       body.mrp = form.mrp === "" ? null : form.mrp;
       body.is_active = form.is_active;
@@ -75,7 +76,7 @@ function EditItemModal({ item, isOwner, hasHistory, onClose, onSaved }) {
             </Select>
           </Field>
         )}
-        {isOwner && (
+        {canPrice && (
           <>
             <Field label={`Selling price / ${item.base_unit}`} hint="GST included">
               <NumberInput value={form.selling_price} onChange={set("selling_price")} />
@@ -160,7 +161,7 @@ function EditProductModal({ item, onClose, onSaved }) {
   );
 }
 
-function Units({ item, isOwner, onChanged }) {
+function Units({ item, canChange, canPrice, onChanged }) {
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState({ name: "", factor: "", barcode: "", mrp: "", selling_price: "" });
   const [error, setError] = useState("");
@@ -178,7 +179,7 @@ function Units({ item, isOwner, onChanged }) {
 
   async function addPack() {
     const body = { name: form.name, factor: form.factor, barcode: form.barcode };
-    if (isOwner) Object.assign(body, { mrp: form.mrp, selling_price: form.selling_price });
+    if (canPrice) Object.assign(body, { mrp: form.mrp, selling_price: form.selling_price });
     if (await run(() => api.post(`/catalog/items/${item.id}/units`, body))) {
       setAdding(false);
       setForm({ name: "", factor: "", barcode: "", mrp: "", selling_price: "" });
@@ -205,9 +206,11 @@ function Units({ item, isOwner, onChanged }) {
     <Card className="mb-6">
       <div className="flex items-center justify-between px-5 py-4 border-b">
         <h2 className="font-bold text-lg">Units & barcodes</h2>
-        <Button onClick={() => setAdding(!adding)}>
-          <Plus size={18} /> Add pack
-        </Button>
+        {canChange && (
+          <Button onClick={() => setAdding(!adding)}>
+            <Plus size={18} /> Add pack
+          </Button>
+        )}
       </div>
       <div className="px-5">
         <Alert>{error}</Alert>
@@ -229,9 +232,13 @@ function Units({ item, isOwner, onChanged }) {
               <td className={`${td} font-semibold`}>{unit.name}{unit.is_base && <span className="text-gray-500 font-normal"> (base)</span>}</td>
               <td className={td}>{unit.is_base ? "1" : `${plain(unit.factor)} ${item.base_unit}`}</td>
               <td className={`${td} font-mono text-sm`}>
-                <button type="button" onClick={() => editBarcode(unit)} className="hover:underline text-blue-800">
-                  {unit.barcode || "add barcode"}
-                </button>
+                {canChange ? (
+                  <button type="button" onClick={() => editBarcode(unit)} className="hover:underline text-blue-800">
+                    {unit.barcode || "add barcode"}
+                  </button>
+                ) : (
+                  unit.barcode || "—"
+                )}
               </td>
               <td className={`${td} text-right`}>{money(unit.is_base ? item.mrp : unit.mrp)}</td>
               <td className={`${td} text-right`}>
@@ -246,7 +253,7 @@ function Units({ item, isOwner, onChanged }) {
                       )}
               </td>
               <td className={`${td} text-right`}>
-                {!unit.is_base && (
+                {!unit.is_base && canPrice && (
                   <button type="button" aria-label={`Remove ${unit.name}`} onClick={() => remove(unit)} className="text-gray-400 hover:text-red-600">
                     <Trash2 size={18} />
                   </button>
@@ -267,7 +274,7 @@ function Units({ item, isOwner, onChanged }) {
           <Field label="Barcode">
             <Input value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} />
           </Field>
-          {isOwner && (
+          {canPrice && (
             <>
               <Field label="Pack MRP">
                 <NumberInput value={form.mrp} onChange={(e) => setForm({ ...form, mrp: e.target.value })} />
@@ -286,7 +293,7 @@ function Units({ item, isOwner, onChanged }) {
   );
 }
 
-function History({ itemId, isOwner, version }) {
+function History({ itemId, canCost, version }) {
   const [rows, setRows] = useState([]);
   const [next, setNext] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -324,7 +331,7 @@ function History({ itemId, isOwner, version }) {
               <th className={th}>What</th>
               <th className={`${th} text-right`}>Change</th>
               <th className={`${th} text-right`}>Balance</th>
-              {isOwner && <th className={`${th} text-right`}>Cost / unit</th>}
+              {canCost && <th className={`${th} text-right`}>Cost / unit</th>}
               <th className={th}>Note</th>
               <th className={th}>By</th>
             </tr>
@@ -338,7 +345,7 @@ function History({ itemId, isOwner, version }) {
                   {signed(row.quantity)}
                 </td>
                 <td className={`${td} text-right`}>{plain(row.balance_after)}</td>
-                {isOwner && <td className={`${td} text-right text-gray-600`}>{money(row.unit_cost)}</td>}
+                {canCost && <td className={`${td} text-right text-gray-600`}>{money(row.unit_cost)}</td>}
                 <td className={`${td} text-sm text-gray-600`}>{row.note}</td>
                 <td className={`${td} text-sm`}>{row.created_by}</td>
               </tr>
@@ -359,8 +366,10 @@ function History({ itemId, isOwner, version }) {
 
 export default function ItemDetail() {
   const { id } = useParams();
-  const { user } = useAuth();
-  const isOwner = user?.role === "owner";
+  const { can } = useAuth();
+  const canChange = can(A.ADD_ITEMS, A.EDIT_ITEMS);
+  const canPrice = can(A.EDIT_ITEMS);
+  const canCost = can(A.SEE_COSTS);
   const { data: item, error, loading, setData, reload } = useFetch(`/catalog/items/${id}`);
   const [modal, setModal] = useState(null);
   const [version, setVersion] = useState(0);
@@ -389,18 +398,20 @@ export default function ItemDetail() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button onClick={() => setModal("item")}>
-            <Pencil size={18} /> Edit
-          </Button>
-          {isOwner && (
-            <>
-              <Button onClick={() => setModal("product")}>
-                <Pencil size={18} /> Product, HSN & GST
-              </Button>
-              <Button variant="primary" onClick={() => setModal("adjust")}>
-                <SlidersHorizontal size={18} /> Fix stock
-              </Button>
-            </>
+          {canChange && (
+            <Button onClick={() => setModal("item")}>
+              <Pencil size={18} /> Edit
+            </Button>
+          )}
+          {canPrice && (
+            <Button onClick={() => setModal("product")}>
+              <Pencil size={18} /> Product, HSN & GST
+            </Button>
+          )}
+          {can(A.FIX_STOCK) && (
+            <Button variant="primary" onClick={() => setModal("adjust")}>
+              <SlidersHorizontal size={18} /> Fix stock
+            </Button>
           )}
         </div>
       </div>
@@ -418,7 +429,7 @@ export default function ItemDetail() {
           <dl className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Info label="Price">{item.selling_price && `${money(item.selling_price)} / ${item.base_unit}`}</Info>
             <Info label="MRP">{item.mrp && `${money(item.mrp)} / ${item.base_unit}`}</Info>
-            {isOwner && <Info label="Average cost">{item.cost_price && `${money(item.cost_price)} / ${item.base_unit}`}</Info>}
+            {canCost && <Info label="Average cost">{item.cost_price && `${money(item.cost_price)} / ${item.base_unit}`}</Info>}
             <Info label="Rack">{item.rack}</Info>
             <Info label="Category">{item.category}</Info>
             <Info label="HSN">{item.hsn_code}</Info>
@@ -428,13 +439,13 @@ export default function ItemDetail() {
         </Card>
       </div>
 
-      <Units item={item} isOwner={isOwner} onChanged={setData} />
-      <History itemId={item.id} isOwner={isOwner} version={version} />
+      <Units item={item} canChange={canChange} canPrice={canPrice} onChanged={setData} />
+      <History itemId={item.id} canCost={canCost} version={version} />
 
       {modal === "item" && (
         <EditItemModal
           item={item}
-          isOwner={isOwner}
+          canPrice={canPrice}
           hasHistory={hasHistory}
           onClose={() => setModal(null)}
           onSaved={(updated) => {

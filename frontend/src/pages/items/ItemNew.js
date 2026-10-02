@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ArrowDownToLine, Download, FileSpreadsheet, Plus, Trash2, Wand2 } from "lucide-react";
 import api from "../../api.js";
 import { useAuth } from "../../context/AuthContext.js";
+import { A } from "../../lib/access.js";
 import { useFetch } from "../../hooks/useFetch.js";
 import { useGoBack } from "../../hooks/useTrail.js";
 import { SAMPLE_SHEET_NAME, SAMPLE_SHEET_URL, downloadFile } from "../../lib/download.js";
@@ -60,7 +61,7 @@ export function variantsPayload(rows, hasPack) {
 
 /** Pointer to the Excel route for adding many items at once. */
 function ExcelHint() {
-  const { user } = useAuth();
+  const { can } = useAuth();
   const [error, setError] = useState("");
 
   async function download() {
@@ -80,7 +81,7 @@ function ExcelHint() {
           <p className="font-semibold">Adding many items? Fill them in Excel instead.</p>
           <p className="text-sm text-gray-700">
             The sample sheet shows the format: one row per size/colour, with packs, prices, rack and what's on the shelf.{" "}
-            {user?.role === "owner" ? (
+            {can(A.IMPORT) ? (
               <>
                 Upload it under{" "}
                 <Link to="/import" className="underline font-semibold">
@@ -89,7 +90,7 @@ function ExcelHint() {
                 .
               </>
             ) : (
-              "Give the filled sheet to the owner to import."
+              "Give the filled sheet to the owner to upload."
             )}
           </p>
           {error && <p className="text-sm text-red-700 mt-1">{error}</p>}

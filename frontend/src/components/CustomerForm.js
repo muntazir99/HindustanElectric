@@ -1,6 +1,7 @@
 import { useState } from "react";
 import api from "../api.js";
 import { useAuth } from "../context/AuthContext.js";
+import { A } from "../lib/access.js";
 import { errorMessage } from "../lib/errors.js";
 import { plain } from "../lib/format.js";
 import { Alert, Button, Field, Input, Modal, NumberInput, Select } from "../ui/index.js";
@@ -12,10 +13,10 @@ export const CUSTOMER_KINDS = [
   ["business", "Business"],
 ];
 
-/** Add a customer, or edit one (pass `customer`). Credit limit and discount are owner-only. */
+/** Add a customer, or edit one (pass `customer`). Credit limit, discount and switching off need "Udhaar control". */
 export default function CustomerForm({ customer, initialName = "", onClose, onSaved }) {
-  const { user } = useAuth();
-  const isOwner = user?.role === "owner";
+  const { can } = useAuth();
+  const control = can(A.KHATA_CONTROL);
   const digits = /^\d+$/.test(initialName.replace(/\s/g, ""));
   const [form, setForm] = useState({
     name: customer?.name ?? (digits ? "" : initialName),
@@ -33,7 +34,7 @@ export default function CustomerForm({ customer, initialName = "", onClose, onSa
 
   async function save() {
     const body = { name: form.name, phone: form.phone, gstin: form.gstin, address: form.address, kind: form.kind, notes: form.notes };
-    if (isOwner) {
+    if (control) {
       body.credit_limit = form.credit_limit === "" ? null : form.credit_limit;
       body.default_discount_percent = form.default_discount_percent || "0";
       if (customer) body.is_active = form.is_active;
@@ -74,7 +75,7 @@ export default function CustomerForm({ customer, initialName = "", onClose, onSa
         <Field label="Notes" className="col-span-2">
           <Input value={form.notes} onChange={set("notes")} />
         </Field>
-        {isOwner ? (
+        {control ? (
           <>
             <Field label="Credit limit (₹)" hint="Blank = no limit, 0 = no credit">
               <NumberInput value={form.credit_limit} onChange={set("credit_limit")} />
