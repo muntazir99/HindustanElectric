@@ -45,6 +45,7 @@ function TopBar() {
               label="Find an item"
               placeholder="Find an item — name or barcode"
               onSelect={(item) => navigate(`/items/${item.id}`)}
+              cameraKeepsOpen={false}
             />
           </div>
         )}

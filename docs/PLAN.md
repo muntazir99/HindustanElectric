@@ -487,7 +487,72 @@ On the Paid plan, a budget alert is set at $20/month.
 - A backup has been restored successfully and a copy is on your Mac.
 - A reminder is set to upgrade the AWS project to Paid before go-live (and in any case before 2 April 2027).
 
-## 12. Open items
+## 12. WhatsApp messages (proposed 2026-10-02)
+
+### 12.1 How it works — free
+
+- A **WhatsApp** button opens WhatsApp with the message already typed and addressed to the customer. On the
+  counter PC it opens WhatsApp Desktop or WhatsApp Web; on a phone, the WhatsApp app. Staff read it and press
+  **Send** themselves.
+- It is sent from the shop's own WhatsApp; the free WhatsApp Business app is recommended. There's no API, no
+  per-message charge and no new account.
+- A 10-digit Indian number gets +91 added. With no number on file, WhatsApp opens and asks who to send it to.
+- Not possible this way: sending automatically, or attaching a PDF. That needs Meta's paid WhatsApp Business API
+  (a charge per message, business verification, a separate number), so it isn't planned.
+
+### 12.2 The four messages
+
+| Message | Where the button is | What it says |
+|---|---|---|
+| **Bill** | Bill page, and the screen after Save & Print | Shop, bill number, date, items (first 10, then "+N more"), total, how paid, udhaar left if any, thank you |
+| **Payment receipt** | After Take Payment, and on the khata's payment lines | Amount received, receipt number, balance still due |
+| **Udhaar reminder** | A customer's khata page, and a **Send reminders** list of everyone who owes | Amount due as of today, the shop's UPI ID and phone, politely |
+| **Estimate** | Estimate page | Items, total, valid until |
+
+Example reminder (Hinglish):
+
+> Namaste Ramesh ji 🙏 Hindustan Electric mein aapka *₹2,757* baaki hai (02 Oct 2026 tak). Suvidha anusaar jama
+> kar dein. UPI: hindustanelectric@upi — Dhanyavaad, Hindustan Electric, 98xxxxxxxx
+
+### 12.3 Later, once the shop's own domain is bought: a link to the full bill
+
+The message can carry a private link that opens the printed bill without a login. The link is long and random,
+and it expires. This needs a small server change with its own security tests, and the domain first, because a
+numeric trial address in a message looks like spam.
+
+### 12.4 Who sees the buttons
+
+Same switches as today, no new ones:
+- **Bill and estimate:** whoever can open it.
+- **Receipt:** Take payments.
+- **Reminders:** See khata or Take payments.
+
+### 12.5 Steps (one commit each)
+
+1. Shared message builder and button, with tests for every message, the +91 handling and the no-number case.
+2. Bill, estimate and receipt buttons.
+3. Udhaar reminder on the khata page, plus the **Send reminders** list under Khata › Owe money.
+4. Changelog; update the trial server.
+
+### 12.6 Done when
+
+- Each message opens WhatsApp with the right number and text, on the counter PC and on a phone.
+- The tests cover each message's text and the phone-number rules.
+
+## 13. Scanning with the phone camera (asked for and built 2026-10-02)
+
+- A camera button in every item search box (New Bill, Goods Arrived, Check Stock, Fix Stock, top bar). It appears
+  only on devices with a camera, so the counter PC is unchanged and the USB scanner works as before.
+- It reads product barcodes (EAN/UPC), distributors' box codes (Code 128 / 39 / ITF) and QR codes, using the
+  back camera, with a light button for dark racks.
+- **New Bill, Goods Arrived, Check Stock:** the camera stays on for the next item. The same code counts again
+  only after the camera has been off it for 1.5 s, so holding it still never adds twice.
+  **Fix Stock and the top bar:** it closes after one item.
+- Chrome on Android uses its built-in reader. iPhones and other browsers use the ZXing reader (MIT licence). Its
+  1.1 MB file comes from our own site, only when the camera is first opened.
+- Needs https, which the live server has. Free; no new switches; whoever can use the screen can scan on it.
+
+## 14. Open items
 
 - [x] Owner approval of Phase 1 design (§6)
 - [x] Remove the old Flask files from the repo root (preserved under tag `flask-final`)

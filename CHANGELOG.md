@@ -5,6 +5,17 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-02 — Scan with the phone camera
+
+**Added**
+- A camera button in the item search box: New Bill, Goods Arrived, Check Stock, Fix Stock and the top bar. It appears only on devices with a camera.
+- It reads product barcodes, box codes and QR codes, with a light button.
+- On New Bill, Goods Arrived and Check Stock it stays on for the next item, and the same code counts again only after the camera has been off it for 1.5 s.
+- Clear messages when the camera isn't allowed, is missing, or is busy.
+- Chrome on Android uses its built-in reader; other phones use the ZXing reader (`barcode-detector` + `zxing-wasm`). Its file is served from our own site and loaded only when the camera first opens; the main app grew by 6 KB.
+- Tests: the scan gate, camera detection, and the search box's camera flow (found, not found, stays open or closes). The USB scanner path is tested too. 33 app tests.
+- Checked in the browser: both readers decode an EAN-13 barcode correctly, and the reader file loads from our own site.
+
 ### 2026-10-02 — AWS trial server, steps 2–4: server live, checked, backups proven
 
 **Added**

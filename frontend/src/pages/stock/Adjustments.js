@@ -21,7 +21,7 @@ export default function Adjustments() {
       />
       <Section title="Fix an item's stock" className="mb-5" bodyClassName="p-4">
         <p className="font-semibold mb-2">Which item?</p>
-        <ItemSearch onSelect={(selected) => setItem(selected)} />
+        <ItemSearch onSelect={(selected) => setItem(selected)} cameraKeepsOpen={false} />
       </Section>
       <Alert kind="success" onClose={() => setMessage("")}>
         {message}
