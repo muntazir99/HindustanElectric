@@ -67,3 +67,48 @@ def test_only_owner_removes_a_pack_size(staff_api, owner_api, wire):
     coil = wire.units.get(name="coil")
     assert staff_api.delete(f"/api/catalog/units/{coil.pk}").status_code == 403
     assert owner_api.delete(f"/api/catalog/units/{coil.pk}").status_code == 204
+
+
+# --- every API address refuses someone who isn't logged in --------------------------------
+
+# The only addresses that answer without a login: logging in, and the health check.
+OPEN_WITHOUT_LOGIN = {"/api/auth/login", "/api/health"}
+
+
+def api_addresses():
+    """Every /api address the server knows, with 1 for each id in it."""
+    import re
+
+    from django.urls import URLPattern, URLResolver, get_resolver
+
+    def walk(patterns, prefix=""):
+        for entry in patterns:
+            if isinstance(entry, URLResolver):
+                yield from walk(entry.url_patterns, prefix + str(entry.pattern))
+            elif isinstance(entry, URLPattern):
+                yield prefix + str(entry.pattern)
+
+    addresses = set()
+    for raw in walk(get_resolver().url_patterns):
+        if "format" in raw:  # the same address again with a ".json" ending
+            continue
+        path = re.sub(r"\(\?P<[^>]+>[^)]*\)", "1", raw)  # router style: (?P<pk>[^/.]+)
+        path = re.sub(r"<[^>]+>", "1", path)  # path() style: <int:pk>
+        path = "/" + path.replace("^", "").replace("$", "").replace("/?", "")
+        if path.startswith("/api/"):
+            addresses.add(path)
+    return sorted(addresses)
+
+
+def test_every_api_address_needs_a_login(api):
+    addresses = api_addresses()
+    assert len(addresses) > 40  # the walk really found the API
+    let_through = []
+    for path in addresses:
+        if path in OPEN_WITHOUT_LOGIN:
+            continue
+        for method in ("get", "post", "put", "patch", "delete"):
+            code = getattr(api, method)(path, {}, format="json").status_code
+            if code not in (401, 403, 405):
+                let_through.append(f"{method.upper()} {path} -> {code}")
+    assert let_through == []

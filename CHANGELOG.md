@@ -5,6 +5,16 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-02 — Pre-push check for GitHub
+
+**Added**
+- Test `test_every_api_address_needs_a_login`: walks all 56 API addresses and calls each with GET, POST, PUT, PATCH and DELETE without logging in; every one must refuse (401/403/405) except login and the health check. New addresses are covered automatically.
+
+**Checked (no change needed)**
+- Nothing secret is tracked or in the history to be pushed: all `.env` files, `.claude/`, logs, uploads, `build/`, `node_modules` and virtualenvs are ignored. The only passwords in the code are test values for the throwaway test database. An old frontend `.env` in history held only the API address and a build flag.
+- Server settings refuse to start without `DJANGO_SECRET_KEY` and `DATABASE_URL` from the environment; debug is off by default.
+- The old Flask app already on GitHub (`main`) had a hard-coded JWT key; that app is retired and the new server's key is different.
+
 ### 2026-10-02 — Khata printout: compact statement
 
 **Fixed**
