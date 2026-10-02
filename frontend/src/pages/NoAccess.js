@@ -1,8 +1,10 @@
 import { Lock } from "lucide-react";
+import { usePage } from "../hooks/usePage.js";
 import { Card, GoHomeButton } from "../ui/index.js";
 
 /** Opened a screen this person isn't allowed to use (an old link, a typed address). */
 export default function NoAccess() {
+  usePage("No access");
   return (
     <div className="max-w-xl mx-auto md:py-6">
       <Card className="p-6 md:p-9 flex flex-col items-center text-center gap-2">

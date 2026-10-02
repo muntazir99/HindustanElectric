@@ -6,11 +6,11 @@ import CustomerForm, { CUSTOMER_KINDS } from "../../components/CustomerForm.js";
 import { useAuth } from "../../context/AuthContext.js";
 import { A } from "../../lib/access.js";
 import { useFetch } from "../../hooks/useFetch.js";
+import { usePage } from "../../hooks/usePage.js";
 import { errorMessage } from "../../lib/errors.js";
 import { bigMoney, date, money } from "../../lib/format.js";
 import {
   Alert,
-  BackLink,
   Badge,
   Button,
   Card,
@@ -218,6 +218,8 @@ export default function CustomerDetail() {
   }, [params, setParams]);
   const [receipt, setReceipt] = useState(null);
 
+  usePage(data?.customer?.name || "Customer", ["/customers", "Khata"]);
+
   if (loading && !data) return <Spinner />;
   if (!data) return <Alert>{error || "Customer not found."}</Alert>;
   const customer = data.customer;
@@ -257,8 +259,6 @@ export default function CustomerDetail() {
 
   return (
     <>
-      <BackLink to="/customers">Khata</BackLink>
-
       {/* Printed statement header */}
       <div className="hidden print:block mb-4">
         <p className="text-xl font-bold">{shop?.data.name}</p>

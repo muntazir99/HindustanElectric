@@ -5,9 +5,10 @@ import api from "../../api.js";
 import { useAuth } from "../../context/AuthContext.js";
 import { A } from "../../lib/access.js";
 import { useFetch } from "../../hooks/useFetch.js";
+import { usePage } from "../../hooks/usePage.js";
 import { errorMessage } from "../../lib/errors.js";
 import { date, dateTime, money, plain } from "../../lib/format.js";
-import { Alert, BackLink, Badge, Button, Card, Field, Input, Modal, NumberInput, Spinner, Table, td, th } from "../../ui/index.js";
+import { Alert, Badge, Button, Card, Field, Input, Modal, NumberInput, Spinner, Table, td, th } from "../../ui/index.js";
 import { BILL_STATUS } from "./BillList.js";
 
 function CancelModal({ bill, onClose, onDone }) {
@@ -161,6 +162,8 @@ export default function BillDetail() {
   const [returning, setReturning] = useState(false);
   const [actionError, setActionError] = useState("");
 
+  usePage(bill ? `${bill.kind === "quotation" ? "Estimate" : "Bill"} ${bill.number}` : "Bill", ["/bills", "Old Bills"]);
+
   if (loading && !bill) return <Spinner />;
   if (!bill) return <Alert>{error || "Bill not found."}</Alert>;
   const quotation = bill.kind === "quotation";
@@ -178,9 +181,6 @@ export default function BillDetail() {
 
   return (
     <>
-      <div className="mb-1">
-        <BackLink to="/bills">Old Bills</BackLink>
-      </div>
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-3">

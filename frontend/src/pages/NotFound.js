@@ -1,8 +1,10 @@
 import { SearchX } from "lucide-react";
+import { usePage } from "../hooks/usePage.js";
 import { Button, Card, GoHomeButton } from "../ui/index.js";
 
 /** A page address that doesn't exist (typed wrong, or an old bookmark). */
 export default function NotFound() {
+  usePage("Page not found");
   return (
     <div className="max-w-xl mx-auto md:py-6">
       <Card className="p-6 md:p-9 flex flex-col items-center text-center gap-2">

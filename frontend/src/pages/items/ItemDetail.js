@@ -5,9 +5,10 @@ import api from "../../api.js";
 import { useAuth } from "../../context/AuthContext.js";
 import { A } from "../../lib/access.js";
 import { useFetch } from "../../hooks/useFetch.js";
+import { usePage } from "../../hooks/usePage.js";
 import { errorMessage } from "../../lib/errors.js";
 import { BASE_UNITS, GST_RATES, dateTime, money, plain, signed } from "../../lib/format.js";
-import { Alert, BackLink, Button, Card, Empty, Field, Input, Modal, NumberInput, Select, Spinner, Table, td, th } from "../../ui/index.js";
+import { Alert, Button, Card, Empty, Field, Input, Modal, NumberInput, Select, Spinner, Table, td, th } from "../../ui/index.js";
 import { StatusBadges } from "./ItemList.js";
 import AdjustModal from "../stock/AdjustModal.js";
 
@@ -381,14 +382,13 @@ export default function ItemDetail() {
       .catch(() => setHasHistory(true));
   }, [id, version]);
 
+  usePage(item?.name || "Item", ["/items", "All Items"]);
+
   if (loading && !item) return <Spinner />;
   if (!item) return <Alert>{error || "Item not found."}</Alert>;
 
   return (
     <>
-      <div className="mb-1">
-        <BackLink to="/items">All Items</BackLink>
-      </div>
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold">{item.name}</h1>

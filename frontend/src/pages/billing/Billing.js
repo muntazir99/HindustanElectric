@@ -7,10 +7,11 @@ import ItemSearch from "../../components/ItemSearch.js";
 import { useAuth } from "../../context/AuthContext.js";
 import { A } from "../../lib/access.js";
 import { useFetch } from "../../hooks/useFetch.js";
+import { usePage } from "../../hooks/usePage.js";
 import { errorMessage } from "../../lib/errors.js";
 import { bigMoney, money, plain, plural, round2 } from "../../lib/format.js";
 import { HOME_STATE, STATES } from "../../lib/states.js";
-import { Alert, BackLink, Button, Card, NumberInput, inputBase, inputClass } from "../../ui/index.js";
+import { Alert, Button, Card, NumberInput, inputBase, inputClass } from "../../ui/index.js";
 
 let nextKey = 1;
 
@@ -110,6 +111,7 @@ export default function Billing() {
   const [params, setParams] = useSearchParams();
   const { can } = useAuth();
   const mayGoLow = can(A.LOW_PRICES);
+  usePage("New Bill", ["/dashboard", "Home"]);
 
   const [lines, setLines] = useState([]);
   const [header, setHeader] = useState(EMPTY_HEADER);
@@ -415,10 +417,7 @@ export default function Billing() {
     <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_390px] gap-5 items-start">
       <div className="min-w-0">
         <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
-          <div>
-            <BackLink to="/dashboard">Home</BackLink>
-            <h1 className="text-3xl font-bold leading-tight mt-1">New Bill</h1>
-          </div>
+          <h1 className="text-[28px] font-bold leading-tight">New Bill</h1>
           <div className="flex flex-wrap items-center gap-3">
             <span className="hidden xl:inline text-sm text-gray-500">Keys: F2 item · F4 customer · F8 keep for later · F9 save &amp; print</span>
             {held.length > 0 && (

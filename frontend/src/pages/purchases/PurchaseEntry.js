@@ -4,13 +4,13 @@ import { CheckCircle2, Paperclip, Plus, Trash2 } from "lucide-react";
 import api from "../../api.js";
 import ItemSearch from "../../components/ItemSearch.js";
 import { useFetch } from "../../hooks/useFetch.js";
+import { usePage } from "../../hooks/usePage.js";
 import { useGoBack } from "../../hooks/useTrail.js";
 import { openFile } from "../../lib/download.js";
 import { errorMessage } from "../../lib/errors.js";
 import { GST_RATES, date, money, plain, plural, round2, today } from "../../lib/format.js";
 import {
   Alert,
-  BackLink,
   Badge,
   Button,
   Card,
@@ -189,6 +189,8 @@ export default function PurchaseEntry() {
     setLines(loaded.lines.map(lineFromServer));
   }, [loaded]);
 
+  usePage(isNew ? "Goods Arrived" : `Purchase bill ${(bill || loaded)?.bill_number || ""}`.trim(), ["/purchases", "Purchase Bills"]);
+
   if (!isNew && loading && !bill) return <Spinner />;
   if (!isNew && !loaded && loadError) return <Alert>{loadError}</Alert>;
 
@@ -327,9 +329,6 @@ export default function PurchaseEntry() {
 
   return (
     <>
-      <div className="mb-1">
-        <BackLink to="/purchases">Purchase Bills</BackLink>
-      </div>
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <h1 className="text-3xl font-bold">
           {isNew ? "Goods Arrived" : `Bill ${bill?.bill_number || ""}`}{" "}

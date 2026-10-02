@@ -6,9 +6,10 @@ import ItemSearch from "../../components/ItemSearch.js";
 import { useAuth } from "../../context/AuthContext.js";
 import { A } from "../../lib/access.js";
 import { useFetch } from "../../hooks/useFetch.js";
+import { usePage } from "../../hooks/usePage.js";
 import { errorMessage } from "../../lib/errors.js";
 import { dateTime, plain, plural, signed } from "../../lib/format.js";
-import { Alert, BackLink, Badge, Button, Card, Empty, Input, Modal, NumberInput, Spinner, Table, td, th } from "../../ui/index.js";
+import { Alert, Badge, Button, Card, Empty, Input, Modal, NumberInput, Spinner, Table, td, th } from "../../ui/index.js";
 import { COUNT_STATUS_COLOR, COUNT_STATUS_LABEL } from "./CountList.js";
 
 function QuantityCell({ line, onSet, disabled }) {
@@ -90,6 +91,8 @@ export default function CountSheet() {
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  usePage(count ? `Checking: ${count.title}` : "Check Stock", ["/counts", "Check Stock"]);
+
   if (loading && !count) return <Spinner />;
   if (!count) return <Alert>{loadError || "Count not found."}</Alert>;
 
@@ -145,9 +148,6 @@ export default function CountSheet() {
 
   return (
     <>
-      <div className="mb-1">
-        <BackLink to="/counts">Check Stock</BackLink>
-      </div>
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
           <h1 className="text-3xl font-bold">Checking: {count.title}</h1>

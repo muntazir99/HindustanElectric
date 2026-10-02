@@ -3,6 +3,7 @@ import { ChevronRight, CircleCheck, ClipboardCheck, HandCoins, PackagePlus, Rece
 import { useAuth } from "../context/AuthContext.js";
 import { A } from "../lib/access.js";
 import { useFetch } from "../hooks/useFetch.js";
+import { usePage } from "../hooks/usePage.js";
 import { bigMoney, dateTime, money, plural } from "../lib/format.js";
 import { Alert, Card } from "../ui/index.js";
 
@@ -232,6 +233,7 @@ function AttentionCard({ stock, can }) {
 
 export default function Home() {
   const { can } = useAuth();
+  usePage("Home");
   const { data: stock, error } = useFetch("/stock/summary");
   const tasks = TASKS.filter((task) => can(task.need)).slice(0, 4);
   const { data: today, error: todayError } = useFetch("/sales/today");

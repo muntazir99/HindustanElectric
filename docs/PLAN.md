@@ -354,7 +354,51 @@ Finding an item (search, All Items) stays open to everyone logged in: every job 
    tests for each switch (allowed with it, refused without).
 2. App: screens follow the switches; Staff & Access page.
 
-## 10. Open items
+## 10. Middle-ground look (approved 2026-10-02)
+
+The owner compared three designs (today's app; a plain back-office style; a middle ground) and chose the
+middle ground. **Look only:** no change to rules, switches, numbers, wording or printouts. Mock-up: the
+"Shop app — middle ground" design canvas (the plain-style canvas is kept for reference).
+
+### 10.1 What it takes from each
+
+- **From today's app** — the green New Bill and Home / More buttons, item search in the top bar; task tiles on
+  Home (shorter); big bold money figures; big Cash / UPI / Udhaar buttons, − / + quantity, big Save & Print;
+  touch-sized rows and buttons; done screens.
+- **From the plain style** — a slim dark top bar; a "Home › this page" line under it so you always know where
+  you are; every box has a labelled header strip; lists are striped tables with column headings (bills, khata
+  history, items, purchase bills…) instead of stacks of cards; filters in a box on the right.
+- **New** — a small "Other things" box on Home with plain links to the less-used screens (dropped if it feels
+  busy at the counter).
+
+### 10.2 Rules for the look
+
+- Top bar `#264B6B`; trail line `#E7EEF4`; box header strips `#EAF0F6` with dark-blue labels; page `#F4F5F7`.
+- Boxes: white, thin border, 10 px corners. Buttons 8–10 px corners, at least 44 px tall; one green main
+  button per screen.
+- Tables: header row in grey, rows at least 48 px, every other row lightly shaded, amounts right-aligned.
+- Trail stays short — always "Home › this page". "← Back to …" keeps working as it does now (goes to where
+  you came from) and sits at the right of the trail line when you came from somewhere other than Home.
+- Same font (Hind), same 18 px text, same colours for money (red udhaar, green money in, amber "check this").
+- Works at phone width with no sideways scrolling; printed bills, credit notes and receipts unchanged.
+
+### 10.3 Build order (one commit each)
+
+1. **Frame and shared pieces** — top bar, trail line, boxes with header strips, table and filter styles,
+   buttons. Login, error, no-access and done screens pick them up.
+2. **Home and All options.**
+3. **New Bill.**
+4. **Lists** — Old Bills, Khata, All Items, Purchase Bills, Distributors, Check Stock, Fix Stock.
+5. **Records and forms** — a bill, a customer's khata, an item, Goods Arrived, Add New Item, a stock check,
+   Upload from Excel, Staff & Access.
+
+### 10.4 Done when
+
+- Every screen uses the shared pieces; nothing looks half old, half new.
+- All tests still pass unchanged (311 server, 18 app) — proof that no rule changed.
+- Each screen checked in the browser as the owner and as a Counter-set staff member, at desktop and phone width.
+
+## 11. Open items
 
 - [x] Owner approval of Phase 1 design (§6)
 - [x] Remove the old Flask files from the repo root (preserved under tag `flask-final`)
@@ -367,6 +411,7 @@ Finding an item (search, All Items) stays open to everyone logged in: every job 
 - [x] Owner approval of the simple-screens redesign (§8)
 - [x] Security review of all 56 API endpoints (2026-10-02); fixes 1–3 and 6–8 done
 - [x] Owner approval of staff access switches (§9)
+- [x] Owner approval of the middle-ground look (§10)
 - [ ] Decide: staff price floor for items with no cost yet (review item 4) — block more than X% below the set price?
 - [ ] Decide: "log out everywhere", also on password change (review item 5)
 - [ ] Upgrade npm on the dev Mac (npm 10.7 crashes on `npm audit fix`; only dev tools have open advisories)

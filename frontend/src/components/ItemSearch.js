@@ -15,6 +15,7 @@ export default function ItemSearch({
   autoFocus = true,
   label = "Find item",
   compact = false,
+  tone = "light",
 }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
@@ -93,13 +94,18 @@ export default function ItemSearch({
   return (
     <div className="relative">
       <div className="relative">
-        <ScanLine className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={compact ? 20 : 24} />
+        <ScanLine
+          className={`absolute left-3 top-1/2 -translate-y-1/2 ${tone === "dark" ? "text-steel-200" : "text-gray-500"}`}
+          size={compact ? 20 : 24}
+        />
         <input
           ref={inputRef}
           className={
-            compact
-              ? `w-full pl-10 pr-3 py-2.5 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600`
-              : `w-full pl-12 pr-3 py-4 text-xl rounded-xl border-2 border-blue-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600`
+            tone === "dark"
+              ? "w-full h-11 pl-10 pr-3 rounded-lg border border-transparent bg-steel-700 text-white placeholder:text-steel-200 focus:bg-white focus:text-gray-900 focus:outline-none focus:ring-2 focus:ring-white"
+              : compact
+                ? "w-full pl-10 pr-3 py-2.5 rounded-lg border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-steel-700"
+                : "w-full pl-12 pr-3 py-4 text-xl rounded-[10px] border-2 border-steel-800 bg-white focus:outline-none focus:ring-2 focus:ring-steel-700"
           }
           value={query}
           placeholder={placeholder}
@@ -117,7 +123,7 @@ export default function ItemSearch({
       </div>
       {message && <p className="text-sm text-red-700 mt-1">{message}</p>}
       {open && results.length > 0 && (
-        <ul className="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-96 overflow-y-auto">
+        <ul className="absolute z-50 left-0 right-0 mt-1 bg-white text-gray-900 border border-line rounded-lg shadow-lg max-h-96 overflow-y-auto">
           {results.map((item, index) => (
             <li key={item.id}>
               <button

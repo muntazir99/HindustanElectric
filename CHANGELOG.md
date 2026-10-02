@@ -5,6 +5,15 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-02 — Middle-ground look, step 1: frame and shared pieces
+
+Look only — no rules, switches, numbers or printouts changed. Plan: [PLAN.md §10](docs/PLAN.md).
+
+**Changed**
+- Top bar is now a slim dark steel-blue bar (shop name, Find an item, Home, green New Bill, More, name).
+- New line under it on every screen: **"Home › this page"**, with **"← Back to …"** on the right when you came from somewhere other than Home (it still goes where you came from). Each screen names itself once (`usePage`), instead of drawing its own back link.
+- Shared pieces: boxes with a labelled header strip (`Section`), filter pills (`Pills`), striped tables, 8–10 px corners, steel-blue main buttons, steel-tinted dialog headers.
+
 ### 2026-10-02 — Staff & Access: folding cards
 
 **Changed**
