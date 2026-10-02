@@ -5,6 +5,24 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-02 — AWS trial server, steps 2–4: server live, checked, backups proven
+
+**Added**
+- Lightsail server `hindustan-electric-trial` in Sydney: 1 GB, Ubuntu 24.04, fixed IP, daily snapshots (03:30, 7 kept). It's on the 1 GB plan because AWS doesn't allow the 2 GB plan on new accounts yet.
+- Firewall: web (80, 443) for everyone; SSH only from the developer's address and Lightsail's browser "Connect" button, key only.
+- Trial address `https://<server-ip-with-dashes>.sslip.io`, Let's Encrypt certificate (renewal tested).
+
+**Checked**
+- HTTPS works; http redirects to https; the security headers are present.
+- From outside, the database and the app's internal port are closed.
+- All 54 protected API addresses × 5 methods refuse anyone not logged in on the live server (270 requests, 0 let through).
+- `check --deploy`: only the two optional HSTS extras remain.
+- A backup was restored into a scratch database: the same 31 tables and 30 migrations as the live one.
+- `deploy/pull-backup.sh` copies the backups to the Mac.
+
+**Fixed**
+- The restore steps in `deploy/README.md`: the backup folder is root-only, so root reads the file and pipes it to `pg_restore`.
+
 ### 2026-10-02 — AWS trial server, step 1: deploy files
 
 Plan: [PLAN.md §11](docs/PLAN.md) (approved 2026-10-02).

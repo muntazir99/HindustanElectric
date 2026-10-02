@@ -50,7 +50,8 @@ It takes a backup first, then pulls, installs, migrates, builds the app and rest
 sudo systemctl stop hindustan-electric
 sudo -u postgres dropdb hindustan_electric
 sudo -u postgres createdb --owner hindustan hindustan_electric
-sudo -u hindustan pg_restore --no-owner -d hindustan_electric /var/backups/hindustan-electric/db_<date>.dump
+# The backup folder is root-only, so root reads the file and the app restores it:
+sudo cat /var/backups/hindustan-electric/db_<date>.dump | sudo -u hindustan pg_restore --no-owner --exit-on-error -d hindustan_electric
 sudo tar -xzf /var/backups/hindustan-electric/media_<date>.tar.gz -C /var/lib/hindustan-electric
 sudo systemctl start hindustan-electric
 ```

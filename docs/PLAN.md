@@ -416,8 +416,9 @@ sideways inside its own box on a phone, as it did before; the page itself does n
 
 ### 11.2 Setup — one Lightsail server (recommended)
 
-- Lightsail "small": 2 GB memory, 2 vCPU, 60 GB disk, $12/month, Ubuntu 24.04, in Sydney. A fixed (static) IP,
-  free while attached. Firewall open only for web (80, 443) and SSH (22, key only, no passwords).
+- Lightsail "micro": 1 GB memory, 2 vCPU, 40 GB disk, $7/month, Ubuntu 24.04, in Sydney, with 2 GB swap. (The
+  2 GB "small" plan was the first choice, but AWS doesn't allow it on new accounts yet; 1 GB is enough for one
+  shop and can be raised later from a snapshot.) A fixed (static) IP, free while attached. Firewall open only for web (80, 443) and SSH (22, key only, no passwords).
 - On the server: **nginx** (HTTPS with a free Let's Encrypt certificate; serves the app; passes `/api` and `/admin`
   to Django), **gunicorn** running Django as a service that restarts itself, **Postgres 17** reachable only from the
   server itself, and the live settings from `backend/README.md` "Going live".
@@ -450,8 +451,8 @@ A backup is restored once into a scratch database to prove it works.
 
 | Period | Cost |
 |---|---|
-| Until 2 April 2027 (Free plan) | **₹0** — about $13/month, covered by the $100 credit; the Free plan can't charge |
-| After upgrading to Paid | about **$13–14/month ≈ ₹1,150–1,250**, plus 18% GST if billed by AWS India (≈ ₹1,350–1,450) |
+| Until 2 April 2027 (Free plan) | **₹0** — about $8/month, covered by the $100 credit; the Free plan can't charge |
+| After upgrading to Paid | about **$7.50–8/month ≈ ₹660–700**, plus 18% GST if billed by AWS India (≈ ₹780–830) |
 
 On the Paid plan, a budget alert is set at $20/month.
 
