@@ -4,6 +4,7 @@ import { ArrowDownToLine, Download, FileSpreadsheet, Plus, Trash2, Wand2 } from 
 import api from "../../api.js";
 import { useAuth } from "../../context/AuthContext.js";
 import { A } from "../../lib/access.js";
+import BarcodeInput from "../../components/BarcodeInput.js";
 import { useFetch } from "../../hooks/useFetch.js";
 import { useGoBack } from "../../hooks/useTrail.js";
 import { SAMPLE_SHEET_NAME, SAMPLE_SHEET_URL, downloadFile } from "../../lib/download.js";
@@ -29,15 +30,16 @@ const COLUMNS = [
   ["variant", "Variant (size / colour)", "w-48"],
   ["selling_price", "Price / unit", "w-28"],
   ["mrp", "MRP / unit", "w-28"],
-  ["barcode", "Unit barcode", "w-40"],
+  ["barcode", "Unit barcode", "w-44"],
   ["pack_price", "Pack price", "w-28", true],
   ["pack_mrp", "Pack MRP", "w-28", true],
-  ["pack_barcode", "Pack barcode", "w-40", true],
+  ["pack_barcode", "Pack barcode", "w-44", true],
   ["rack", "Rack", "w-20"],
   ["min_stock", "Min stock", "w-24"],
 ];
 
 const DECIMALS = ["selling_price", "mrp", "pack_price", "pack_mrp", "min_stock"];
+const BARCODES = ["barcode", "pack_barcode"];
 
 function splitList(text) {
   return text
@@ -353,15 +355,27 @@ export default function ItemNew() {
                 <tr key={row.key}>
                   {visibleColumns.map(([key, label, width]) => (
                     <td key={key} className={`px-1 py-1 ${width}`}>
-                      <input
-                        className={`${inputClass} px-2 py-1.5`}
-                        value={row[key]}
-                        aria-label={`${label} row ${index + 1}`}
-                        data-cell={`${index}-${key}`}
-                        inputMode={DECIMALS.includes(key) ? "decimal" : undefined}
-                        onChange={(event) => setCell(row.key, key, event.target.value)}
-                        onKeyDown={(event) => nextRowOnEnter(event, index, key)}
-                      />
+                      {BARCODES.includes(key) ? (
+                        // Barcode cells have a camera button on phones.
+                        <BarcodeInput
+                          className="px-2 py-1.5"
+                          value={row[key]}
+                          aria-label={`${label} row ${index + 1}`}
+                          data-cell={`${index}-${key}`}
+                          onChange={(event) => setCell(row.key, key, event.target.value)}
+                          onKeyDown={(event) => nextRowOnEnter(event, index, key)}
+                        />
+                      ) : (
+                        <input
+                          className={`${inputClass} px-2 py-1.5`}
+                          value={row[key]}
+                          aria-label={`${label} row ${index + 1}`}
+                          data-cell={`${index}-${key}`}
+                          inputMode={DECIMALS.includes(key) ? "decimal" : undefined}
+                          onChange={(event) => setCell(row.key, key, event.target.value)}
+                          onKeyDown={(event) => nextRowOnEnter(event, index, key)}
+                        />
+                      )}
                     </td>
                   ))}
                   <td className="px-1">

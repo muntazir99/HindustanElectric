@@ -1,5 +1,6 @@
 import { useState } from "react";
 import api from "../../api.js";
+import BarcodeInput from "../../components/BarcodeInput.js";
 import { useFetch } from "../../hooks/useFetch.js";
 import { errorMessage } from "../../lib/errors.js";
 import { BASE_UNITS, GST_RATES } from "../../lib/format.js";
@@ -108,7 +109,7 @@ export default function QuickItemModal({ onClose, onCreated }) {
           <NumberInput value={form.selling_price} onChange={set("selling_price")} />
         </Field>
         <Field label="Barcode (single unit)">
-          <Input value={form.barcode} onChange={set("barcode")} />
+          <BarcodeInput value={form.barcode} onChange={set("barcode")} />
         </Field>
         <div />
         <Field label="Pack name" hint="Optional, e.g. coil or box">
@@ -118,7 +119,7 @@ export default function QuickItemModal({ onClose, onCreated }) {
           <NumberInput value={form.pack_factor} onChange={set("pack_factor")} />
         </Field>
         <Field label="Pack barcode">
-          <Input value={form.pack_barcode} onChange={set("pack_barcode")} />
+          <BarcodeInput value={form.pack_barcode} onChange={set("pack_barcode")} />
         </Field>
       </div>
       <div className="flex gap-3 mt-6">

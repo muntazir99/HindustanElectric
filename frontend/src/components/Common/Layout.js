@@ -11,7 +11,8 @@ import ScanToFind from "../ScanToFind.js";
 
 const barButton = (active) =>
   `shrink-0 inline-flex items-center gap-1.5 h-11 px-3 md:px-3.5 rounded-lg font-semibold ${
-    active ? "bg-white text-steel-800" : "border border-steel-500 text-white hover:bg-steel-700"
+    // Same 1px border either way, so the bar is the same width on every page (it just fits 360 px phones).
+    active ? "border border-white bg-white text-steel-800" : "border border-steel-500 text-white hover:bg-steel-700"
   }`;
 
 /**
@@ -28,7 +29,7 @@ function TopBar() {
 
   return (
     <header className="print:hidden sticky top-0 z-40 bg-steel-800 text-white">
-      <div className="max-w-[1200px] mx-auto px-3 sm:px-4 md:px-6 py-2.5 flex items-center gap-2 sm:gap-3">
+      <div className="max-w-[1200px] mx-auto px-3 sm:px-4 md:px-6 py-2.5 flex items-center gap-1.5 sm:gap-3">
         {/* On a phone the Home button takes the name's place. */}
         <Link to="/dashboard" className="hidden sm:block mr-auto lg:mr-2 shrink-0 leading-tight text-white">
           <span className="block text-xl font-bold">Hindustan Electric</span>

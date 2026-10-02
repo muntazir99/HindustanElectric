@@ -5,6 +5,16 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-02 — Camera scan in barcode fields
+
+**Added**
+- A camera button in every barcode field: **Add New Item** (unit and pack barcode on each row), **Item page → Add pack**, and the **quick Add item** box that opens from New Bill and Goods Arrived. On a phone, scan the product's own barcode to fill the field instead of typing 13 digits.
+- After a scan it checks the code. If another item already has it, it says *"Already used by …"* before saving, because each barcode belongs to one item or pack.
+- Shared `BarcodeInput` component. Tests: plain box without a camera, a scan fills it, the "already used" warning (46 app tests).
+
+**Fixed**
+- The phone top bar was 2 px too wide at 360 px (Galaxy S23) on every page except Home: the Home button gained a border when it wasn't the current page. All top-bar buttons now keep the same border, and the gaps are slightly smaller on phones. Checked at 360 px on Home, Old Bills, Khata, an item, Add New Item and All options.
+
 ### 2026-10-02 — Scan any item on a phone to see its details
 
 **Added**

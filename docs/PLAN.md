@@ -553,6 +553,7 @@ Same switches as today, no new ones:
   1.1 MB file comes from our own site, only when the camera is first opened.
 - Needs https, which the live server has. Free; no new switches; whoever can use the screen can scan on it.
 - **Scan to see an item:** a scan button in the phone's top bar opens the scanned item's page (price, stock, rack…).
+- **Barcode fields** (Add New Item, Add pack, quick Add item) have a camera button too, and warn if the code is already used.
 
 ## 14. Open items
 

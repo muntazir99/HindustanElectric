@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Pencil, Plus, SlidersHorizontal, Trash2 } from "lucide-react";
 import api from "../../api.js";
+import BarcodeInput from "../../components/BarcodeInput.js";
 import { useAuth } from "../../context/AuthContext.js";
 import { A } from "../../lib/access.js";
 import { useFetch } from "../../hooks/useFetch.js";
@@ -275,7 +276,7 @@ function Units({ item, canChange, canPrice, onChanged }) {
             <NumberInput value={form.factor} onChange={(e) => setForm({ ...form, factor: e.target.value })} />
           </Field>
           <Field label="Barcode">
-            <Input value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} />
+            <BarcodeInput value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} />
           </Field>
           {canPrice && (
             <>
