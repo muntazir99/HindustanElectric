@@ -5,6 +5,13 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-02 — Middle-ground look, step 3: New Bill
+
+**Changed**
+- Items are rows of a table — Item (with the unit picker under the name when there are packs), Qty with − / +, Price ₹, Disc %, Amount — so amounts line up down one column.
+- Right side in labelled boxes: **Who is buying?** and **To pay** (big total, GST, discount, tax details, How are they paying?, big green Save & Print Bill).
+- The right column sits beside the items only on wide screens (1280 px and up); on smaller screens it comes below the items, so the table never needs sideways scrolling.
+
 ### 2026-10-02 — Middle-ground look, step 2: Home and All options
 
 **Changed**
