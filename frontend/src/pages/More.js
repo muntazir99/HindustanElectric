@@ -150,7 +150,7 @@ export default function More() {
           <button
             type="button"
             onClick={logout}
-            className="inline-flex items-center gap-2 min-h-[44px] px-4 rounded-xl border border-red-200 bg-white text-red-700 font-semibold hover:bg-red-50"
+            className="inline-flex items-center gap-2 min-h-[44px] px-4 rounded-lg border border-red-200 bg-white text-red-700 font-semibold hover:bg-red-50"
           >
             <LogOut size={18} /> Log out
           </button>

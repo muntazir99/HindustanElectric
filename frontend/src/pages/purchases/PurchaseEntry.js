@@ -13,16 +13,19 @@ import {
   Alert,
   Badge,
   Button,
-  Card,
   DonePanel,
   Field,
   GoHomeButton,
   Input,
   Modal,
   NumberInput,
+  Section,
   Select,
   Spinner,
+  Table,
   inputClass,
+  td,
+  th,
 } from "../../ui/index.js";
 import QuickItemModal from "../items/QuickItemModal.js";
 
@@ -104,40 +107,40 @@ function SupplierModal({ onClose, onCreated }) {
 
 function PostedBill({ bill }) {
   return (
-    <Card className="overflow-x-auto">
-      <table className="w-full text-left">
+    <Section title={`Goods on this bill (${bill.lines.length})`}>
+      <Table>
         <thead>
-          <tr className="text-xs uppercase text-gray-500 bg-gray-50">
-            <th className="px-4 py-3">Item</th>
-            <th className="px-4 py-3 text-right">Qty</th>
-            <th className="px-4 py-3 text-right">Rate</th>
-            <th className="px-4 py-3 text-right">Disc %</th>
-            <th className="px-4 py-3 text-right">GST %</th>
-            <th className="px-4 py-3 text-right">Taxable</th>
-            <th className="px-4 py-3 text-right">GST</th>
+          <tr>
+            <th className={th}>Item</th>
+            <th className={`${th} text-right`}>Qty</th>
+            <th className={`${th} text-right`}>Rate</th>
+            <th className={`${th} text-right`}>Disc %</th>
+            <th className={`${th} text-right`}>GST %</th>
+            <th className={`${th} text-right`}>Taxable</th>
+            <th className={`${th} text-right`}>GST</th>
           </tr>
         </thead>
         <tbody>
           {bill.lines.map((line) => (
-            <tr key={line.id} className="border-t">
-              <td className="px-4 py-2">
-                <Link to={`/items/${line.item}`} className="hover:underline font-semibold">
+            <tr key={line.id}>
+              <td className={td}>
+                <Link to={`/items/${line.item}`} className="font-semibold text-blue-800 hover:underline">
                   {line.item_name}
                 </Link>
               </td>
-              <td className="px-4 py-2 text-right whitespace-nowrap">
+              <td className={`${td} text-right whitespace-nowrap`}>
                 {plain(line.quantity)} {line.unit_name}
               </td>
-              <td className="px-4 py-2 text-right">{money(line.rate)}</td>
-              <td className="px-4 py-2 text-right">{plain(line.discount_percent)}</td>
-              <td className="px-4 py-2 text-right">{plain(line.gst_rate)}</td>
-              <td className="px-4 py-2 text-right">{money(line.taxable_amount)}</td>
-              <td className="px-4 py-2 text-right">{money(line.tax_amount)}</td>
+              <td className={`${td} text-right`}>{money(line.rate)}</td>
+              <td className={`${td} text-right`}>{plain(line.discount_percent)}</td>
+              <td className={`${td} text-right`}>{plain(line.gst_rate)}</td>
+              <td className={`${td} text-right`}>{money(line.taxable_amount)}</td>
+              <td className={`${td} text-right`}>{money(line.tax_amount)}</td>
             </tr>
           ))}
         </tbody>
-      </table>
-    </Card>
+      </Table>
+    </Section>
   );
 }
 
@@ -330,7 +333,7 @@ export default function PurchaseEntry() {
   return (
     <>
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
-        <h1 className="text-3xl font-bold">
+        <h1 className="text-[28px] font-bold leading-tight">
           {isNew ? "Goods Arrived" : `Bill ${bill?.bill_number || ""}`}{" "}
           {bill && <Badge color={posted ? "green" : "amber"}>{posted ? "Added to stock" : "Not added yet"}</Badge>}
         </h1>
@@ -346,7 +349,7 @@ export default function PurchaseEntry() {
         {notice}
       </Alert>
 
-      <Card className="p-5 mb-6">
+      <Section title="Bill details" className="mb-5" bodyClassName="p-4">
         <div className="grid md:grid-cols-4 gap-4">
           <Field label="Distributor *" className="md:col-span-2">
             {posted ? (
@@ -392,12 +395,12 @@ export default function PurchaseEntry() {
             )}
           </Field>
         </div>
-      </Card>
+      </Section>
 
       {posted ? (
         <PostedBill bill={bill} />
       ) : (
-        <Card className="p-5 mb-4">
+        <Section title={`Goods on this bill${lines.length ? ` (${lines.length})` : ""}`} className="mb-4" bodyClassName="p-4">
           <div className="flex flex-wrap items-end gap-3 mb-4">
             <div className="flex-1 min-w-[280px]">
               <ItemSearch onSelect={addItem} autoFocus={!isNew} />
@@ -412,7 +415,7 @@ export default function PurchaseEntry() {
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="text-xs uppercase text-gray-500">
+                  <tr className="text-sm font-semibold text-gray-600 border-b border-line">
                     <th className="px-1 pb-2">Item</th>
                     <th className="px-1 pb-2 w-24 text-right">Qty</th>
                     <th className="px-1 pb-2 w-36">Unit</th>
@@ -479,12 +482,12 @@ export default function PurchaseEntry() {
               </table>
             </div>
           )}
-        </Card>
+        </Section>
       )}
 
-      <div className="grid md:grid-cols-2 gap-6 mt-6">
+      <div className="grid md:grid-cols-2 gap-5 mt-5">
         <div />
-        <Card className="p-5">
+        <Section title="Totals" bodyClassName="p-4">
           <dl className="space-y-2">
             <div className="flex justify-between">
               <dt>Taxable value</dt>
@@ -524,7 +527,7 @@ export default function PurchaseEntry() {
               </p>
             )}
           </dl>
-        </Card>
+        </Section>
       </div>
 
       {!posted && (

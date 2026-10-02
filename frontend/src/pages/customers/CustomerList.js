@@ -102,8 +102,8 @@ export default function CustomerList() {
             <thead>
               <tr>
                 <th className={th}>Name</th>
-                <th className={th}>Phone</th>
-                <th className={th}>Type</th>
+                <th className={`${th} hidden sm:table-cell`}>Phone</th>
+                <th className={`${th} hidden sm:table-cell`}>Type</th>
                 <th className={`${th} text-right`}>Udhaar</th>
               </tr>
             </thead>
@@ -116,9 +116,13 @@ export default function CustomerList() {
                       <Link to={`/customers/${customer.id}`} className="font-semibold text-blue-800 hover:underline" onClick={(e) => e.stopPropagation()}>
                         {customer.name}
                       </Link>
+                      {/* On a phone, phone and type sit under the name so the udhaar fits without swiping. */}
+                      <span className="sm:hidden block text-sm text-gray-500">
+                        {[customer.phone, KIND_LABEL[customer.kind]].filter(Boolean).join(" · ")}
+                      </span>
                     </td>
-                    <td className={`${td} whitespace-nowrap`}>{customer.phone || "—"}</td>
-                    <td className={td}>{KIND_LABEL[customer.kind]}</td>
+                    <td className={`${td} hidden sm:table-cell whitespace-nowrap`}>{customer.phone || "—"}</td>
+                    <td className={`${td} hidden sm:table-cell`}>{KIND_LABEL[customer.kind]}</td>
                     <td className={`${td} text-right whitespace-nowrap`}>
                       {balance === 0 ? (
                         <span className="text-gray-400">nothing due</span>

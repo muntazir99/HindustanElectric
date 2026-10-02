@@ -9,7 +9,7 @@ import { useGoBack } from "../../hooks/useTrail.js";
 import { SAMPLE_SHEET_NAME, SAMPLE_SHEET_URL, downloadFile } from "../../lib/download.js";
 import { errorMessage } from "../../lib/errors.js";
 import { BASE_UNITS, GST_RATES } from "../../lib/format.js";
-import { Alert, Button, Card, DonePanel, Field, GoHomeButton, Input, PageHeader, Select, inputClass } from "../../ui/index.js";
+import { Alert, Button, DonePanel, Field, GoHomeButton, Input, PageHeader, Section, Select, inputClass } from "../../ui/index.js";
 
 let nextKey = 1;
 const blankRow = (variant = "") => ({
@@ -74,7 +74,7 @@ function ExcelHint() {
   }
 
   return (
-    <Card className="p-4 mb-6 bg-green-50/60 border-green-200">
+    <div className="p-4 mb-5 rounded-[10px] border border-green-200 bg-green-50/60">
       <div className="flex flex-wrap items-center gap-4">
         <FileSpreadsheet className="text-green-700 shrink-0" size={28} />
         <div className="flex-1 min-w-[260px]">
@@ -99,7 +99,7 @@ function ExcelHint() {
           <Download size={18} /> Download sample sheet
         </Button>
       </div>
-    </Card>
+    </div>
   );
 }
 
@@ -230,8 +230,7 @@ export default function ItemNew() {
       <PageHeader title="Add New Item" back={["/items", "All Items"]} subtitle="One product, with all its sizes and colours" />
       <ExcelHint />
 
-      <Card className="p-6 mb-6">
-        <h2 className="font-bold text-lg mb-4">Product</h2>
+      <Section title="Product" className="mb-5" bodyClassName="p-4 md:p-5">
         <div className="grid md:grid-cols-3 gap-4">
           <Field label="Brand" hint="Blank for unbranded goods">
             <Input list="brands" value={product.brand} onChange={setField("brand")} placeholder="e.g. Havells" />
@@ -302,12 +301,11 @@ export default function ItemNew() {
             )}
           </div>
         </div>
-      </Card>
+      </Section>
 
-      <Card className="p-6 mb-6">
+      <Section title="Sizes and colours" className="mb-5" bodyClassName="p-4 md:p-5">
         <div className="flex flex-wrap items-end justify-between gap-4 mb-4">
           <div>
-            <h2 className="font-bold text-lg">Variants</h2>
             <p className="text-sm text-gray-600">
               One row per size/colour. Leave the variant blank if the product has none. Prices include GST.
             </p>
@@ -385,7 +383,7 @@ export default function ItemNew() {
         <Button className="mt-3" onClick={() => setRows([...rows, blankRow()])}>
           <Plus size={18} /> Add row
         </Button>
-      </Card>
+      </Section>
 
       <Alert>
         {error && (

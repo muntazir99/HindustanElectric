@@ -354,7 +354,7 @@ Finding an item (search, All Items) stays open to everyone logged in: every job 
    tests for each switch (allowed with it, refused without).
 2. App: screens follow the switches; Staff & Access page.
 
-## 10. Middle-ground look (approved 2026-10-02)
+## 10. Middle-ground look (approved 2026-10-02, done 2026-10-02)
 
 The owner compared three designs (today's app; a plain back-office style; a middle ground) and chose the
 middle ground. **Look only:** no change to rules, switches, numbers, wording or printouts. Mock-up: the
@@ -397,6 +397,10 @@ middle ground. **Look only:** no change to rules, switches, numbers, wording or 
 - Every screen uses the shared pieces; nothing looks half old, half new.
 - All tests still pass unchanged (311 server, 18 app) — proof that no rule changed.
 - Each screen checked in the browser as the owner and as a Counter-set staff member, at desktop and phone width.
+
+All three met on 2026-10-02. On a phone, Home's recent bills and the Khata list put the name details under the
+bill number / customer name so the amount fits without swiping. All Items (up to 7 number columns) still slides
+sideways inside its own box on a phone, as it did before; the page itself does not.
 
 ## 11. Open items
 

@@ -26,7 +26,7 @@ function Switch({ item, on, onChange, disabled }) {
       aria-checked={on}
       disabled={disabled}
       onClick={() => onChange(!on)}
-      className="w-full flex items-center gap-4 px-3 py-2.5 rounded-xl text-left hover:bg-gray-50 disabled:opacity-60"
+      className="w-full flex items-center gap-4 px-3 py-2.5 rounded-lg text-left hover:bg-gray-50 disabled:opacity-60"
     >
       <span className="flex-1 min-w-0">
         <span className="block font-semibold">{item.label}</span>
@@ -111,7 +111,7 @@ function PersonCard({ person, definitions, onSaved, startOpen = false }) {
           aria-expanded={open}
           aria-controls={bodyId}
           onClick={() => setOpen(!open)}
-          className="w-full flex items-center gap-4 p-5 md:px-6 text-left rounded-2xl hover:bg-gray-50"
+          className={`w-full flex items-center gap-4 px-5 md:px-6 py-4 text-left hover:bg-steel-50 ${open ? "bg-steel-50 border-b border-line" : ""}`}
         >
           <span className="flex-1 min-w-0">
             <span className="flex flex-wrap items-center gap-2 text-xl font-bold">

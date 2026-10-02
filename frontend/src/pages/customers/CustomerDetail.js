@@ -13,13 +13,13 @@ import {
   Alert,
   Badge,
   Button,
-  Card,
   DonePanel,
   Field,
   GoHomeButton,
   Input,
   Modal,
   NumberInput,
+  Section,
   Spinner,
   Table,
   td,
@@ -101,7 +101,7 @@ function PaymentModal({ customer, onClose, onDone }) {
               role="radio"
               aria-checked={mode === value}
               onClick={() => setMode(value)}
-              className={`min-h-[44px] px-4 rounded-xl border-2 font-semibold ${mode === value ? "bg-blue-800 text-white border-blue-800" : "bg-white border-gray-300"}`}
+              className={`min-h-[44px] px-4 rounded-lg border-2 font-semibold ${mode === value ? "bg-steel-800 text-white border-steel-800" : "bg-white border-gray-300"}`}
             >
               {label}
             </button>
@@ -271,10 +271,10 @@ export default function CustomerDetail() {
         </p>
       </div>
 
-      <Card className="no-print p-5 md:p-6 mt-2 mb-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+      <Section className="no-print mb-5">
+        <div className="flex flex-wrap items-start justify-between gap-4 p-5 md:p-6">
           <div>
-            <h1 className="text-3xl font-bold leading-tight flex flex-wrap items-center gap-3">
+            <h1 className="text-[28px] font-bold leading-tight flex flex-wrap items-center gap-3">
               {customer.name} <Badge color="blue">{KIND_LABEL[customer.kind]}</Badge>
               {!customer.is_active && <Badge>Inactive</Badge>}
             </h1>
@@ -297,7 +297,7 @@ export default function CustomerDetail() {
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap gap-3 mt-5">
+        <div className="flex flex-wrap gap-3 px-5 md:px-6 py-3 bg-[#F8FAFB] border-t border-gray-100">
           {can(A.PAYMENTS) && (
             <Button variant="success" className="h-14 px-6 text-lg grow sm:grow-0" onClick={() => setModal("payment")}>
               <HandCoins size={22} /> Take Payment
@@ -312,7 +312,7 @@ export default function CustomerDetail() {
             </Button>
           )}
         </div>
-      </Card>
+      </Section>
 
       {can(A.KHATA_CONTROL) && (
         <div className="no-print flex flex-wrap items-center gap-3 mb-5 px-1">
@@ -323,21 +323,25 @@ export default function CustomerDetail() {
         </div>
       )}
 
-      <Card className="mb-6">
-        <div className="no-print flex flex-wrap items-center gap-3 px-5 py-4 border-b">
-          <h2 className="font-bold text-xl mr-auto">History</h2>
-          <label className="flex items-center gap-2">
-            From <input type="date" className="border border-gray-300 rounded-xl px-2 py-1.5" value={range.from} onChange={(e) => setRange({ ...range, from: e.target.value })} />
-          </label>
-          <label className="flex items-center gap-2">
-            To <input type="date" className="border border-gray-300 rounded-xl px-2 py-1.5" value={range.to} onChange={(e) => setRange({ ...range, to: e.target.value })} />
-          </label>
-          {(range.from || range.to) && (
-            <button type="button" className="text-blue-800 underline" onClick={() => setRange({ from: "", to: "" })}>
-              Show everything
-            </button>
-          )}
-        </div>
+      <Section
+        title="History"
+        className="mb-5"
+        right={
+          <span className="no-print flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-2">
+              From <input type="date" className="border border-gray-300 rounded-lg px-2 py-1 bg-white" value={range.from} onChange={(e) => setRange({ ...range, from: e.target.value })} />
+            </label>
+            <label className="flex items-center gap-2">
+              To <input type="date" className="border border-gray-300 rounded-lg px-2 py-1 bg-white" value={range.to} onChange={(e) => setRange({ ...range, to: e.target.value })} />
+            </label>
+            {(range.from || range.to) && (
+              <button type="button" className="text-blue-800 underline" onClick={() => setRange({ from: "", to: "" })}>
+                Show everything
+              </button>
+            )}
+          </span>
+        }
+      >
         <Table>
           <thead>
             <tr>
@@ -419,17 +423,16 @@ export default function CustomerDetail() {
             </tr>
           </tfoot>
         </Table>
-      </Card>
+      </Section>
 
       {bills && bills.results.length > 0 && (
-        <Card className="no-print">
-          <h2 className="font-bold text-xl px-5 py-4 border-b">Recent bills</h2>
+        <Section title="Recent bills" className="no-print">
           <Table>
             <tbody>
               {bills.results.map((bill) => (
                 <tr key={bill.id}>
-                  <td className={`${td} font-mono text-sm`}>
-                    <Link to={`/bills/${bill.id}`} className="text-blue-800 hover:underline">
+                  <td className={`${td} whitespace-nowrap`}>
+                    <Link to={`/bills/${bill.id}`} className="font-semibold text-blue-800 hover:underline">
                       {bill.number}
                     </Link>
                   </td>
@@ -441,7 +444,7 @@ export default function CustomerDetail() {
               ))}
             </tbody>
           </Table>
-        </Card>
+        </Section>
       )}
 
       {modal === "edit" && (

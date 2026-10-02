@@ -5,6 +5,22 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-02 — Middle-ground look, step 5: records and forms (look done)
+
+**Changed**
+- **A bill**: Items, Payments and Totals each in a labelled box; return / refund buttons in the steel style.
+- **A customer's khata**: name, phone and udhaar in a top box with its buttons along the bottom; History box with the date filters on its right; Recent bills box.
+- **An item**: boxes for Units & barcodes (with "Add pack" on the right), Stock history, In stock and Details.
+- **Goods Arrived**: boxes for Bill details, Goods on this bill and Totals; a saved purchase bill shows the same way.
+- **Add New Item**: Product and Sizes and colours boxes; the Excel hint as a plain green note.
+- **A stock check**: boxes for Items without a barcode, Scan to count and Counted so far.
+- **Upload from Excel**: the kinds as pills; the result in a box marked "Saved" or "Preview — nothing saved yet".
+- **Staff & Access**: an open person's header strip is tinted like the other boxes.
+- Last old-blue leftovers moved to the steel colours: Log out, the error screen, login, customer picker, item search.
+- On a phone, Home's recent bills and the Khata list put the buyer / phone details under the number or name, so the amount fits without swiping. Wider screens unchanged.
+
+All checks in [PLAN.md §10.4](docs/PLAN.md) met: 311 server and 18 app tests pass unchanged; screens checked as the owner and as a Counter-set staff member at desktop and phone width.
+
 ### 2026-10-02 — Middle-ground look, step 4: lists
 
 **Changed**

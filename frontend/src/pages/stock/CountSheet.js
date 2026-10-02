@@ -9,7 +9,7 @@ import { useFetch } from "../../hooks/useFetch.js";
 import { usePage } from "../../hooks/usePage.js";
 import { errorMessage } from "../../lib/errors.js";
 import { dateTime, plain, plural, signed } from "../../lib/format.js";
-import { Alert, Badge, Button, Card, Empty, Input, Modal, NumberInput, Spinner, Table, td, th } from "../../ui/index.js";
+import { Alert, Badge, Button, Empty, Input, Modal, NumberInput, Section, Spinner, Table, td, th } from "../../ui/index.js";
 import { COUNT_STATUS_COLOR, COUNT_STATUS_LABEL } from "./CountList.js";
 
 function QuantityCell({ line, onSet, disabled }) {
@@ -38,10 +38,9 @@ function RackHelper({ countedIds, onCount, disabled }) {
   const remaining = (data?.results || []).filter((item) => !countedIds.has(item.id));
 
   return (
-    <Card className="p-5 mb-6">
+    <Section title="Items without a barcode" className="mb-5" bodyClassName="p-4">
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex-1 min-w-[200px]">
-          <p className="font-semibold mb-1">Items without a barcode?</p>
           <p className="text-sm text-gray-600 mb-2">Show everything kept on a rack and type what you find.</p>
           <Input value={rack} onChange={(e) => setRack(e.target.value)} placeholder="Rack, e.g. A3" onKeyDown={(e) => e.key === "Enter" && setShown(rack.trim())} />
         </div>
@@ -77,7 +76,7 @@ function RackHelper({ countedIds, onCount, disabled }) {
           )}
         </div>
       )}
-    </Card>
+    </Section>
   );
 }
 
@@ -148,9 +147,9 @@ export default function CountSheet() {
 
   return (
     <>
-      <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
+      <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
         <div>
-          <h1 className="text-3xl font-bold">Checking: {count.title}</h1>
+          <h1 className="text-[28px] font-bold leading-tight">Checking: {count.title}</h1>
           <p className="text-gray-600 mt-1 flex items-center gap-2">
             <Badge color={COUNT_STATUS_COLOR[count.status]}>{COUNT_STATUS_LABEL[count.status] || count.status_display}</Badge>
             Started {dateTime(count.created_at)} by {count.created_by} · {plural(count.lines.length, "item")}
@@ -174,15 +173,15 @@ export default function CountSheet() {
       <Alert onClose={() => setError("")}>{error}</Alert>
 
       {open && (
-        <Card className="p-5 mb-6">
+        <Section title="Scan to count" className="mb-5" bodyClassName="p-4">
           <p className="font-semibold mb-2">Scan each piece or pack — every scan adds one</p>
           <ItemSearch onSelect={onScan} />
           {flash && <p className="mt-3 text-green-800 font-semibold" role="status">{flash}</p>}
-        </Card>
+        </Section>
       )}
       {open && <RackHelper countedIds={countedIds} disabled={!open} onCount={(itemId, qty) => record({ item: itemId, quantity: qty, mode: "set" }, "Set")} />}
 
-      <Card>
+      <Section title={`Counted so far (${count.lines.length})`}>
         {count.lines.length === 0 ? (
           <Empty>Nothing counted yet.</Empty>
         ) : (
@@ -239,7 +238,7 @@ export default function CountSheet() {
             </tbody>
           </Table>
         )}
-      </Card>
+      </Section>
 
       {confirm && (
         <Modal title="Save this count to stock?" onClose={() => setConfirm(false)}>

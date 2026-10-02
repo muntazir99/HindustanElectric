@@ -8,7 +8,7 @@ import { useFetch } from "../../hooks/useFetch.js";
 import { usePage } from "../../hooks/usePage.js";
 import { errorMessage } from "../../lib/errors.js";
 import { date, dateTime, money, plain } from "../../lib/format.js";
-import { Alert, Badge, Button, Card, Field, Input, Modal, NumberInput, Spinner, Table, td, th } from "../../ui/index.js";
+import { Alert, Badge, Button, Field, Input, Modal, NumberInput, Section, Spinner, Table, td, th } from "../../ui/index.js";
 import { BILL_STATUS } from "./BillList.js";
 
 function CancelModal({ bill, onClose, onDone }) {
@@ -89,7 +89,7 @@ function ReturnModal({ bill, onClose, onDone }) {
         <>
           <table className="w-full text-left mb-4">
             <thead>
-              <tr className="text-xs uppercase text-gray-500 border-b">
+              <tr className="text-sm font-semibold text-gray-600 border-b border-line">
                 <th className="py-2">Item</th>
                 <th className="py-2 text-right">Sold</th>
                 <th className="py-2 text-right">Can return</th>
@@ -126,7 +126,7 @@ function ReturnModal({ bill, onClose, onDone }) {
                 role="radio"
                 aria-checked={refundMode === value}
                 onClick={() => setRefundMode(value)}
-                className={`px-3 py-1.5 rounded-lg border font-semibold ${refundMode === value ? "bg-blue-700 text-white border-blue-700" : "bg-white border-gray-300"}`}
+                className={`min-h-[44px] px-4 rounded-lg border-2 font-semibold ${refundMode === value ? "bg-steel-800 text-white border-steel-800" : "bg-white border-gray-300"}`}
               >
                 {label}
               </button>
@@ -181,9 +181,9 @@ export default function BillDetail() {
 
   return (
     <>
-      <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
+      <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-3">
+          <h1 className="text-[28px] font-bold leading-tight flex flex-wrap items-center gap-3">
             {quotation ? "Estimate" : "Bill"} {bill.number} <Badge color={color}>{label}</Badge>
           </h1>
           <p className="text-gray-600 mt-1">
@@ -243,7 +243,7 @@ export default function BillDetail() {
           ))}
         </Alert>
       )}
-      <Card className="mb-6">
+      <Section title={`Items (${bill.lines.length})`} className="mb-5">
         <Table>
           <thead>
             <tr>
@@ -278,11 +278,10 @@ export default function BillDetail() {
             ))}
           </tbody>
         </Table>
-      </Card>
+      </Section>
 
-      <div className="grid md:grid-cols-2 gap-6">
-        <Card className="p-5">
-          <h2 className="font-bold mb-2">Payments</h2>
+      <div className="grid md:grid-cols-2 gap-5">
+        <Section title="Payments" bodyClassName="p-4">
           {bill.payments.length === 0 ? (
             <p className="text-gray-500">None at the counter.</p>
           ) : (
@@ -310,8 +309,8 @@ export default function BillDetail() {
               )}
             </p>
           )}
-        </Card>
-        <Card className="p-5">
+        </Section>
+        <Section title="Totals" bodyClassName="p-4">
           <dl className="space-y-1">
             <div className="flex justify-between"><dt>Taxable value</dt><dd>{money(bill.taxable_total)}</dd></div>
             {Number(bill.igst_total) > 0 ? (
@@ -324,7 +323,7 @@ export default function BillDetail() {
             <div className="flex justify-between text-xl font-bold border-t pt-2"><dt>Total</dt><dd>{money(bill.total)}</dd></div>
             <p className="text-sm text-gray-600">{bill.amount_in_words}</p>
           </dl>
-        </Card>
+        </Section>
       </div>
 
       {returning && (

@@ -8,14 +8,14 @@ import { useFetch } from "../../hooks/useFetch.js";
 import { usePage } from "../../hooks/usePage.js";
 import { errorMessage } from "../../lib/errors.js";
 import { BASE_UNITS, GST_RATES, dateTime, money, plain, signed } from "../../lib/format.js";
-import { Alert, Button, Card, Empty, Field, Input, Modal, NumberInput, Select, Spinner, Table, td, th } from "../../ui/index.js";
+import { Alert, Button, Empty, Field, Input, Modal, NumberInput, Section, Select, Spinner, Table, td, th } from "../../ui/index.js";
 import { StatusBadges } from "./ItemList.js";
 import AdjustModal from "../stock/AdjustModal.js";
 
 function Info({ label, children }) {
   return (
     <div>
-      <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</dt>
+      <dt className="text-sm font-semibold text-gray-600">{label}</dt>
       <dd className="mt-0.5">{children || "—"}</dd>
     </div>
   );
@@ -204,15 +204,17 @@ function Units({ item, canChange, canPrice, onChanged }) {
   }
 
   return (
-    <Card className="mb-6">
-      <div className="flex items-center justify-between px-5 py-4 border-b">
-        <h2 className="font-bold text-lg">Units & barcodes</h2>
-        {canChange && (
-          <Button onClick={() => setAdding(!adding)}>
-            <Plus size={18} /> Add pack
-          </Button>
-        )}
-      </div>
+    <Section
+      title="Units & barcodes"
+      className="mb-5"
+      right={
+        canChange && (
+          <button type="button" onClick={() => setAdding(!adding)} className="inline-flex items-center gap-1 font-semibold text-blue-800 hover:underline">
+            <Plus size={17} /> Add pack
+          </button>
+        )
+      }
+    >
       <div className="px-5">
         <Alert>{error}</Alert>
       </div>
@@ -290,7 +292,7 @@ function Units({ item, canChange, canPrice, onChanged }) {
           </Button>
         </div>
       )}
-    </Card>
+    </Section>
   );
 }
 
@@ -319,8 +321,7 @@ function History({ itemId, canCost, version }) {
   }, [itemId, version]);
 
   return (
-    <Card>
-      <h2 className="font-bold text-lg px-5 py-4 border-b">Stock history</h2>
+    <Section title="Stock history">
       <Alert>{error}</Alert>
       {rows.length === 0 && !loading ? (
         <Empty>No stock movements yet.</Empty>
@@ -361,7 +362,7 @@ function History({ itemId, canCost, version }) {
           </Button>
         </div>
       )}
-    </Card>
+    </Section>
   );
 }
 
@@ -389,9 +390,9 @@ export default function ItemDetail() {
 
   return (
     <>
-      <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
+      <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
         <div>
-          <h1 className="text-2xl font-bold">{item.name}</h1>
+          <h1 className="text-[28px] font-bold leading-tight">{item.name}</h1>
           <div className="flex flex-wrap items-center gap-2 mt-1 text-gray-600">
             <span className="font-mono">#{item.code}</span>
             <StatusBadges item={item} />
@@ -416,16 +417,15 @@ export default function ItemDetail() {
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6 mb-6">
-        <Card className="p-6">
-          <p className="text-sm font-semibold text-gray-500">In stock</p>
-          <p className={`text-4xl font-bold mt-1 ${Number(item.stock_qty) < 0 ? "text-red-700" : ""}`}>{item.stock_display}</p>
+      <div className="grid lg:grid-cols-3 gap-5 mb-5">
+        <Section title="In stock" bodyClassName="p-4">
+          <p className={`text-4xl font-bold ${Number(item.stock_qty) < 0 ? "text-red-700" : ""}`}>{item.stock_display}</p>
           <p className="text-sm text-gray-500 mt-2">
             {item.counted_at ? `Last checked ${dateTime(item.counted_at)}` : "Not checked yet — this number isn't confirmed."}
           </p>
           {Number(item.min_stock) > 0 && <p className="text-sm text-gray-500">Reorder at {plain(item.min_stock)} {item.base_unit}</p>}
-        </Card>
-        <Card className="p-6 lg:col-span-2">
+        </Section>
+        <Section title="Details" className="lg:col-span-2" bodyClassName="p-4">
           <dl className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Info label="Price">{item.selling_price && `${money(item.selling_price)} / ${item.base_unit}`}</Info>
             <Info label="MRP">{item.mrp && `${money(item.mrp)} / ${item.base_unit}`}</Info>
@@ -436,7 +436,7 @@ export default function ItemDetail() {
             <Info label="GST">{`${plain(item.gst_rate)}%`}</Info>
             <Info label="Other names">{item.aliases}</Info>
           </dl>
-        </Card>
+        </Section>
       </div>
 
       <Units item={item} canChange={canChange} canPrice={canPrice} onChanged={setData} />

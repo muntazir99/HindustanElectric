@@ -123,16 +123,23 @@ function RecentBills() {
                     {bill.number}
                   </Link>
                   <span className="block text-sm text-gray-500">{dateTime(bill.finalised_at)}</span>
+                  {/* On a phone the buyer sits here, so the amount fits without swiping. */}
+                  <span className="sm:hidden block whitespace-normal">{bill.buyer_name || "Cash sale"}</span>
                 </td>
-                <td className={td}>{bill.buyer_name || "Cash sale"}</td>
-                <td className={td}>
+                <td className={`${td} hidden sm:table-cell`}>{bill.buyer_name || "Cash sale"}</td>
+                <td className={`${td} hidden sm:table-cell`}>
                   {Number(bill.credit_amount) > 0 ? (
                     <span className="px-2 py-0.5 rounded-md bg-red-50 text-red-800 text-sm font-semibold">Udhaar</span>
                   ) : (
                     <span className="text-sm text-gray-500">Paid</span>
                   )}
                 </td>
-                <td className={`${td} text-right text-lg font-bold whitespace-nowrap`}>{bigMoney(bill.total)}</td>
+                <td className={`${td} text-right whitespace-nowrap`}>
+                  <span className="text-lg font-bold">{bigMoney(bill.total)}</span>
+                  <span className={`sm:hidden block text-sm ${Number(bill.credit_amount) > 0 ? "text-red-800 font-semibold" : "text-gray-500"}`}>
+                    {Number(bill.credit_amount) > 0 ? "Udhaar" : "Paid"}
+                  </span>
+                </td>
               </tr>
             ))}
           </tbody>

@@ -23,7 +23,7 @@ class ErrorBoundary extends React.Component {
     if (!this.state.hasError) return this.props.children;
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
-        <div role="alert" className="w-full max-w-xl bg-white border border-gray-200 rounded-2xl p-6 md:p-9 flex flex-col items-center text-center gap-2">
+        <div role="alert" className="w-full max-w-xl bg-white border border-gray-200 rounded-[10px] p-6 md:p-9 flex flex-col items-center text-center gap-2">
           <span className="flex items-center justify-center w-[72px] h-[72px] rounded-full bg-amber-50 text-amber-700">
             <TriangleAlert size={36} />
           </span>
@@ -35,13 +35,13 @@ class ErrorBoundary extends React.Component {
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="flex items-center justify-center gap-2.5 h-[60px] rounded-xl bg-blue-800 hover:bg-blue-900 text-white text-xl font-bold"
+              className="flex items-center justify-center gap-2.5 h-[60px] rounded-[10px] bg-steel-800 hover:bg-steel-900 text-white text-xl font-bold"
             >
               <RotateCw size={22} /> Try again
             </button>
             <a
               href="/dashboard"
-              className="flex items-center justify-center gap-2 h-14 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-lg font-semibold"
+              className="flex items-center justify-center gap-2 h-14 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-lg font-semibold"
             >
               <Home size={20} /> Go to Home
             </a>

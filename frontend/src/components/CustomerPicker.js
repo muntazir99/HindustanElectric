@@ -44,7 +44,7 @@ export default function CustomerPicker({ value, onChange, inputId = "customer-se
   if (value) {
     const owes = Number(value.balance) > 0;
     return (
-      <div className="flex items-start justify-between gap-3 p-3 rounded-lg border border-blue-200 bg-blue-50">
+      <div className="flex items-start justify-between gap-3 p-3 rounded-lg border border-steel-200 bg-steel-50">
         <div>
           <p className="font-bold">{value.name}</p>
           <p className="text-sm text-gray-600">
@@ -87,7 +87,7 @@ export default function CustomerPicker({ value, onChange, inputId = "customer-se
             <li key={customer.id}>
               <button
                 type="button"
-                className="w-full text-left px-3 py-2 hover:bg-blue-50"
+                className="w-full text-left px-3 py-2 hover:bg-steel-50"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => choose(customer)}
               >
@@ -100,7 +100,7 @@ export default function CustomerPicker({ value, onChange, inputId = "customer-se
           <li>
             <button
               type="button"
-              className="w-full text-left px-3 py-2 text-blue-800 font-semibold hover:bg-blue-50 flex items-center gap-2"
+              className="w-full text-left px-3 py-2 text-blue-800 font-semibold hover:bg-steel-50 flex items-center gap-2"
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => setAdding(true)}
             >

@@ -128,7 +128,7 @@ export default function ItemSearch({
             <li key={item.id}>
               <button
                 type="button"
-                className={`w-full text-left px-4 py-2.5 flex justify-between gap-4 ${index === highlight ? "bg-blue-50" : "hover:bg-gray-50"}`}
+                className={`w-full text-left px-4 py-2.5 flex justify-between gap-4 ${index === highlight ? "bg-steel-50" : "hover:bg-gray-50"}`}
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => choose(item)}
                 onMouseEnter={() => setHighlight(index)}

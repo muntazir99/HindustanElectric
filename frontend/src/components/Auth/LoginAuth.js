@@ -43,7 +43,7 @@ function Login() {
           <h1 className="text-3xl font-bold">Hindustan Electric</h1>
           <p className="text-gray-600">Muzaffarpur</p>
         </div>
-        <form onSubmit={handleLogin} className="bg-white border border-gray-200 rounded-2xl p-6 space-y-4">
+        <form onSubmit={handleLogin} className="bg-white border border-line rounded-[10px] p-6 space-y-4">
           <Alert>{error}</Alert>
           {expired && <Alert kind="info">You were logged out after a long time away. Please log in again.</Alert>}
           <Field label="Username">

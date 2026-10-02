@@ -6,7 +6,7 @@ import { useAuth } from "../context/AuthContext.js";
 import { A } from "../lib/access.js";
 import { SAMPLE_SHEET_NAME, SAMPLE_SHEET_URL, downloadFile } from "../lib/download.js";
 import { errorMessage } from "../lib/errors.js";
-import { Alert, Badge, Button, Card, PageHeader, Table, td, th } from "../ui/index.js";
+import { Alert, Badge, Button, PageHeader, Pills, Section, Table, td, th } from "../ui/index.js";
 
 const KINDS = {
   catalogue: {
@@ -89,22 +89,13 @@ export default function ImportPage() {
         subtitle="Add many items, or new prices, at once. You'll see a preview before anything is saved."
       />
 
-      <div className="flex flex-wrap gap-2 mb-4" role="tablist">
-        {kinds.length > 1 && kinds.map(([value, { label }]) => (
-          <button
-            key={value}
-            type="button"
-            role="tab"
-            aria-selected={kind === value}
-            onClick={() => reset(value)}
-            className={`px-4 py-2 rounded-lg font-semibold border ${kind === value ? "bg-blue-700 text-white border-blue-700" : "bg-white border-gray-300"}`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      {kinds.length > 1 && (
+        <div className="mb-4">
+          <Pills options={kinds.map(([value, { label }]) => [value, label])} value={kind} onChange={(value) => reset(value)} />
+        </div>
+      )}
 
-      <Card className="p-6 mb-6">
+      <Section title={KINDS[kind].label} className="mb-5" bodyClassName="p-4 md:p-5">
         <p className="text-gray-700 mb-4">{KINDS[kind].text}</p>
         <ol className="space-y-4">
           <li className="flex flex-wrap items-center gap-3">
@@ -140,13 +131,13 @@ export default function ImportPage() {
             <span className="text-sm text-gray-600">Nothing is saved yet.</span>
           </li>
         </ol>
-      </Card>
+      </Section>
 
       <Alert>{error}</Alert>
 
       {summary && (
-        <Card className="mb-6">
-          <div className="p-5 border-b">
+        <Section title={summary.committed ? "Saved" : "Preview — nothing saved yet"} className="mb-5">
+          <div className="p-4 md:p-5 border-b border-gray-100">
             {summary.committed ? (
               <Alert kind="success">
                 Imported: {summary.created} new, {summary.updated} updated
@@ -227,7 +218,7 @@ export default function ImportPage() {
               ))}
             </tbody>
           </Table>
-        </Card>
+        </Section>
       )}
     </>
   );
