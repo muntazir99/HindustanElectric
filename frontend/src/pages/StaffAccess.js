@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { KeyRound, Plus, Power } from "lucide-react";
+import { ChevronDown, KeyRound, Plus, Power } from "lucide-react";
 import api from "../api.js";
 import { useFetch } from "../hooks/useFetch.js";
 import { errorMessage } from "../lib/errors.js";
@@ -72,11 +72,24 @@ function Presets({ definitions, onPick, disabled }) {
   );
 }
 
-function PersonCard({ person, definitions, onSaved }) {
+/** One line about what someone can do, for the folded card: "3 of 15 on: Make bills, Take udhaar payments…". */
+function summary(person, definitions) {
+  if (person.role === "owner") return "Can do everything";
+  if (!person.is_active) return "Login switched off";
+  const labels = definitions.switches.filter((item) => person.access.includes(item.code)).map((item) => item.label);
+  if (labels.length === 0) return "Nothing switched on yet";
+  const shown = labels.slice(0, 3).join(", ");
+  const more = labels.length > 3 ? ` and ${labels.length - 3} more` : "";
+  return `${labels.length} of ${definitions.switches.length} on: ${shown}${more}`;
+}
+
+function PersonCard({ person, definitions, onSaved, startOpen = false }) {
+  const [open, setOpen] = useState(startOpen);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [passwordOpen, setPasswordOpen] = useState(false);
   const owner = person.role === "owner";
+  const bodyId = `person-${person.id}`;
 
   async function save(changes) {
     setBusy(true);
@@ -91,45 +104,67 @@ function PersonCard({ person, definitions, onSaved }) {
   }
 
   return (
-    <Card className={`p-5 md:p-6 ${person.is_active ? "" : "bg-gray-50"}`}>
-      <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
-        <div>
-          <h2 className="text-xl font-bold flex flex-wrap items-center gap-2">
-            {person.name || person.username}
-            {owner && <Badge color="blue">Owner</Badge>}
-            {!person.is_active && <Badge color="red">Login switched off</Badge>}
-          </h2>
-          <p className="text-gray-600">
-            Username <b>{person.username}</b>
-            {person.last_login ? ` · last logged in ${dateTime(person.last_login)}` : " · hasn't logged in yet"}
-          </p>
+    <Card className={person.is_active ? "" : "bg-gray-50"}>
+      <h2>
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={bodyId}
+          onClick={() => setOpen(!open)}
+          className="w-full flex items-center gap-4 p-5 md:px-6 text-left rounded-2xl hover:bg-gray-50"
+        >
+          <span className="flex-1 min-w-0">
+            <span className="flex flex-wrap items-center gap-2 text-xl font-bold">
+              {person.name || person.username}
+              {owner && <Badge color="blue">Owner</Badge>}
+              {!person.is_active && <Badge color="red">Login switched off</Badge>}
+            </span>
+            <span className="block text-gray-600 font-normal">{summary(person, definitions)}</span>
+          </span>
+          <span className="shrink-0 hidden sm:inline text-blue-800 font-semibold">{open ? "Close" : "Open"}</span>
+          <ChevronDown size={24} className={`shrink-0 text-gray-500 transition-transform ${open ? "rotate-180" : ""}`} />
+        </button>
+      </h2>
+
+      {open && (
+        <div id={bodyId} className="px-5 md:px-6 pb-6 pt-1 border-t border-gray-100">
+          <div className="flex flex-wrap items-center justify-between gap-3 my-4">
+            <p className="text-gray-600">
+              Username <b>{person.username}</b>
+              {person.last_login ? ` · last logged in ${dateTime(person.last_login)}` : " · hasn't logged in yet"}
+            </p>
+            {!owner && (
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={() => setPasswordOpen(true)}>
+                  <KeyRound size={18} /> New password
+                </Button>
+                <Button
+                  variant={person.is_active ? "danger" : "secondary"}
+                  onClick={() => save({ is_active: !person.is_active })}
+                  disabled={busy}
+                >
+                  <Power size={18} /> {person.is_active ? "Switch login off" : "Switch login on"}
+                </Button>
+              </div>
+            )}
+          </div>
+          <Alert onClose={() => setError("")}>{error}</Alert>
+          {owner ? (
+            <p className="text-gray-700">Can do everything, including this page.</p>
+          ) : (
+            <>
+              <div className="mb-4">
+                <Presets definitions={definitions} onPick={(codes) => save({ access: codes })} disabled={busy || !person.is_active} />
+              </div>
+              <SwitchBoard
+                definitions={definitions}
+                value={person.access}
+                onChange={(codes) => save({ access: codes })}
+                disabled={busy || !person.is_active}
+              />
+            </>
+          )}
         </div>
-        {!owner && (
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={() => setPasswordOpen(true)}>
-              <KeyRound size={18} /> New password
-            </Button>
-            <Button variant={person.is_active ? "danger" : "secondary"} onClick={() => save({ is_active: !person.is_active })} disabled={busy}>
-              <Power size={18} /> {person.is_active ? "Switch login off" : "Switch login on"}
-            </Button>
-          </div>
-        )}
-      </div>
-      <Alert onClose={() => setError("")}>{error}</Alert>
-      {owner ? (
-        <p className="text-gray-700">Can do everything, including this page.</p>
-      ) : (
-        <>
-          <div className="mb-4">
-            <Presets definitions={definitions} onPick={(codes) => save({ access: codes })} disabled={busy || !person.is_active} />
-          </div>
-          <SwitchBoard
-            definitions={definitions}
-            value={person.access}
-            onChange={(codes) => save({ access: codes })}
-            disabled={busy || !person.is_active}
-          />
-        </>
       )}
       {passwordOpen && <PasswordModal person={person} onClose={() => setPasswordOpen(false)} />}
     </Card>
@@ -228,6 +263,7 @@ export default function StaffAccess() {
   const { data: definitions, error: defError } = useFetch("/auth/access");
   const [adding, setAdding] = useState(false);
   const [notice, setNotice] = useState("");
+  const [justAdded, setJustAdded] = useState(null);
 
   const replace = (updated) => setData(people.map((p) => (p.id === updated.id ? updated : p)));
 
@@ -236,7 +272,7 @@ export default function StaffAccess() {
       <PageHeader
         title="Staff & Access"
         back={["/more", "All options"]}
-        subtitle="Who can log in, and what each person can do. Changes save as you switch them and apply straight away."
+        subtitle="Who can log in, and what each person can do. Open a person to change their switches; changes save and apply straight away."
       >
         <Button variant="primary" onClick={() => setAdding(true)} disabled={!definitions}>
           <Plus size={20} /> Add staff
@@ -253,7 +289,13 @@ export default function StaffAccess() {
         definitions && (
           <div className="space-y-5">
             {people.map((person) => (
-              <PersonCard key={person.id} person={person} definitions={definitions} onSaved={replace} />
+              <PersonCard
+                key={person.id}
+                person={person}
+                definitions={definitions}
+                onSaved={replace}
+                startOpen={person.id === justAdded}
+              />
             ))}
           </div>
         )
@@ -265,6 +307,7 @@ export default function StaffAccess() {
           onSaved={(person) => {
             setAdding(false);
             setData([...people, person]);
+            setJustAdded(person.id);
             setNotice(`${person.name || person.username} can now log in with username “${person.username}”.`);
           }}
         />

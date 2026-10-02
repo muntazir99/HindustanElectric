@@ -5,6 +5,11 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-02 — Staff & Access: folding cards
+
+**Changed**
+- Each person on Staff & Access is one folded row — name, Owner / login-off badge and a one-line summary ("3 of 15 on: Make bills, Take udhaar payments, See old bills") — that opens to show their switches, password and login buttons. Someone just added opens by itself.
+
 ### 2026-10-02 — Staff access switches, step 2: screens — done
 
 **Added**
