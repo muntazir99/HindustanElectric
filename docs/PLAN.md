@@ -554,6 +554,7 @@ Same switches as today, no new ones:
 - Needs https, which the live server has. Free; no new switches; whoever can use the screen can scan on it.
 - **Scan to see an item:** a scan button in the phone's top bar opens the scanned item's page (price, stock, rack…).
 - **Barcode fields** (Add New Item, Add pack, quick Add item) have a camera button too, and warn if the code is already used.
+- **New Bill on a phone** (approved 2026-10-02): below 768 px each line is a two-row card (name, amount, remove; then Qty, Price, Disc), so nothing scrolls sideways. Tablets and the PC keep the table.
 
 ## 14. Open items
 

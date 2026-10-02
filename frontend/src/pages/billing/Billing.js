@@ -413,6 +413,120 @@ export default function Billing() {
   const held = heldData?.results || [];
   const gst = server ? round2(Number(server.cgst_total) + Number(server.sgst_total) + Number(server.igst_total)) : 0;
 
+  /** One bill line's pieces, laid out as a phone card or a table row. `compact`: smaller controls for phones. */
+  function lineParts(line, index, compact) {
+    const saved = computed[line.key];
+    const unit = line.item.units.find((u) => u.id === line.unit);
+    const wanted = Number(line.quantity || 0) * Number(unit?.factor || 1);
+    const stock = saved?.item_stock;
+    const short = stock?.counted && wanted > Number(stock.qty);
+    const quantity = Number(line.quantity || 0);
+    const stepButton = `${compact ? "w-8" : "w-9"} h-11 flex items-center justify-center bg-gray-50 hover:bg-gray-100`;
+    return {
+      rowTone: saved?.below_cost ? "!bg-red-50" : "",
+      amountTone: pending ? "text-gray-400" : "",
+      amount: saved ? money(saved.total) : "…",
+      info: (
+        <>
+          <span className="block font-semibold leading-snug">{line.item.name}</span>
+          <span className="block text-sm text-gray-500">
+            #{line.item.code}
+            {line.item.units.length === 1 && ` · ${unit?.name}`}
+            {stock && (stock.counted ? ` · in stock ${stock.display}` : " · shelf stock not checked yet")}
+          </span>
+          {short && (
+            <span className="flex items-center gap-1.5 text-sm text-amber-800 font-semibold">
+              <TriangleAlert size={15} /> More than the stock shows — check the shelf
+            </span>
+          )}
+          {saved?.below_cost && (
+            <span className="block text-sm text-red-700 font-semibold">
+              {mayGoLow ? "Below cost — allowed for you, with a warning" : "Price too low — ask the owner"}
+            </span>
+          )}
+          {line.item.units.length > 1 && (
+            <select
+              className={`${inputBase} h-10 py-1 mt-1.5`}
+              value={line.unit}
+              aria-label={`Unit line ${index + 1}`}
+              onChange={(e) => setLine(line.key, { unit: Number(e.target.value), ...(line.rateManual ? {} : { rate: "" }) })}
+            >
+              {line.item.units.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.is_base ? u.name : `${u.name} (${plain(u.factor)} ${line.item.base_unit})`}
+                </option>
+              ))}
+            </select>
+          )}
+        </>
+      ),
+      stepper: (
+        <span className="inline-flex items-center border border-gray-300 rounded-lg overflow-hidden bg-white">
+          <button
+            type="button"
+            aria-label={`One less, line ${index + 1}`}
+            disabled={quantity <= 1}
+            onClick={() => setLine(line.key, { quantity: plain(Math.max(1, quantity - 1)) })}
+            className={`${stepButton} disabled:opacity-40`}
+          >
+            <Minus size={17} />
+          </button>
+          <input
+            type="text"
+            inputMode="decimal"
+            autoComplete="off"
+            className={`${compact ? "w-10" : "w-11"} h-11 text-center text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-inset focus:ring-steel-700 ${
+              validQuantity(line) ? "" : "bg-red-50 text-red-700"
+            }`}
+            value={line.quantity}
+            aria-label={`Quantity line ${index + 1}`}
+            onChange={(e) => setLine(line.key, { quantity: e.target.value })}
+            onFocus={(e) => e.target.select()}
+            onKeyDown={(e) => e.key === "Enter" && focusSearch()}
+          />
+          <button
+            type="button"
+            aria-label={`One more, line ${index + 1}`}
+            onClick={() => setLine(line.key, { quantity: plain(quantity + 1) })}
+            className={stepButton}
+          >
+            <Plus size={17} />
+          </button>
+        </span>
+      ),
+      rate: (
+        <NumberInput
+          className={`${compact ? "w-[4.5rem]" : "w-20"} h-11 text-right`}
+          value={line.rate}
+          aria-label={`Rate line ${index + 1}`}
+          onChange={(e) => setLine(line.key, { rate: e.target.value, rateManual: e.target.value !== "" })}
+          onFocus={(e) => e.target.select()}
+          onKeyDown={(e) => e.key === "Enter" && focusSearch()}
+        />
+      ),
+      discount: (
+        <NumberInput
+          className={`${compact ? "w-14" : "w-16"} h-11 text-right`}
+          value={line.discount}
+          aria-label={`Discount line ${index + 1}`}
+          onChange={(e) => setLine(line.key, { discount: e.target.value, discountManual: e.target.value !== "" })}
+          onFocus={(e) => e.target.select()}
+          onKeyDown={(e) => e.key === "Enter" && focusSearch()}
+        />
+      ),
+      remove: (
+        <button
+          type="button"
+          aria-label={`Remove line ${index + 1}`}
+          onClick={() => changeLines((current) => current.filter((l) => l.key !== line.key))}
+          className={`${compact ? "w-9" : "w-10"} h-10 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50`}
+        >
+          <Trash2 size={19} />
+        </button>
+      ),
+    };
+  }
+
   return (
     // Two columns only on wide screens, so the items table always has room for every column.
     <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_380px] gap-5 items-start">
@@ -463,133 +577,71 @@ export default function Billing() {
           {lines.length === 0 ? (
             <p className="py-14 px-5 text-center text-gray-500">Scan an item or type its name above to start the bill.</p>
           ) : (
-            <Table>
-              <thead>
-                <tr>
-                  <th className={th}>Item</th>
-                  <th className={`${th} pl-2 pr-2`}>Qty</th>
-                  <th className={`${th} pl-2 pr-2`}>Price ₹</th>
-                  <th className={`${th} pl-2 pr-2`}>Disc %</th>
-                  <th className={`${th} pl-2 pr-2 text-right`}>Amount</th>
-                  <th className={`${th} pl-2 pr-2`}>
-                    <span className="sr-only">Remove</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
+            <>
+              {/* Phones: each line is a small card (name, amount and remove; then qty, price, discount), so
+                  nothing needs sideways scrolling. Wider screens: one table row per line. */}
+              <ul className="md:hidden divide-y divide-gray-100">
                 {lines.map((line, index) => {
-                  const saved = computed[line.key];
-                  const unit = line.item.units.find((u) => u.id === line.unit);
-                  const wanted = Number(line.quantity || 0) * Number(unit?.factor || 1);
-                  const stock = saved?.item_stock;
-                  const short = stock?.counted && wanted > Number(stock.qty);
-                  const quantity = Number(line.quantity || 0);
+                  const part = lineParts(line, index, true);
                   return (
-                    <tr key={line.key} className={saved?.below_cost ? "!bg-red-50" : ""}>
-                      <td className={`${td} pl-4 pr-2 min-w-[150px] align-middle`}>
-                        <span className="block font-semibold leading-snug">{line.item.name}</span>
-                        <span className="block text-sm text-gray-500">
-                          #{line.item.code}
-                          {line.item.units.length === 1 && ` · ${unit?.name}`}
-                          {stock && (stock.counted ? ` · in stock ${stock.display}` : " · shelf stock not checked yet")}
-                        </span>
-                        {short && (
-                          <span className="flex items-center gap-1.5 text-sm text-amber-800 font-semibold">
-                            <TriangleAlert size={15} /> More than the stock shows — check the shelf
-                          </span>
-                        )}
-                        {saved?.below_cost && (
-                          <span className="block text-sm text-red-700 font-semibold">
-                            {mayGoLow ? "Below cost — allowed for you, with a warning" : "Price too low — ask the owner"}
-                          </span>
-                        )}
-                        {line.item.units.length > 1 && (
-                          <select
-                            className={`${inputBase} h-10 py-1 mt-1.5`}
-                            value={line.unit}
-                            aria-label={`Unit line ${index + 1}`}
-                            onChange={(e) => setLine(line.key, { unit: Number(e.target.value), ...(line.rateManual ? {} : { rate: "" }) })}
-                          >
-                            {line.item.units.map((u) => (
-                              <option key={u.id} value={u.id}>
-                                {u.is_base ? u.name : `${u.name} (${plain(u.factor)} ${line.item.base_unit})`}
-                              </option>
-                            ))}
-                          </select>
-                        )}
-                      </td>
-                      <td className={`${td} pl-2 pr-2 align-middle`}>
-                        <span className="inline-flex items-center border border-gray-300 rounded-lg overflow-hidden bg-white">
-                          <button
-                            type="button"
-                            aria-label={`One less, line ${index + 1}`}
-                            disabled={quantity <= 1}
-                            onClick={() => setLine(line.key, { quantity: plain(Math.max(1, quantity - 1)) })}
-                            className="w-9 h-11 flex items-center justify-center bg-gray-50 hover:bg-gray-100 disabled:opacity-40"
-                          >
-                            <Minus size={17} />
-                          </button>
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            autoComplete="off"
-                            className={`w-11 h-11 text-center text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-inset focus:ring-steel-700 ${
-                              validQuantity(line) ? "" : "bg-red-50 text-red-700"
-                            }`}
-                            value={line.quantity}
-                            aria-label={`Quantity line ${index + 1}`}
-                            onChange={(e) => setLine(line.key, { quantity: e.target.value })}
-                            onFocus={(e) => e.target.select()}
-                            onKeyDown={(e) => e.key === "Enter" && focusSearch()}
-                          />
-                          <button
-                            type="button"
-                            aria-label={`One more, line ${index + 1}`}
-                            onClick={() => setLine(line.key, { quantity: plain(quantity + 1) })}
-                            className="w-9 h-11 flex items-center justify-center bg-gray-50 hover:bg-gray-100"
-                          >
-                            <Plus size={17} />
-                          </button>
-                        </span>
-                      </td>
-                      <td className={`${td} pl-2 pr-2 align-middle`}>
-                        <NumberInput
-                          className="w-20 h-11 text-right"
-                          value={line.rate}
-                          aria-label={`Rate line ${index + 1}`}
-                          onChange={(e) => setLine(line.key, { rate: e.target.value, rateManual: e.target.value !== "" })}
-                          onFocus={(e) => e.target.select()}
-                          onKeyDown={(e) => e.key === "Enter" && focusSearch()}
-                        />
-                      </td>
-                      <td className={`${td} pl-2 pr-2 align-middle`}>
-                        <NumberInput
-                          className="w-16 h-11 text-right"
-                          value={line.discount}
-                          aria-label={`Discount line ${index + 1}`}
-                          onChange={(e) => setLine(line.key, { discount: e.target.value, discountManual: e.target.value !== "" })}
-                          onFocus={(e) => e.target.select()}
-                          onKeyDown={(e) => e.key === "Enter" && focusSearch()}
-                        />
-                      </td>
-                      <td className={`${td} pl-2 pr-2 text-right text-lg font-bold whitespace-nowrap align-middle ${pending ? "text-gray-400" : ""}`}>
-                        {saved ? money(saved.total) : "…"}
-                      </td>
-                      <td className={`${td} pl-2 pr-2 align-middle`}>
-                        <button
-                          type="button"
-                          aria-label={`Remove line ${index + 1}`}
-                          onClick={() => changeLines((current) => current.filter((l) => l.key !== line.key))}
-                          className="w-10 h-10 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50"
-                        >
-                          <Trash2 size={19} />
-                        </button>
-                      </td>
-                    </tr>
+                    <li key={line.key} className={`px-3 py-3 ${part.rowTone}`}>
+                      <div className="flex items-start gap-2">
+                        <div className="flex-1 min-w-0">{part.info}</div>
+                        <div className={`text-lg font-bold whitespace-nowrap pt-1 ${part.amountTone}`}>{part.amount}</div>
+                        <div className="-mr-1">{part.remove}</div>
+                      </div>
+                      <div className="flex items-end gap-2 mt-2">
+                        <label className="block">
+                          <span className="block text-xs text-gray-500 mb-0.5">Qty</span>
+                          {part.stepper}
+                        </label>
+                        <label className="block">
+                          <span className="block text-xs text-gray-500 mb-0.5">Price ₹</span>
+                          {part.rate}
+                        </label>
+                        <label className="block">
+                          <span className="block text-xs text-gray-500 mb-0.5">Disc %</span>
+                          {part.discount}
+                        </label>
+                      </div>
+                    </li>
                   );
                 })}
-              </tbody>
-            </Table>
+              </ul>
+              <div className="hidden md:block">
+                <Table>
+                  <thead>
+                    <tr>
+                      <th className={th}>Item</th>
+                      <th className={`${th} pl-2 pr-2`}>Qty</th>
+                      <th className={`${th} pl-2 pr-2`}>Price ₹</th>
+                      <th className={`${th} pl-2 pr-2`}>Disc %</th>
+                      <th className={`${th} pl-2 pr-2 text-right`}>Amount</th>
+                      <th className={`${th} pl-2 pr-2`}>
+                        <span className="sr-only">Remove</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lines.map((line, index) => {
+                      const part = lineParts(line, index, false);
+                      return (
+                        <tr key={line.key} className={part.rowTone}>
+                          <td className={`${td} pl-4 pr-2 min-w-[150px] align-middle`}>{part.info}</td>
+                          <td className={`${td} pl-2 pr-2 align-middle`}>{part.stepper}</td>
+                          <td className={`${td} pl-2 pr-2 align-middle`}>{part.rate}</td>
+                          <td className={`${td} pl-2 pr-2 align-middle`}>{part.discount}</td>
+                          <td className={`${td} pl-2 pr-2 text-right text-lg font-bold whitespace-nowrap align-middle ${part.amountTone}`}>
+                            {part.amount}
+                          </td>
+                          <td className={`${td} pl-2 pr-2 align-middle`}>{part.remove}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </Table>
+              </div>
+            </>
           )}
         </Section>
       </div>

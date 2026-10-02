@@ -5,6 +5,19 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-02 — New Bill on a phone: each line is a card
+
+**Changed**
+- On screens narrower than a tablet (under 768 px), each bill line is a small card instead of a table row. The table needed about 650 px, so on a phone you had to swipe sideways inside the items box to see the price and amount.
+  - **Top row:** item name, code, stock note, pack picker, the **amount** in bold, and remove.
+  - **Second row:** labelled **Qty** (− / +), **Price ₹** and **Disc %**.
+- Tablets and the counter PC keep the table, unchanged.
+- Both layouts use the same controls (`lineParts` in `Billing.js`), so quantity, price, discount, pack and remove behave the same everywhere. Look only: no change to prices, rules or printouts.
+- Checked in the browser:
+  - at 360 px (Galaxy S23) with an MCB and a wire coil, nothing sticks out, and + doubled the amount (₹270 → ₹540);
+  - at 768 px and 1366 px the table fits with no sideways swipe; total ₹1,990.
+- Note: the app's base text is 18 px, so Tailwind's rem sizes are 12.5% larger than the usual 16 px arithmetic.
+
 ### 2026-10-02 — Camera scan in barcode fields
 
 **Added**
