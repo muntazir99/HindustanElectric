@@ -5,6 +5,15 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-02 — Staff & Access shows real login times
+
+**Fixed**
+- Staff & Access said *"hasn't logged in yet"* for people who had. App logins never recorded the time; only back-office logins did. Now:
+  - every app login records it;
+  - for people who logged in before this fix and are still logged in, the time their current login started (read from their login token) is recorded the next time the app opens or comes back into view. Nobody has to log in again.
+  - An older token never moves the time backwards.
+- Tests: the app login records the time, a login from before the fix is filled in, and the time never goes backwards. 315 server tests.
+
 ### 2026-10-02 — New Bill on a phone: each line is a card
 
 **Changed**

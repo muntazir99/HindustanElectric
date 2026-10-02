@@ -1,5 +1,8 @@
+from datetime import timedelta
+
 import pytest
 from django.core.management import call_command
+from django.utils import timezone
 from rest_framework_simplejwt.tokens import AccessToken
 
 from accounts.models import User
@@ -113,3 +116,39 @@ class TestChangePassword:
         assert response.status_code == 200
         staff.refresh_from_db()
         assert staff.check_password("Brand-new-pass-7")
+
+
+class TestLastLogin:
+    """Staff & Access shows "last logged in …": app logins must record it, not only back-office ones."""
+
+    def test_app_login_records_the_time(self, api, staff):
+        assert staff.last_login is None
+        response = api.post("/api/auth/login", {"username": "staff", "password": PASSWORD}, format="json")
+        assert response.status_code == 200
+        staff.refresh_from_db()
+        assert staff.last_login is not None
+
+    def test_someone_logged_in_before_the_fix_shows_when_their_login_started(self, api, staff, owner_api):
+        # A token issued earlier, when logins weren't recorded; the app checks in (/auth/me) on start or focus.
+        token = AccessToken.for_user(staff)
+        token.set_iat(at_time=timezone.now() - timedelta(hours=3))
+        api.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+        assert api.get("/api/auth/me").status_code == 200
+
+        staff.refresh_from_db()
+        assert staff.last_login is not None
+        assert timedelta(hours=2, minutes=59) < timezone.now() - staff.last_login < timedelta(hours=3, minutes=1)
+        listed = {person["username"]: person for person in owner_api.get("/api/auth/staff").json()}
+        assert listed["staff"]["last_login"] is not None
+
+    def test_an_older_token_never_moves_the_time_back(self, api, staff):
+        api.post("/api/auth/login", {"username": "staff", "password": PASSWORD}, format="json")
+        staff.refresh_from_db()
+        latest = staff.last_login
+
+        old = AccessToken.for_user(staff)
+        old.set_iat(at_time=timezone.now() - timedelta(hours=5))
+        api.credentials(HTTP_AUTHORIZATION=f"Bearer {old}")
+        api.get("/api/auth/me")
+        staff.refresh_from_db()
+        assert staff.last_login == latest

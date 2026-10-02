@@ -1,4 +1,7 @@
+from datetime import datetime, timezone
+
 from django.contrib.auth import authenticate
+from django.contrib.auth.models import update_last_login
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from rest_framework import mixins, serializers, status, viewsets
@@ -55,6 +58,7 @@ class LoginView(APIView):
                 {"success": False, "message": "Invalid username or password."},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
+        update_last_login(None, user)  # shown on Staff & Access ("last logged in …")
         return Response(
             {
                 "success": True,
@@ -67,6 +71,21 @@ class LoginView(APIView):
         )
 
 
+def note_login_time(user, token):
+    """
+    App logins before 2026-10-02 didn't record the time, so Staff & Access said "hasn't logged in yet" for
+    people who had. The login token says when it was issued: record that if it's newer than what's stored.
+    """
+    issued = token.get("iat") if token is not None and hasattr(token, "get") else None
+    if not issued:
+        return
+    started = datetime.fromtimestamp(issued, tz=timezone.utc)
+    # Tokens count whole seconds; the login itself records the exact moment.
+    if user.last_login is None or user.last_login.replace(microsecond=0) < started:
+        User.objects.filter(pk=user.pk).update(last_login=started)
+        user.last_login = started
+
+
 class MeView(APIView):
     """Who is logged in and what they may do. The app asks on every start, so switch changes show at once."""
 
@@ -74,6 +93,7 @@ class MeView(APIView):
 
     def get(self, request):
         user = request.user
+        note_login_time(user, request.auth)
         return Response(
             {
                 "success": True,
