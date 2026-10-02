@@ -51,7 +51,8 @@ cd /
 
 step "Restart"
 systemctl restart hindustan-electric
-nginx -t -q && systemctl reload nginx
+nginx -t -q  # a bad web server config stops the update here
+systemctl reload nginx
 for _ in $(seq 1 20); do
   if curl -fsS -H "Host: $domain" -H "X-Forwarded-Proto: https" http://127.0.0.1:8001/api/health >/dev/null 2>&1; then
     echo "App is up."

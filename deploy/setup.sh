@@ -78,6 +78,10 @@ usermod -aG "$APP_USER" www-data
 step "Code from GitHub ($BRANCH)"
 if [ ! -d "$APP_DIR/.git" ]; then
   sudo -u "$APP_USER" git clone --quiet --branch "$BRANCH" "$REPO_URL" "$APP_DIR"
+else
+  # Run again: use the latest deploy files below, not the ones from the first run.
+  sudo -u "$APP_USER" git -C "$APP_DIR" fetch --quiet origin "$BRANCH"
+  sudo -u "$APP_USER" git -C "$APP_DIR" merge --quiet --ff-only "origin/$BRANCH"
 fi
 
 step "Database: local only; the app logs in as its own system user, no password"
@@ -128,13 +132,15 @@ server {
 }
 EOF
   ln -sf "$site" /etc/nginx/sites-enabled/hindustan-electric
-  nginx -t -q && systemctl reload nginx
+  nginx -t -q
+  systemctl reload nginx
   certbot certonly --webroot -w "$ACME_DIR" -d "$DOMAIN" --non-interactive --agree-tos \
     --register-unsafely-without-email --deploy-hook "systemctl reload nginx"
 fi
 sed -e "s|__DOMAIN__|$DOMAIN|g" -e "s|__APP__|$APP_DIR|g" -e "s|__ACME__|$ACME_DIR|g" \
   "$APP_DIR/deploy/nginx.conf" > "$site"
 ln -sf "$site" /etc/nginx/sites-enabled/hindustan-electric
+nginx -t -q
 
 step "Deploy the app"
 bash "$APP_DIR/deploy/update.sh"
