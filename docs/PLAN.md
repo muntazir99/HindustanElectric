@@ -556,7 +556,30 @@ Same switches as today, no new ones:
 - **Barcode fields** (Add New Item, Add pack, quick Add item) have a camera button too, and warn if the code is already used.
 - **New Bill on a phone** (approved 2026-10-02): below 768 px each line is a two-row card (name, amount, remove; then Qty, Price, Disc), so nothing scrolls sideways. Tablets and the PC keep the table.
 
-## 14. Open items
+## 14. Staff use from outside the shop (future — not started)
+
+Raised 2026-10-02: anyone with the address and a staff password can use the app from anywhere, e.g. from home.
+
+**Already in place:** each staff member can only do what their switches allow (no costs, profit, refunds or stock
+fixes unless switched on). Switching a login off cuts it at once, because the server checks on every request.
+There are login limits and HTTPS everywhere.
+
+**Options**
+
+| Option | How it works | Catch |
+|---|---|---|
+| **Approved devices** (recommended) | Staff logins work only on devices the owner approved (counter PC, shop phone); a new device waits for approval in Staff & Access | Doesn't stop an approved phone being taken home |
+| **Shop hours** (recommended) | Staff can use the app only in the hours the owner sets (e.g. 9:00–21:30, closed Sunday); logins end at closing | Daytime use from home still possible, so pair it with approved devices |
+| **Login log + alerts** (recommended) | Staff & Access shows each login's time, device and whether it came from the shop's internet; flags "outside the shop" | Detects, doesn't block |
+| Shop internet only | Staff logins only from the shop's internet address | Only if the shop has a fixed address; most broadband and mobile data change address |
+
+The owner is never restricted. All options are free and built into the app.
+
+**To decide before planning in detail:**
+- Do staff use only shop devices, their own phones, or both?
+- Which of the options above?
+
+## 15. Open items
 
 - [x] Owner approval of Phase 1 design (§6)
 - [x] Remove the old Flask files from the repo root (preserved under tag `flask-final`)
@@ -573,4 +596,5 @@ Same switches as today, no new ones:
 - [x] Owner approval of the middle-ground look (§10)
 - [ ] Decide: staff price floor for items with no cost yet (review item 4) — block more than X% below the set price?
 - [ ] Decide: "log out everywhere", also on password change (review item 5)
+- [ ] Decide: limits on staff using the app from outside the shop (§14) — approved devices, shop hours, login log
 - [ ] Upgrade npm on the dev Mac (npm 10.7 crashes on `npm audit fix`; only dev tools have open advisories)
