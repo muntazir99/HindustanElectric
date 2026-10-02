@@ -7,6 +7,8 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from accounts.access import ADD_ITEMS, EDIT_ITEMS
+from accounts.permissions import OPEN, can
 from core.params import id_param
 
 from . import services
@@ -22,19 +24,23 @@ from .serializers import (
     ProductCreateSerializer,
     ProductSerializer,
     VariantsSerializer,
-    is_owner,
 )
 
 ITEMS = Item.objects.select_related("product__brand", "product__category").prefetch_related("units")
 
 
+ITEM_MAKERS = (ADD_ITEMS, EDIT_ITEMS)
+
+
 class CategoryList(generics.ListCreateAPIView):
+    access = {"get": OPEN, "post": ITEM_MAKERS}
     queryset = Category.objects.select_related("parent")
     serializer_class = CategorySerializer
     pagination_class = None
 
 
 class BrandList(generics.ListCreateAPIView):
+    access = {"get": OPEN, "post": ITEM_MAKERS}
     queryset = Brand.objects.all()
     serializer_class = BrandSerializer
     pagination_class = None
@@ -101,6 +107,8 @@ def create_variants(product, data):
 
 class ItemViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     serializer_class = ItemSerializer
+    # Finding items is open to everyone: every job needs it.
+    access = {"list": OPEN, "retrieve": OPEN, "movements": OPEN, "partial_update": ITEM_MAKERS, "units": ITEM_MAKERS}
 
     def get_queryset(self):
         if self.action == "list":
@@ -139,8 +147,8 @@ class ItemViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gen
         if item.units.filter(name__iexact=pack.validated_data["name"]).exists():
             raise services.CatalogError(f"{item} already has a unit called {pack.validated_data['name']}.")
         prices = {key: request.data.get(key) for key in ("mrp", "selling_price") if request.data.get(key) not in (None, "")}
-        if prices and not is_owner({"request": request}):
-            raise PermissionDenied("Only the owner can set prices.")
+        if prices and not can(request, EDIT_ITEMS):
+            raise PermissionDenied("Only the owner (or someone allowed to change prices) can set prices.")
         services.set_pack(
             item,
             pack.validated_data["name"],
@@ -154,11 +162,13 @@ class ItemViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gen
 class UnitDetail(APIView):
     """Edit or remove one unit. Base units only take a barcode; their prices live on the item."""
 
+    access = {"patch": ITEM_MAKERS, "delete": EDIT_ITEMS}
+
     def patch(self, request, pk):
         unit = get_object_or_404(ItemUnit.objects.select_related("item"), pk=pk)
         data = request.data
-        if not is_owner({"request": request}) and ({"mrp", "selling_price"} & set(data)):
-            raise PermissionDenied("Only the owner can change prices.")
+        if not can(request, EDIT_ITEMS) and ({"mrp", "selling_price"} & set(data)):
+            raise PermissionDenied("Only the owner (or someone allowed to change prices) can change prices.")
         if unit.is_base and (set(data) - {"barcode"}):
             raise services.CatalogError("For the base unit only the barcode can be changed here.")
         with transaction.atomic():
@@ -177,8 +187,6 @@ class UnitDetail(APIView):
         return Response(ItemSerializer(ITEMS.get(pk=unit.item_id), context={"request": request}).data)
 
     def delete(self, request, pk):
-        if not is_owner({"request": request}):
-            raise PermissionDenied("Only the owner can remove a pack size.")
         unit = get_object_or_404(ItemUnit, pk=pk)
         if unit.is_base:
             raise services.CatalogError("The base unit can't be removed.")
@@ -190,6 +198,8 @@ class UnitDetail(APIView):
 
 class ItemLookup(APIView):
     """Find an item by scanned barcode or typed item code: GET /lookup?code=..."""
+
+    access = {"get": OPEN}
 
     def get(self, request):
         code = request.query_params.get("code", "").strip()
@@ -206,6 +216,7 @@ class ItemLookup(APIView):
 class ProductViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     queryset = Product.objects.select_related("brand", "category")
     serializer_class = ProductSerializer
+    access = {"list": OPEN, "retrieve": OPEN, "create": ADD_ITEMS, "variants": ADD_ITEMS, "partial_update": EDIT_ITEMS}
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -256,8 +267,6 @@ class ProductViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
         )
 
     def partial_update(self, request, pk=None):
-        if not is_owner({"request": request}):
-            raise PermissionDenied("Only the owner can change product details like HSN and GST.")
         product = self.get_object()
         serializer = ProductSerializer(product, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)

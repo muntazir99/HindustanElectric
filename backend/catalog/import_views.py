@@ -4,7 +4,8 @@ from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from accounts.permissions import IsOwner
+from accounts.access import EDIT_ITEMS, IMPORT
+from accounts.permissions import OPEN
 
 from . import importers
 
@@ -22,6 +23,11 @@ def flag(request, name):
     return str(request.data.get(name, "")).lower() in ("1", "true", "yes")
 
 
+def import_switch(request, view):
+    """New items from Excel need "Upload from Excel"; new prices need "Change prices and items"."""
+    return EDIT_ITEMS if view.kwargs.get("kind") == "prices" else IMPORT
+
+
 def kind_or_404(kind):
     if kind not in KINDS:
         raise NotFound("Unknown import type.")
@@ -37,7 +43,7 @@ def xlsx_response(content, filename):
 class ImportTemplate(APIView):
     """Empty sheet with headings and a how-to sheet."""
 
-    permission_classes = [IsOwner]
+    access = {"get": import_switch}
 
     def get(self, request, kind):
         columns, examples, notes, _ = kind_or_404(kind)
@@ -49,6 +55,8 @@ class ImportTemplate(APIView):
 
 class CatalogueSample(APIView):
     """A filled-in example sheet, for anyone preparing items (staff fill it, the owner imports it)."""
+
+    access = {"get": OPEN}
 
     def get(self, request):
         return xlsx_response(
@@ -65,7 +73,7 @@ class ImportUpload(APIView):
     Send commit=true to save; add skip_errors=true to save the good rows when some rows have errors.
     """
 
-    permission_classes = [IsOwner]
+    access = {"post": import_switch}
     parser_classes = [MultiPartParser]
 
     def post(self, request, kind):

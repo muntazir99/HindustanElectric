@@ -4,7 +4,8 @@ from rest_framework import serializers
 
 from catalog.display import format_quantity
 from catalog.models import Item, ItemUnit
-from catalog.serializers import is_owner
+from accounts.access import FIX_STOCK
+from accounts.permissions import can
 
 from .models import Adjustment, StockCount, StockCountLine
 
@@ -71,7 +72,8 @@ class StockCountLineSerializer(serializers.ModelSerializer):
 
     def to_representation(self, line):
         data = super().to_representation(line)
-        if not is_owner(self.context):
+        # Counters just count; whoever saves the count to stock sees what the system thought.
+        if not can(self.context, FIX_STOCK):
             data.pop("system_qty")
             data.pop("difference")
         return data

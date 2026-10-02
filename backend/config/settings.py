@@ -120,9 +120,10 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
-    # Every endpoint requires login unless it explicitly opts out.
+    # Every endpoint requires login, and for staff the switch its view names in `access`; an endpoint
+    # that names none is owner-only (accounts.permissions.HasAccess).
     "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.IsAuthenticated",
+        "accounts.permissions.HasAccess",
     ],
     "DEFAULT_PAGINATION_CLASS": "core.pagination.StandardPagination",
     "EXCEPTION_HANDLER": "core.exceptions.api_exception_handler",

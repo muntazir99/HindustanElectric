@@ -6,7 +6,8 @@ from rest_framework import serializers
 
 from catalog.display import format_quantity
 from catalog.models import Item, ItemUnit
-from catalog.serializers import is_owner
+from accounts.access import KHATA_CONTROL
+from accounts.permissions import can
 from core.fields import GstRateField
 
 from .models import CreditNote, CreditNoteLine, Customer, Invoice, InvoiceLine, Payment
@@ -34,10 +35,12 @@ class CustomerSerializer(serializers.ModelSerializer):
         return str(value if value is not None else customer.balance())
 
     def validate(self, attrs):
-        if not is_owner(self.context):
+        if not can(self.context, KHATA_CONTROL):
             blocked = self.OWNER_ONLY & set(self.initial_data)
             if blocked:
-                raise serializers.ValidationError({field: "Only the owner can set this." for field in blocked})
+                raise serializers.ValidationError(
+                    {field: "Only the owner (or someone with udhaar control) can set this." for field in blocked}
+                )
         return attrs
 
 

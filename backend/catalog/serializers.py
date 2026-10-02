@@ -2,15 +2,12 @@ from decimal import Decimal
 
 from rest_framework import serializers
 
+from accounts.access import EDIT_ITEMS, SEE_COSTS
+from accounts.permissions import can
 from core.fields import GstRateField
 
 from .display import format_quantity
 from .models import BaseUnit, Brand, Category, Item, ItemUnit, Product
-
-
-def is_owner(context):
-    request = context.get("request")
-    return bool(request and request.user.is_authenticated and request.user.is_owner)
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -64,13 +61,13 @@ class ItemSerializer(serializers.ModelSerializer):
 
     def to_representation(self, item):
         data = super().to_representation(item)
-        if not is_owner(self.context):
+        if not can(self.context, SEE_COSTS):
             data.pop("cost_price")
         return data
 
 
 class ItemUpdateSerializer(serializers.ModelSerializer):
-    """Fields that can be edited on an existing item. Prices and deactivation are owner-only."""
+    """Fields that can be edited on an existing item. Prices and switching off need "Change prices and items"."""
 
     OWNER_ONLY = {"mrp", "selling_price", "is_active"}
 
@@ -79,11 +76,11 @@ class ItemUpdateSerializer(serializers.ModelSerializer):
         fields = ["variant", "base_unit", "mrp", "selling_price", "min_stock", "rack", "aliases", "is_active"]
 
     def validate(self, attrs):
-        if not is_owner(self.context):
+        if not can(self.context, EDIT_ITEMS):
             blocked = self.OWNER_ONLY & set(attrs)
             if blocked:
                 raise serializers.ValidationError(
-                    {field: "Only the owner can change this." for field in blocked}
+                    {field: "Only the owner (or someone allowed to change prices) can change this." for field in blocked}
                 )
         return attrs
 
@@ -154,6 +151,6 @@ class MovementSerializer(serializers.Serializer):
 
     def to_representation(self, movement):
         data = super().to_representation(movement)
-        if not is_owner(self.context):
+        if not can(self.context, SEE_COSTS):
             data.pop("unit_cost")
         return data

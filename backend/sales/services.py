@@ -10,6 +10,7 @@ from django.db import transaction
 from django.db.models import Sum
 from django.utils import timezone
 
+from accounts.access import KHATA_CONTROL, LOW_PRICES, SEE_COSTS
 from core.numbers import cost, money, qty
 from shop.models import ShopSettings
 from stock.models import StockMovement
@@ -134,25 +135,28 @@ def _check_credit_limit(customer, credit, user, warnings):
         message = (
             f"{customer.name} would owe ₹{new_balance}, over their credit limit of ₹{customer.credit_limit}."
         )
-        if not user.is_owner:
-            raise BillingError(f"{message} Only the owner can allow this.")
+        if not user.can(KHATA_CONTROL):
+            raise BillingError(f"{message} Ask the owner.")
         warnings.append(message)
 
 
 def _check_prices(lines, items, user, warnings):
-    """Nothing may be sold below its average cost, except by the owner (with a warning)."""
+    """Nothing may be sold below its average cost, except with "Allow low prices" (and a warning)."""
     for line in lines:
         item_cost = items[line.item_id].cost_price
         if item_cost is None or line.base_quantity <= 0:
             continue
         price = line.taxable_value / line.base_quantity
         if price < item_cost:
-            if not user.is_owner:
+            if not user.can(LOW_PRICES):
                 raise BillingError(f"{line.description}: the price is too low. Ask the owner.")
-            warnings.append(
-                f"{line.description} is sold at ₹{price:.2f}/{items[line.item_id].base_unit} before GST, "
-                f"below its average cost of ₹{item_cost:.2f}."
-            )
+            if user.can(SEE_COSTS):
+                warnings.append(
+                    f"{line.description} is sold at ₹{price:.2f}/{items[line.item_id].base_unit} before GST, "
+                    f"below its average cost of ₹{item_cost:.2f}."
+                )
+            else:
+                warnings.append(f"{line.description} is sold below its cost.")
 
 
 def finalise(invoice, *, payments, user):

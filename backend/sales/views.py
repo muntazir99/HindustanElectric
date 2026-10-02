@@ -9,8 +9,9 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from accounts.access import BILLING, KHATA_CONTROL, PAYMENTS, RETURNS, VIEW_BILLS, VIEW_KHATA, VIEW_SALES
+from accounts.permissions import OPEN, can
 from catalog.models import ItemUnit
-from catalog.serializers import is_owner
 from core.params import id_param
 
 from . import services
@@ -46,6 +47,17 @@ class CustomerViewSet(
 ):
     serializer_class = CustomerSerializer
     http_method_names = ["get", "post", "patch"]
+    # Billing picks a customer; payments and khata look them up. Limits and corrections: udhaar control.
+    access = {
+        "list": (BILLING, PAYMENTS, VIEW_KHATA),
+        "retrieve": (BILLING, PAYMENTS, VIEW_KHATA),
+        "create": (BILLING, PAYMENTS, VIEW_KHATA),
+        "partial_update": (VIEW_KHATA, KHATA_CONTROL),
+        "ledger": (PAYMENTS, VIEW_KHATA),
+        "payments": PAYMENTS,
+        "opening": KHATA_CONTROL,
+        "adjust": KHATA_CONTROL,
+    }
 
     def get_queryset(self):
         queryset = customers_with_balance().order_by("name")
@@ -95,9 +107,7 @@ class CustomerViewSet(
 
     @action(detail=True, methods=["post"])
     def opening(self, request, pk=None):
-        """Owner: what they already owed from the paper khata (negative = advance)."""
-        if not is_owner({"request": request}):
-            raise PermissionDenied("Only the owner can set an opening balance.")
+        """Udhaar control: what they already owed from the paper khata (negative = advance)."""
         customer = self.get_object()
         serializer = AmountSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -106,9 +116,7 @@ class CustomerViewSet(
 
     @action(detail=True, methods=["post"])
     def adjust(self, request, pk=None):
-        """Owner: correct the khata (+ owes more, − owes less), with a reason."""
-        if not is_owner({"request": request}):
-            raise PermissionDenied("Only the owner can adjust a khata.")
+        """Udhaar control: correct the khata (+ owes more, − owes less), with a reason."""
         customer = self.get_object()
         serializer = AmountSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -121,11 +129,10 @@ class ReceiptViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
 
     queryset = Payment.objects.filter(kind=Payment.Kind.KHATA).select_related("customer", "created_by")
     serializer_class = ReceiptSerializer
+    access = {"retrieve": (PAYMENTS, VIEW_KHATA), "cancel": RETURNS}
 
     @action(detail=True, methods=["post"])
     def cancel(self, request, pk=None):
-        if not is_owner({"request": request}):
-            raise PermissionDenied("Only the owner can cancel a receipt.")
         payment = services.cancel_receipt(self.get_object(), reason=request.data.get("reason", ""), user=request.user)
         return Response(ReceiptSerializer(payment).data)
 
@@ -150,6 +157,19 @@ class InvoiceViewSet(viewsets.ModelViewSet):
     """
 
     http_method_names = ["get", "post", "put", "patch", "delete"]
+    access = {
+        # Making bills needs the kept-for-later list; finding a bill to return or cancel needs the rest.
+        "list": lambda request, view: (
+            (BILLING, VIEW_BILLS) if request.query_params.get("status") == "held" else (VIEW_BILLS, RETURNS)
+        ),
+        "retrieve": (BILLING, VIEW_BILLS, RETURNS),
+        **{
+            action: BILLING
+            for action in ("create", "update", "partial_update", "destroy", "current", "finalise", "quotation", "convert")
+        },
+        "cancel": RETURNS,
+        "returns": RETURNS,
+    }
 
     def get_queryset(self):
         if self.action != "list":
@@ -203,7 +223,7 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         invoice = self.get_object()
         if invoice.status != Invoice.Status.DRAFT:
             raise ValidationError("Only a draft or held bill can be deleted. Cancel a finalised bill instead.")
-        if not is_owner({"request": request}) and invoice.created_by_id != request.user.pk:
+        if not request.user.is_owner and invoice.created_by_id != request.user.pk:
             raise PermissionDenied("Only the owner or the person who started it can delete this bill.")
         invoice.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -232,16 +252,12 @@ class InvoiceViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def cancel(self, request, pk=None):
-        if not is_owner({"request": request}):
-            raise PermissionDenied("Only the owner can cancel a bill.")
         invoice = services.cancel(self.get_object(), reason=request.data.get("reason", ""), user=request.user)
         return self._respond(invoice)
 
     @action(detail=True, methods=["post"])
     def returns(self, request, pk=None):
-        """Owner: goods returned against this bill -> credit note. {lines: [{line, quantity}], refund_mode, reason}"""
-        if not is_owner({"request": request}):
-            raise PermissionDenied("Only the owner can take returns and give refunds.")
+        """Returns: goods returned against this bill -> credit note. {lines: [{line, quantity}], refund_mode, reason}"""
         serializer = ReturnInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
@@ -271,42 +287,55 @@ CREDIT_NOTES = CreditNote.objects.select_related("invoice", "created_by").prefet
 
 
 class CreditNoteViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+    access = {"list": (RETURNS, VIEW_BILLS), "retrieve": (RETURNS, VIEW_BILLS)}
     queryset = CREDIT_NOTES
     serializer_class = CreditNoteSerializer
 
 
 
 class TodaySummary(APIView):
-    """Today's counter numbers for the home screen and the end-of-day cash handover."""
+    """
+    Today's counter numbers for the home screen and the end-of-day cash handover. Each part is only for
+    those allowed to see it: money for "See today's sales and cash", udhaar for "See khata", the
+    kept-for-later count for "Make bills".
+    """
+
+    access = {"get": OPEN}
 
     def get(self, request):
         today = timezone.localdate()
-        bills = Invoice.objects.filter(kind=Invoice.Kind.INVOICE, status=Invoice.Status.FINAL, invoice_date=today)
-        totals = bills.aggregate(count=Count("id"), total=Sum("total"), khata=Sum("credit_amount"))
-        money_in = Payment.objects.filter(
-            date=today, kind__in=[Payment.Kind.SALE, Payment.Kind.KHATA], cancelled_at__isnull=True
-        )
-        refunds = Payment.objects.filter(date=today, kind=Payment.Kind.REFUND)
-        by_mode = {}
-        for mode, label in Payment.Mode.choices:
-            received = money_in.filter(mode=mode).aggregate(total=Sum("amount"))["total"] or ZERO
-            refunded = refunds.filter(mode=mode).aggregate(total=Sum("amount"))["total"] or ZERO
-            if received or refunded:
-                by_mode[mode] = {"label": label, "received": str(received), "refunded": str(refunded), "net": str(received - refunded)}
-        data = {
-            "date": today,
-            "bills": totals["count"],
-            "sales": str(totals["total"] or ZERO),
-            "on_khata": str(totals["khata"] or ZERO),
-            "khata_collected": str(
-                money_in.filter(kind=Payment.Kind.KHATA).aggregate(total=Sum("amount"))["total"] or ZERO
-            ),
-            "returns": str(CreditNote.objects.filter(date=today).aggregate(total=Sum("total"))["total"] or ZERO),
-            "by_mode": by_mode,
-            "held_bills": Invoice.objects.filter(kind=Invoice.Kind.INVOICE, status=Invoice.Status.DRAFT, held=True).count(),
-        }
-        if is_owner({"request": request}):
+        data = {"date": today}
+        if can(request, VIEW_SALES):
+            bills = Invoice.objects.filter(kind=Invoice.Kind.INVOICE, status=Invoice.Status.FINAL, invoice_date=today)
+            totals = bills.aggregate(count=Count("id"), total=Sum("total"))
+            money_in = Payment.objects.filter(
+                date=today, kind__in=[Payment.Kind.SALE, Payment.Kind.KHATA], cancelled_at__isnull=True
+            )
+            refunds = Payment.objects.filter(date=today, kind=Payment.Kind.REFUND)
+            by_mode = {}
+            for mode, label in Payment.Mode.choices:
+                received = money_in.filter(mode=mode).aggregate(total=Sum("amount"))["total"] or ZERO
+                refunded = refunds.filter(mode=mode).aggregate(total=Sum("amount"))["total"] or ZERO
+                if received or refunded:
+                    by_mode[mode] = {"label": label, "received": str(received), "refunded": str(refunded), "net": str(received - refunded)}
+            data.update(
+                bills=totals["count"],
+                sales=str(totals["total"] or ZERO),
+                returns=str(CreditNote.objects.filter(date=today).aggregate(total=Sum("total"))["total"] or ZERO),
+                by_mode=by_mode,
+            )
+        if can(request, VIEW_KHATA):
+            today_bills = Invoice.objects.filter(kind=Invoice.Kind.INVOICE, status=Invoice.Status.FINAL, invoice_date=today)
+            khata_in = Payment.objects.filter(date=today, kind=Payment.Kind.KHATA, cancelled_at__isnull=True)
             owing = customers_with_balance().filter(balance_value__gt=0)
-            data["udhaar_outstanding"] = str(owing.aggregate(total=Sum("balance_value"))["total"] or ZERO)
-            data["customers_owing"] = owing.count()
+            data.update(
+                on_khata=str(today_bills.aggregate(total=Sum("credit_amount"))["total"] or ZERO),
+                khata_collected=str(khata_in.aggregate(total=Sum("amount"))["total"] or ZERO),
+                udhaar_outstanding=str(owing.aggregate(total=Sum("balance_value"))["total"] or ZERO),
+                customers_owing=owing.count(),
+            )
+        if can(request, BILLING):
+            data["held_bills"] = Invoice.objects.filter(
+                kind=Invoice.Kind.INVOICE, status=Invoice.Status.DRAFT, held=True
+            ).count()
         return Response(data)

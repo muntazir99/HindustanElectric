@@ -5,6 +5,21 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-02 — Staff access switches, step 1: server
+
+Plan: [PLAN.md §9](docs/PLAN.md).
+
+**Added**
+- 15 on/off switches per staff member (Make bills, Take udhaar payments, Enter goods arrived, Add new items, Count stock, See old bills, See khata, See today's sales and cash, Returns and cancellations, Change prices and items, Fix stock, Udhaar control, Allow low prices, Upload from Excel, See costs and profit). The owner always has all of them; staff logins and shop details stay owner-only.
+- The server checks a switch on **every** request, read from the database, so a change applies at once. An endpoint that names no switch is owner-only, so nothing new is open to staff by accident.
+- Parts of a reply follow the switches too: today's money only with "See today's sales and cash", the udhaar figures only with "See khata", cost and stock value only with "See costs and profit", count differences only with "Fix stock". Billing below cost or over a credit limit needs "Allow low prices" / "Udhaar control"; the below-cost warning shows the cost figure only with "See costs".
+- Staff management for the owner: `GET/POST /api/auth/staff`, `PATCH /api/auth/staff/{id}` (switches, name, login on/off; can't switch off your own), `POST /api/auth/staff/{id}/password`, `GET /api/auth/access` (switch names and the Counter / Store starting sets). Login and `/api/auth/me` return the person's switches.
+- New staff start with the Counter set (make bills, take payments, see old bills).
+
+**Changed**
+- Existing staff were given every daily-job and seeing switch, which is what they could do before. With "See khata" they now also see the udhaar total on Home (they could already see each customer's balance).
+- 30 new backend tests (310).
+
 ### 2026-10-02 — Security fixes and error pages
 
 From a review of all 56 API endpoints. Already sound and unchanged: every endpoint needs a login (except login and health); staff are refused all 18 owner-only actions; the server (not just the screen) stops staff selling below cost or over a credit limit; costs stay hidden from staff; a switched-off user is locked out at once; no known vulnerabilities in server or browser packages.

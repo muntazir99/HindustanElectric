@@ -173,5 +173,5 @@ class TestToday:
         assert data["by_mode"]["cash"] == {"label": "Cash", "received": "2900.00", "refunded": "2400.00", "net": "500.00"}
         assert data["by_mode"]["upi"]["net"] == "400.00"
         assert data["returns"] == "2400.00"
-        assert "udhaar_outstanding" not in data
+        assert data["udhaar_outstanding"] == "1500.00"  # staff with "See khata" see the total too
         assert owner_api.get("/api/sales/today").data["udhaar_outstanding"] == "1500.00"

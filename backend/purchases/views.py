@@ -9,7 +9,7 @@ from rest_framework.exceptions import NotFound, PermissionDenied, ValidationErro
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 
-from catalog.serializers import is_owner
+from accounts.access import PURCHASES
 from core.params import id_param
 
 from .models import PurchaseBill, Supplier
@@ -46,7 +46,11 @@ def attachment_kind(upload):
     return None
 
 
+ALL_PURCHASE_ACTIONS = ("list", "retrieve", "create", "partial_update", "destroy", "post_bill", "attachment")
+
+
 class SupplierViewSet(viewsets.ModelViewSet):
+    access = {action: PURCHASES for action in ALL_PURCHASE_ACTIONS}
     serializer_class = SupplierSerializer
     pagination_class = None
     http_method_names = ["get", "post", "patch"]
@@ -62,6 +66,7 @@ class SupplierViewSet(viewsets.ModelViewSet):
 
 
 class PurchaseBillViewSet(viewsets.ModelViewSet):
+    access = {action: PURCHASES for action in ALL_PURCHASE_ACTIONS}
     http_method_names = ["get", "post", "patch", "delete"]
 
     def get_queryset(self):
@@ -96,7 +101,7 @@ class PurchaseBillViewSet(viewsets.ModelViewSet):
         bill = self.get_object()
         if bill.status != PurchaseBill.Status.DRAFT:
             raise ValidationError("A posted bill can't be deleted.")
-        if not is_owner({"request": request}) and bill.created_by_id != request.user.pk:
+        if not request.user.is_owner and bill.created_by_id != request.user.pk:
             raise PermissionDenied("Only the owner or the person who entered it can delete a draft.")
         bill.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

@@ -306,7 +306,55 @@ getting back Home" design canvas.
   a big **Go to Home**, "do another", and a link to see what was saved.
 - No phone bottom bar (decided against for now).
 
-## 9. Open items
+## 9. Staff access switches (approved 2026-10-02)
+
+Today there are two roles: the owner can do everything; staff can do every daily job and see the owner's
+options greyed out. Instead, the owner switches on, per staff member, exactly the jobs they may do, and
+staff see **only** those. The owner always has everything; staff logins, access and shop details stay
+owner-only and can't be given away.
+
+### 9.1 The switches
+
+| Group | Switch | What it allows |
+|---|---|---|
+| Daily jobs | **Make bills** | New Bill, keep for later, estimates, choose customer for udhaar |
+| | **Take udhaar payments** | Take Payment, print receipts |
+| | **Enter goods arrived** | Goods Arrived, purchase bills, distributors, add to stock |
+| | **Add new items** | Add New Item, add sizes/colours |
+| | **Count stock** | Check Stock: counting only |
+| Seeing | **See old bills** | Old Bills, Kept for Later, Estimates, reprint |
+| | **See khata** | Customers, who owes what, statements, add customers |
+| | **See today's sales and cash** | The money numbers on Home |
+| Owner-type | **Returns and cancellations** | Return goods, refunds, cancel a bill, cancel a receipt |
+| | **Change prices and items** | Prices, HSN/GST, switch items off, pack sizes, Update Prices |
+| | **Fix stock** | Fix Stock, save or cancel a stock check |
+| | **Udhaar control** | Credit limits, customer discounts, old udhaar, correct khata, allow over-limit udhaar |
+| | **Allow low prices** | Bill below cost (with a warning) |
+| | **Upload from Excel** | Add many items at once |
+| | **See costs and profit** | Cost price, stock value, count differences |
+
+Finding an item (search, All Items) stays open to everyone logged in: every job needs it.
+
+### 9.2 How it works
+
+- Checked **by the server on every request**, from the database, so a change applies at once (not
+  after the 12-hour login) and hiding a button is never the only protection.
+- Staff see only what they're allowed: Home tiles, top bar, All options, buttons inside screens. Typing an
+  address they can't use shows "You don't have access to this — ask the owner".
+- **Staff & Access** page (owner, replaces Staff Logins): each staff member with their switches; quick
+  starting points (Counter: bills + payments + old bills; Store: goods arrived + items + count); add staff,
+  reset a password, switch a login off/on.
+- Existing staff keep what they can do today (all daily jobs and seeing switches on). With "See khata" they
+  also see the udhaar total, which they could already add up from each customer's balance.
+- New staff start with the Counter set; the owner changes it before saving.
+
+### 9.3 Build order (one commit each)
+
+1. Server: switches on each user, existing staff migrated, every endpoint checked, staff management API,
+   tests for each switch (allowed with it, refused without).
+2. App: screens follow the switches; Staff & Access page.
+
+## 10. Open items
 
 - [x] Owner approval of Phase 1 design (§6)
 - [x] Remove the old Flask files from the repo root (preserved under tag `flask-final`)
@@ -318,6 +366,7 @@ getting back Home" design canvas.
 - [ ] Fill Shop settings in the back office: GSTIN, address, phone, bank details, bill terms, UPI ID
 - [x] Owner approval of the simple-screens redesign (§8)
 - [x] Security review of all 56 API endpoints (2026-10-02); fixes 1–3 and 6–8 done
+- [x] Owner approval of staff access switches (§9)
 - [ ] Decide: staff price floor for items with no cost yet (review item 4) — block more than X% below the set price?
 - [ ] Decide: "log out everywhere", also on password change (review item 5)
 - [ ] Upgrade npm on the dev Mac (npm 10.7 crashes on `npm audit fix`; only dev tools have open advisories)

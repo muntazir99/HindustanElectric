@@ -4,6 +4,7 @@ import pytest
 from django.core.cache import cache
 from rest_framework.test import APIClient
 
+from accounts.access import STAFF_BEFORE_SWITCHES
 from accounts.models import User
 
 PASSWORD = "Counter-test-pass-1"
@@ -26,7 +27,10 @@ def owner(db):
 
 @pytest.fixture
 def staff(db):
-    return User.objects.create_user(username="staff", password=PASSWORD, role=User.Role.STAFF)
+    """A staff member with the switches every staff member had before switches existed."""
+    return User.objects.create_user(
+        username="staff", password=PASSWORD, role=User.Role.STAFF, access=list(STAFF_BEFORE_SWITCHES)
+    )
 
 
 def login(client, user):

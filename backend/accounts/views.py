@@ -1,14 +1,17 @@
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from rest_framework import serializers, status
+from rest_framework import mixins, serializers, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from . import access
 from .models import User
-from .permissions import IsOwner
+from .permissions import OPEN, IsOwner
 
 
 def tokens_for(user):
@@ -58,12 +61,17 @@ class LoginView(APIView):
                 "message": "Login successful",
                 "role": user.role,
                 "name": user.get_full_name() or user.username,
+                "access": user.switches(),
                 **tokens_for(user),
             }
         )
 
 
 class MeView(APIView):
+    """Who is logged in and what they may do. The app asks on every start, so switch changes show at once."""
+
+    access = {"get": OPEN}
+
     def get(self, request):
         user = request.user
         return Response(
@@ -73,6 +81,7 @@ class MeView(APIView):
                     "username": user.username,
                     "name": user.get_full_name() or user.username,
                     "role": user.role,
+                    "access": user.switches(),
                 },
             }
         )
@@ -106,7 +115,9 @@ class CreateUserView(APIView):
                 {"success": False, "message": " ".join(errors)},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        User.objects.create_user(username=data["username"], password=data["password"], role=data["role"])
+        User.objects.create_user(
+            username=data["username"], password=data["password"], role=data["role"], access=access.NEW_STAFF
+        )
         return Response(
             {"success": True, "message": f"User '{data['username']}' created."},
             status=status.HTTP_201_CREATED,
@@ -119,6 +130,8 @@ class ChangePasswordSerializer(serializers.Serializer):
 
 
 class ChangePasswordView(APIView):
+    access = {"post": OPEN}
+
     def post(self, request):
         serializer = ChangePasswordSerializer(data=request.data)
         if not serializer.is_valid():
@@ -139,3 +152,101 @@ class ChangePasswordView(APIView):
         user.set_password(new_password)
         user.save()
         return Response({"success": True, "message": "Password updated."})
+
+
+# --- Staff & Access (owner only) ---
+
+
+class AccessView(APIView):
+    """The switches, their groups and the quick starting sets, for the Staff & Access page."""
+
+    permission_classes = [IsOwner]
+
+    def get(self, request):
+        return Response(
+            {
+                "switches": [
+                    {"code": code, "group": group, "label": label, "help": help_text}
+                    for code, group, label, help_text in access.SWITCHES
+                ],
+                "presets": access.PRESETS,
+                "new_staff": access.NEW_STAFF,
+            }
+        )
+
+
+class StaffSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(source="first_name", max_length=150, required=False, allow_blank=True)
+    access = serializers.ListField(child=serializers.ChoiceField(choices=access.CODES), required=False)
+
+    class Meta:
+        model = User
+        fields = ["id", "username", "name", "role", "is_active", "access", "last_login"]
+        read_only_fields = ["username", "role", "last_login"]
+
+    def to_representation(self, user):
+        data = super().to_representation(user)
+        data["access"] = user.switches()
+        return data
+
+    def validate_access(self, codes):
+        return access.clean(codes)
+
+
+class NewStaffSerializer(serializers.Serializer):
+    username = serializers.CharField(min_length=3, max_length=150)
+    name = serializers.CharField(max_length=150, required=False, allow_blank=True, default="")
+    password = serializers.CharField()
+    role = serializers.ChoiceField(choices=User.Role.choices, default=User.Role.STAFF)
+    access = serializers.ListField(child=serializers.ChoiceField(choices=access.CODES), required=False)
+
+    def validate_username(self, username):
+        if User.objects.filter(username__iexact=username).exists():
+            raise ValidationError("A user with this username already exists.")
+        return username
+
+    def validate(self, attrs):
+        errors = password_errors(attrs["password"], User(username=attrs["username"], first_name=attrs["name"]))
+        if errors:
+            raise ValidationError({"password": errors})
+        return attrs
+
+
+class StaffViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
+    """Everyone who can log in: add staff, turn their switches on/off, reset a password, switch a login off."""
+
+    permission_classes = [IsOwner]
+    serializer_class = StaffSerializer
+    pagination_class = None
+    http_method_names = ["get", "post", "patch"]
+    queryset = User.objects.order_by("-role", "-is_active", "first_name", "username")
+
+    def create(self, request):
+        serializer = NewStaffSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        user = User.objects.create_user(
+            username=data["username"],
+            password=data["password"],
+            first_name=data["name"].strip(),
+            role=data["role"],
+            access=access.clean(data.get("access", access.NEW_STAFF)),
+        )
+        return Response(StaffSerializer(user).data, status=status.HTTP_201_CREATED)
+
+    def perform_update(self, serializer):
+        if serializer.instance == self.request.user and serializer.validated_data.get("is_active") is False:
+            raise ValidationError({"is_active": "You can't switch off your own login."})
+        serializer.save()
+
+    @action(detail=True, methods=["post"])
+    def password(self, request, pk=None):
+        """Set a new password for someone who forgot theirs: {password}."""
+        user = self.get_object()
+        new_password = str(request.data.get("password", ""))
+        errors = password_errors(new_password, user)
+        if errors:
+            raise ValidationError({"password": errors})
+        user.set_password(new_password)
+        user.save()
+        return Response({"success": True, "message": f"New password set for {user.username}."})

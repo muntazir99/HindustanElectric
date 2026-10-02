@@ -4,13 +4,12 @@ from django.db.models import Count, F, Sum
 from django.shortcuts import get_object_or_404
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from accounts.permissions import IsOwner
+from accounts.access import COUNT_STOCK, FIX_STOCK, SEE_COSTS
+from accounts.permissions import OPEN, can
 from catalog.models import Item
-from catalog.serializers import is_owner
 
 from . import services
 from .models import Adjustment, StockCount, StockCountLine
@@ -24,9 +23,9 @@ from .serializers import (
 
 
 class AdjustmentViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
-    """Manual stock corrections. Owner only."""
+    """Manual stock corrections: "Fix stock"."""
 
-    permission_classes = [IsOwner]
+    access = {"list": FIX_STOCK, "create": FIX_STOCK}
     queryset = Adjustment.objects.select_related("item__product__brand", "created_by")
     serializer_class = AdjustmentSerializer
 
@@ -48,7 +47,13 @@ COUNT_LINES = StockCountLine.objects.select_related("item__product__brand", "cou
 class StockCountViewSet(
     mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet
 ):
-    """Anyone can count; only the owner sees differences and posts or cancels a count."""
+    """Counters count; "Fix stock" sees the differences and saves or cancels a count."""
+
+    access = {
+        **{action: (COUNT_STOCK, FIX_STOCK) for action in ("list", "retrieve", "create", "lines", "remove_line")},
+        "post_count": FIX_STOCK,
+        "cancel": FIX_STOCK,
+    }
 
     queryset = StockCount.objects.select_related("created_by", "posted_by").annotate(line_count=Count("lines")).order_by("-created_at")
     serializer_class = StockCountSerializer
@@ -94,21 +99,19 @@ class StockCountViewSet(
 
     @action(detail=True, methods=["post"], url_path="post")
     def post_count(self, request, pk=None):
-        if not is_owner({"request": request}):
-            raise PermissionDenied("Only the owner can post a count.")
         services.post_count(self.get_object(), request.user)
         return self.retrieve(request, pk)
 
     @action(detail=True, methods=["post"])
     def cancel(self, request, pk=None):
-        if not is_owner({"request": request}):
-            raise PermissionDenied("Only the owner can cancel a count.")
         services.cancel_count(self.get_object())
         return self.retrieve(request, pk)
 
 
 class StockSummary(APIView):
     """Numbers for the home screen."""
+
+    access = {"get": OPEN}
 
     def get(self, request):
         from purchases.models import PurchaseBill
@@ -124,7 +127,7 @@ class StockSummary(APIView):
             "open_counts": StockCount.objects.filter(status=StockCount.Status.OPEN).count(),
             "draft_bills": PurchaseBill.objects.filter(status=PurchaseBill.Status.DRAFT).count(),
         }
-        if is_owner({"request": request}):
+        if can(request, SEE_COSTS):
             value = active.filter(stock_qty__gt=0, cost_price__isnull=False).aggregate(
                 total=Sum(F("stock_qty") * F("cost_price"))
             )["total"]
