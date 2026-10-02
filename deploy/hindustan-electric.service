@@ -1,0 +1,21 @@
+# The Django API and back office, run by gunicorn behind nginx. Settings come from /etc/hindustan-electric/env.
+[Unit]
+Description=Hindustan Electric (Django API and back office)
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+User=hindustan
+Group=hindustan
+WorkingDirectory=/srv/hindustan-electric/app/backend
+EnvironmentFile=/etc/hindustan-electric/env
+ExecStart=/srv/hindustan-electric/venv/bin/gunicorn config.wsgi:application --bind 127.0.0.1:8001 --workers 3 --timeout 60 --access-logfile - --error-logfile -
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

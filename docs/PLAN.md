@@ -16,6 +16,7 @@ Living document. Decisions are recorded here; individual changes go in [CHANGELO
 | 2026-10-01 | **English only** | Not needed in Hindi. |
 | 2026-10-01 | **Public website deferred** to Phase 4 | First priority is digitizing the shop itself. |
 | 2026-10-01 | Host API + DB in **Mumbai or Singapore** region (chosen at deploy) | Old setup defaulted to Oregon, US. |
+| 2026-10-02 | **Trial server on AWS Lightsail, Sydney** (one server: app, API, Postgres; free sslip.io address); region and Paid plan decided at go-live | AWS project is fixed to Sydney on the Free plan; costs ₹0 until 2 Apr 2027; scripted, so it can move. See §11. |
 | 2026-10-01 | **Phase 2 approved.** Invoice series starts at 1 with prefix `HE` (`HE/26-27/00001`) | No numbered GST bills were issued on paper this financial year. |
 | 2026-10-01 | **Returns and refunds: owner only** | Handing back cash is the easiest place for money to leak. |
 | 2026-10-01 | **Customer Excel import deferred**; opening khata balances entered per customer by the owner | Owner will say if the paper khata needs a bulk import. |
@@ -402,7 +403,90 @@ All three met on 2026-10-02. On a phone, Home's recent bills and the Khata list 
 bill number / customer name so the amount fits without swiping. All Items (up to 7 number columns) still slides
 sideways inside its own box on a phone, as it did before; the page itself does not.
 
-## 11. Open items
+## 11. Putting the app on AWS (approved 2026-10-02)
+
+### 11.1 What we know
+
+- AWS project `043475992431` uses AWS's new sign-up experience on the **Free plan**: $100 credit, plan ends
+  **2 April 2027**. AWS fixes the project to one region, **Sydney (`ap-southeast-2`)**; Mumbai isn't possible in it.
+- When the Free plan ends (date reached or credit used up) **AWS closes the account and deletes everything after
+  90 days** unless it has been upgraded to the Paid plan. So: upgrade to Paid before real shop data depends on it.
+- This is a **trial server**, not go-live. Go-live still waits for the CA's confirmation (§7), Shop settings and the
+  printer test, and starts from a fresh, empty database.
+
+### 11.2 Setup — one Lightsail server (recommended)
+
+- Lightsail "small": 2 GB memory, 2 vCPU, 60 GB disk, $12/month, Ubuntu 24.04, in Sydney. A fixed (static) IP,
+  free while attached. Firewall open only for web (80, 443) and SSH (22, key only, no passwords).
+- On the server: **nginx** (HTTPS with a free Let's Encrypt certificate; serves the app; passes `/api` and `/admin`
+  to Django), **gunicorn** running Django as a service that restarts itself, **Postgres 17** reachable only from the
+  server itself, and the live settings from `backend/README.md` "Going live".
+- App and API on one address: the app is built with `VITE_API_URL=/api`, so no cross-site setup is needed.
+- Secrets (Django key, database password) are generated on the server into a root-only file. They are never in git
+  and never shown, not even to me.
+- The owner login is created by **you** on the server (`manage.py createsuperuser`), using Lightsail's
+  "Connect using SSH" button in the browser.
+- I connect for setup and updates with a new SSH key made on this Mac; only its public half goes to AWS.
+- Not chosen: a separate AWS-managed database (Lightsail Postgres, +$15/month). Worth it later if looking after
+  Postgres becomes a burden.
+
+### 11.3 Backups — three layers
+
+1. **Whole server:** Lightsail automatic daily snapshot, last 7 kept (about $1–2/month).
+2. **Nightly on the server:** database dump plus bill photos, last 14 kept.
+3. **Off AWS:** one command on your Mac (`deploy/pull-backup.sh`) copies the latest backup home. This protects
+   against the AWS account itself closing. Weekly to start with.
+
+A backup is restored once into a scratch database to prove it works.
+
+### 11.4 Address
+
+- **Trial:** a free address of the form `https://<server-ip-with-dashes>.sslip.io` with a real HTTPS certificate,
+  nothing to buy.
+- **Go-live:** the shop's own domain (e.g. `hindustanelectric.in`, about ₹600–900 a year from any registrar)
+  pointed at the server; the certificate is renewed automatically.
+
+### 11.5 Cost
+
+| Period | Cost |
+|---|---|
+| Until 2 April 2027 (Free plan) | **₹0** — about $13/month, covered by the $100 credit; the Free plan can't charge |
+| After upgrading to Paid | about **$13–14/month ≈ ₹1,150–1,250**, plus 18% GST if billed by AWS India (≈ ₹1,350–1,450) |
+
+On the Paid plan, a budget alert is set at $20/month.
+
+### 11.6 What goes in the repo (no secrets)
+
+- `deploy/setup.sh`: first-boot script that installs and configures everything above. It's repeatable, so a new
+  server can be built the same way.
+- `deploy/nginx.conf`, `deploy/hindustan-electric.service` (gunicorn), `deploy/backup.sh` (+ nightly timer).
+- `deploy/update.sh`: fetch the latest `main` from GitHub, migrate, build the app, restart.
+- `deploy/pull-backup.sh`: run on your Mac.
+- A "Running on AWS" section in the README. `gunicorn` added to `backend/requirements.txt`.
+
+### 11.7 Steps (one commit each where files change)
+
+1. Deploy files in the repo.
+2. Create the server in Sydney with the setup script; static IP; firewall; daily snapshots.
+3. Check:
+   - the HTTPS address opens;
+   - `manage.py check --deploy` is clean;
+   - every API address refuses anyone not logged in on the live address;
+   - you create the owner login.
+4. Backups:
+   - run one;
+   - restore it into a scratch database;
+   - copy it to your Mac.
+5. Changelog entry; hosting decision recorded in §1.
+
+### 11.8 Done when
+
+- The address opens the app on the counter PC and on a phone; the owner logs in; a bill can be made and printed.
+- No API address answers without a login.
+- A backup has been restored successfully and a copy is on your Mac.
+- A reminder is set to upgrade the AWS project to Paid before go-live (and in any case before 2 April 2027).
+
+## 12. Open items
 
 - [x] Owner approval of Phase 1 design (§6)
 - [x] Remove the old Flask files from the repo root (preserved under tag `flask-final`)
@@ -410,7 +494,8 @@ sideways inside its own box on a phone, as it did before; the page itself does n
 - [x] Owner approval of Phase 2 design (§7)
 - [ ] CA confirmation of items marked *Confirm with CA* in §7 (before go-live)
 - [x] Last paper invoice number this financial year — none; start at 1
-- [ ] Hosting choice (before first deploy)
+- [x] Hosting choice for the trial: AWS Lightsail, Sydney (§11); final region at go-live
+- [ ] Upgrade the AWS project to the Paid plan before go-live, at the latest before 2 April 2027 (§11)
 - [ ] Fill Shop settings in the back office: GSTIN, address, phone, bank details, bill terms, UPI ID
 - [x] Owner approval of the simple-screens redesign (§8)
 - [x] Security review of all 56 API endpoints (2026-10-02); fixes 1–3 and 6–8 done

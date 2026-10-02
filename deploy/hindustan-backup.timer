@@ -1,0 +1,10 @@
+# Every night at 02:30 (server time is India). Runs at the next start if the server was off.
+[Unit]
+Description=Nightly Hindustan Electric backup
+
+[Timer]
+OnCalendar=*-*-* 02:30:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

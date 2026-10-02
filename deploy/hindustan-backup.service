@@ -1,0 +1,6 @@
+[Unit]
+Description=Hindustan Electric backup (database and bill photos)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/hindustan-backup

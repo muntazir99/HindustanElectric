@@ -5,6 +5,23 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-02 — AWS trial server, step 1: deploy files
+
+Plan: [PLAN.md §11](docs/PLAN.md) (approved 2026-10-02).
+
+**Added**
+- `deploy/setup.sh`: builds the server on a fresh Ubuntu 24.04 machine and can be run again safely. It installs:
+  - nginx with a Let's Encrypt certificate;
+  - Postgres 17, reachable only from the server itself, with no password because the app logs in as its own system user;
+  - Node 22 from nodejs.org (checksum checked), used only to build the app;
+  - 2 GB swap;
+  - the live settings, with a secret key generated on the server into a root-only file.
+- `deploy/update.sh`: backup, pull `main`, install, migrate, build the app into a new folder and swap it in, restart, health check.
+- `deploy/backup.sh` + nightly timer (02:30 India time, 14 days kept); `deploy/pull-backup.sh` copies backups to your Mac.
+- `deploy/hindustan-electric.service` (gunicorn, 3 workers, restarts itself), `deploy/nginx.conf`, `deploy/manage.sh` (`sudo hindustan-manage …`).
+- `deploy/README.md`: build, update, back up, restore, move to the shop's own domain.
+- `gunicorn` in `backend/requirements.txt`.
+
 ### 2026-10-02 — Pre-push check for GitHub
 
 **Added**

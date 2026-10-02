@@ -6,6 +6,7 @@ Billing, khata, stock and purchases for Hindustan Electric, Muzaffarpur.
 |---|---|
 | `backend/` | Django 5.2 + Django REST Framework + PostgreSQL API, and the owner's back office (`/admin/`). See [backend/README.md](backend/README.md). |
 | `frontend/` | React + Vite + Tailwind app used at the counter and on phones. |
+| `deploy/` | The live server on AWS: setup, updates, backups. See [deploy/README.md](deploy/README.md). |
 | `docs/PLAN.md` | Roadmap, decisions and designs. |
 | `CHANGELOG.md` | Every change, with date and reason. |
 
