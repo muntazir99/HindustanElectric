@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera, ScanLine } from "lucide-react";
 import api from "../api.js";
 import { hasCamera } from "../lib/barcode.js";
+import { lookupCode as lookup } from "../lib/lookup.js";
 import { money } from "../lib/format.js";
 import { errorMessage } from "../lib/errors.js";
 import CameraScanner from "./CameraScanner.js";
@@ -70,17 +71,6 @@ export default function ItemSearch({
     setMessage("");
     onSelect(item, unitId ?? item.units.find((unit) => unit.is_base)?.id);
     if (focus) inputRef.current?.focus();
-  }
-
-  /** Exact match on a barcode or item code: {item, unit_id}, or null when there's none. */
-  async function lookup(code) {
-    try {
-      const response = await api.get("/catalog/lookup", { params: { code } });
-      return response.data;
-    } catch (err) {
-      if (err.response?.status === 404) return null;
-      throw err;
-    }
   }
 
   const closeCamera = useCallback(() => {

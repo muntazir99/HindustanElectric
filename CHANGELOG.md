@@ -5,6 +5,17 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-02 — Scan any item on a phone to see its details
+
+**Added**
+- A **scan** button in the phone's top bar, next to Home. It shows on phones and tablets with a camera, on every screen except New Bill, which has its own.
+  - Scan a product's barcode or QR and the item's page opens: price, MRP, stock, reorder level, rack, GST/HSN, pack sizes with their barcodes, and stock history. Cost shows only to those allowed to see it.
+  - An unknown code says so, and the camera stays on.
+  - On a computer, the top-bar search already did this with its camera button.
+- The code lookup is shared by the search box and the scan button (`lib/lookup.js`). The top bar's side padding is a little smaller on phones, so everything fits on a 360 px screen (Galaxy S23).
+- Tests: 3 for the scan button (43 app tests).
+- Checked in the browser at 360 × 780 with a simulated camera: the bar fits, and a scan opens the Havells MCB's page.
+
 ### 2026-10-02 — Phone camera: sharp on phones with several cameras (Galaxy S23)
 
 **Fixed**

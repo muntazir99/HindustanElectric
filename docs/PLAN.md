@@ -552,6 +552,7 @@ Same switches as today, no new ones:
 - Chrome on Android uses its built-in reader. iPhones and other browsers use the ZXing reader (MIT licence). Its
   1.1 MB file comes from our own site, only when the camera is first opened.
 - Needs https, which the live server has. Free; no new switches; whoever can use the screen can scan on it.
+- **Scan to see an item:** a scan button in the phone's top bar opens the scanned item's page (price, stock, rack…).
 
 ## 14. Open items
 

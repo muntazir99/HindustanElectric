@@ -7,6 +7,7 @@ import { useGoBack } from "../../hooks/useTrail.js";
 import { A } from "../../lib/access.js";
 import { BackLink } from "../../ui/index.js";
 import ItemSearch from "../ItemSearch.js";
+import ScanToFind from "../ScanToFind.js";
 
 const barButton = (active) =>
   `shrink-0 inline-flex items-center gap-1.5 h-11 px-3 md:px-3.5 rounded-lg font-semibold ${
@@ -16,6 +17,7 @@ const barButton = (active) =>
 /**
  * One slim dark bar on every screen: shop name, find an item, Home, New Bill and More — so Home is always
  * one press away. Everything that isn't needed every hour lives on the More page, not in a menu.
+ * On a phone, a scan button stands in for the search box: scan any item to see its details.
  */
 function TopBar() {
   const { user, logout, can, isOwner } = useAuth();
@@ -26,7 +28,7 @@ function TopBar() {
 
   return (
     <header className="print:hidden sticky top-0 z-40 bg-steel-800 text-white">
-      <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-2.5 flex items-center gap-2 sm:gap-3">
+      <div className="max-w-[1200px] mx-auto px-3 sm:px-4 md:px-6 py-2.5 flex items-center gap-2 sm:gap-3">
         {/* On a phone the Home button takes the name's place. */}
         <Link to="/dashboard" className="hidden sm:block mr-auto lg:mr-2 shrink-0 leading-tight text-white">
           <span className="block text-xl font-bold">Hindustan Electric</span>
@@ -53,6 +55,8 @@ function TopBar() {
         <NavLink to="/dashboard" className={({ isActive }) => `mr-auto sm:mr-0 ${barButton(isActive)}`}>
           <Home size={20} /> Home
         </NavLink>
+        {/* The bill screen has its own camera button in the scan box. */}
+        {!onBilling && <ScanToFind className="lg:hidden" />}
         {can(A.BILLING) && (
           <NavLink
             to="/billing"
