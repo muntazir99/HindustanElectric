@@ -74,6 +74,45 @@ export function scanGate(gapMs = 1500) {
   };
 }
 
+/** The back cameras, once the camera is allowed (before that, browsers hide the names). */
+export function backCameras(devices) {
+  return devices.filter((device) => device.kind === "videoinput" && /back|rear|environment/i.test(device.label));
+}
+
+/**
+ * Which back camera to read barcodes with. Phones like the Galaxy S23 have several (main, ultra-wide, zoom),
+ * and the browser may open the ultra-wide, which can't focus close: every barcode looks blurry. Android names
+ * them "camera2 0, facing back", "camera2 2, facing back"…, and number 0 is the main camera.
+ * Returns a deviceId, or null to keep the browser's choice.
+ */
+export function pickBackCamera(devices, remembered) {
+  const backs = backCameras(devices);
+  if (remembered && backs.some((device) => device.deviceId === remembered)) return remembered;
+  if (backs.length < 2) return null;
+  const numbered = backs
+    .map((device) => ({ id: device.deviceId, number: Number(/camera2 (\d+)/i.exec(device.label)?.[1]) }))
+    .filter((camera) => Number.isInteger(camera.number))
+    .sort((a, b) => a.number - b.number);
+  return numbered[0]?.id ?? null;
+}
+
+/** Zoom choices the camera allows, from 1x up to 3x. */
+export function zoomSteps(capabilities) {
+  const range = capabilities?.zoom;
+  if (!range || !(range.max > range.min)) return [];
+  return [1, 1.5, 2, 3].filter((step) => step >= range.min && step <= range.max);
+}
+
+/**
+ * Start at 2x where possible: the phone is held 15–20 cm away, where it can focus, and the barcode
+ * still fills the frame.
+ */
+export function startZoom(capabilities) {
+  const steps = zoomSteps(capabilities);
+  if (!steps.length) return null;
+  return steps.includes(2) ? 2 : steps[steps.length - 1];
+}
+
 /** What to tell the person when the camera won't start. */
 export function cameraProblem(error) {
   switch (error?.name) {

@@ -5,6 +5,17 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-02 — Phone camera: sharp on phones with several cameras (Galaxy S23)
+
+**Fixed**
+- On a Galaxy S23 the camera picture was blurry and barcodes weren't read. The browser can open the ultra-wide back camera, which can't focus close, and the camera was asked for neither autofocus nor enough detail. Now:
+  - **The main back camera** is chosen (Android's "camera2 0") and remembered on that phone. A **Switch camera** button lets a phone that picks wrong be corrected.
+  - **Continuous autofocus** is switched on, and **tapping the picture focuses there**.
+  - It **starts at 2× zoom**, so the phone is held 15–20 cm away (close enough to focus, while the barcode still fills the frame). A zoom button switches between 1×, 1.5×, 2× and 3×.
+  - It asks for **full HD** instead of 1280×720, and shows the hint "Hold it 15–20 cm away".
+- Tests for choosing the camera and zoom (40 app tests).
+- Checked in the browser with a simulated S23 (four cameras, a barcode on screen): it switched to the main camera, read the barcode and added the item once, and holding it there didn't add it again.
+
 ### 2026-10-02 — Scan with the phone camera
 
 **Added**

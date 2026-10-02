@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cameraProblem, hasCamera, scanGate } from "./barcode.js";
+import { cameraProblem, hasCamera, pickBackCamera, scanGate, startZoom, zoomSteps } from "./barcode.js";
 
 describe("scanGate: one code counts once while the camera stays on it", () => {
   it("lets a new code through, then ignores it while it stays in view", () => {
@@ -67,5 +67,58 @@ describe("cameraProblem explains why the camera didn't start", () => {
     ["SomethingElse", "couldn't start"],
   ])("%s", (name, words) => {
     expect(cameraProblem({ name })).toContain(words);
+  });
+});
+
+describe("pickBackCamera: the main back camera, which can focus close", () => {
+  // How Chrome on a Galaxy S23 names its cameras once the camera is allowed.
+  const s23 = [
+    { kind: "videoinput", deviceId: "front", label: "camera2 1, facing front" },
+    { kind: "videoinput", deviceId: "ultrawide", label: "camera2 2, facing back" },
+    { kind: "videoinput", deviceId: "tele", label: "camera2 3, facing back" },
+    { kind: "videoinput", deviceId: "main", label: "camera2 0, facing back" },
+    { kind: "audioinput", deviceId: "mic", label: "Microphone" },
+  ];
+
+  it("chooses camera 0 on a phone with several back cameras", () => {
+    expect(pickBackCamera(s23, null)).toBe("main");
+  });
+
+  it("keeps the camera the person chose with Switch camera", () => {
+    expect(pickBackCamera(s23, "tele")).toBe("tele");
+  });
+
+  it("ignores a remembered camera that no longer exists", () => {
+    expect(pickBackCamera(s23, "gone")).toBe("main");
+  });
+
+  it("leaves the choice to the browser with one back camera, or names it can't read", () => {
+    expect(pickBackCamera([{ kind: "videoinput", deviceId: "b", label: "Back Camera" }], null)).toBeNull();
+    expect(
+      pickBackCamera(
+        [
+          { kind: "videoinput", deviceId: "a", label: "Back Camera" },
+          { kind: "videoinput", deviceId: "b", label: "Back Ultra Wide Camera" },
+        ],
+        null
+      )
+    ).toBeNull();
+  });
+});
+
+describe("zoom: start at 2x so the phone is held where it can focus", () => {
+  it("offers 1x to 3x on a phone that zooms far", () => {
+    const capabilities = { zoom: { min: 1, max: 10 } };
+    expect(zoomSteps(capabilities)).toEqual([1, 1.5, 2, 3]);
+    expect(startZoom(capabilities)).toBe(2);
+  });
+
+  it("uses the most it has when it can't reach 2x", () => {
+    expect(startZoom({ zoom: { min: 1, max: 1.6 } })).toBe(1.5);
+  });
+
+  it("no zoom button where the camera can't zoom", () => {
+    expect(zoomSteps({})).toEqual([]);
+    expect(startZoom({ zoom: { min: 1, max: 1 } })).toBeNull();
   });
 });

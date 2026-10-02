@@ -543,8 +543,9 @@ Same switches as today, no new ones:
 
 - A camera button in every item search box (New Bill, Goods Arrived, Check Stock, Fix Stock, top bar). It appears
   only on devices with a camera, so the counter PC is unchanged and the USB scanner works as before.
-- It reads product barcodes (EAN/UPC), distributors' box codes (Code 128 / 39 / ITF) and QR codes, using the
-  back camera, with a light button for dark racks.
+- It reads product barcodes (EAN/UPC), distributors' box codes (Code 128 / 39 / ITF) and QR codes. It uses
+  the **main** back camera (phones like the Galaxy S23 have several; the ultra-wide can't focus close), with
+  continuous autofocus, tap to focus, 2× zoom to start (held 15–20 cm away), a Switch camera button and a light.
 - **New Bill, Goods Arrived, Check Stock:** the camera stays on for the next item. The same code counts again
   only after the camera has been off it for 1.5 s, so holding it still never adds twice.
   **Fix Stock and the top bar:** it closes after one item.
