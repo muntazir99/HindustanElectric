@@ -5,6 +5,12 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-02 — Khata printout: compact statement
+
+**Fixed**
+- **Print khata** printed the screen page itself: large bold text, tall rows, the boxed "History" strip, icons, blue links and red/green amounts, so a handful of entries filled a page. It now prints its own statement, in the same style as the bill and receipt printouts: 11 px black text on white, shop name (and address, phone, GSTIN once filled in Shop settings), **KHATA STATEMENT**, the customer and the period, then one thin-ruled line per entry and **Balance due**. About 35–40 entries fit on an A4 page instead of 7; the column headings repeat on each new page.
+- Same words as before: Bill amount / Paid / Balance, "Owed before …" when a From date is set; a cancelled receipt's number is struck through. The screen view is unchanged.
+
 ### 2026-10-02 — Middle-ground look, step 5: records and forms (look done)
 
 **Changed**

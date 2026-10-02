@@ -40,6 +40,91 @@ const LINE_LABEL = {
   adjustment: "Correction",
 };
 
+/**
+ * The khata statement as printed for the customer: compact A4, black on white, like the bill and receipt
+ * printouts. It uses the customer's words (Bill amount / Paid / Balance) where the screen says You gave / You
+ * got / Owes. The screen's History box doesn't print.
+ */
+function KhataPrint({ shop, customer, data, range }) {
+  const cell = "px-1.5 py-1 align-top";
+  const row = "border-b border-gray-400 break-inside-avoid";
+  return (
+    <article className="hidden print:block text-[11px] leading-snug text-black">
+      <div className="text-center pb-2 mb-2 border-b border-black">
+        <p className="text-lg font-bold uppercase tracking-wide">{shop?.name}</p>
+        {shop?.address && <p className="whitespace-pre-line">{shop.address}</p>}
+        <p>{[shop?.phone && `Phone: ${shop.phone}`, shop?.gstin && `GSTIN: ${shop.gstin}`].filter(Boolean).join("   ")}</p>
+      </div>
+      <p className="text-center text-[13px] font-bold mb-2">KHATA STATEMENT</p>
+      <div className="flex justify-between gap-4 mb-2">
+        <p>
+          <b>{customer.name}</b>
+          {customer.phone && ` (${customer.phone})`}
+          {customer.address && <span className="block whitespace-pre-line">{customer.address}</span>}
+        </p>
+        <p className="text-right whitespace-nowrap">
+          {range.from || range.to ? `${range.from ? date(range.from) : "start"} to ${range.to ? date(range.to) : "today"}` : `As on ${date(new Date())}`}
+        </p>
+      </div>
+      <table className="w-full border-collapse border border-black">
+        <thead>
+          <tr className="border-b border-black">
+            <th className={`${cell} text-left w-[19mm]`}>Date</th>
+            <th className={`${cell} text-left`}>What happened</th>
+            <th className={`${cell} text-right w-[25mm]`}>Bill amount</th>
+            <th className={`${cell} text-right w-[25mm]`}>Paid</th>
+            <th className={`${cell} text-right w-[27mm]`}>Balance</th>
+          </tr>
+        </thead>
+        <tbody>
+          {range.from && (
+            <tr className={row}>
+              <td className={cell} />
+              <td className={`${cell} italic`}>Owed before {date(range.from)}</td>
+              <td className={cell} />
+              <td className={cell} />
+              <td className={`${cell} text-right`}>{money(data.brought_forward)}</td>
+            </tr>
+          )}
+          {data.lines.length === 0 && (
+            <tr className={row}>
+              <td colSpan={5} className={`${cell} text-center`}>
+                No entries.
+              </td>
+            </tr>
+          )}
+          {data.lines.map((line) => (
+            <tr key={line.id} className={row}>
+              <td className={`${cell} whitespace-nowrap`}>{date(line.date)}</td>
+              <td className={cell}>
+                {LINE_LABEL[line.kind] || line.kind_display}
+                {line.invoice_number && ` ${line.invoice_number}`}
+                {line.receipt_number && (
+                  <>
+                    {" "}
+                    <span className={line.receipt_cancelled ? "line-through" : ""}>{line.receipt_number}</span>
+                  </>
+                )}
+                {line.note && !line.note.startsWith("Bill ") && !line.note.startsWith("Receipt ") && ` — ${line.note}`}
+              </td>
+              <td className={`${cell} text-right whitespace-nowrap`}>{Number(line.debit) ? money(line.debit) : ""}</td>
+              <td className={`${cell} text-right whitespace-nowrap`}>{Number(line.credit) ? money(line.credit) : ""}</td>
+              <td className={`${cell} text-right whitespace-nowrap`}>{money(line.balance)}</td>
+            </tr>
+          ))}
+          {/* A last body row, not a <tfoot>: the browser would repeat a footer at the bottom of every page. */}
+          <tr className="border-t border-black break-inside-avoid">
+            <td className={`${cell} font-bold`} colSpan={4}>
+              Balance due
+            </td>
+            <td className={`${cell} text-right font-bold whitespace-nowrap`}>{money(data.closing_balance)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </article>
+  );
+}
+
 const MODES = [
   ["cash", "Cash"],
   ["upi", "UPI"],
@@ -259,17 +344,7 @@ export default function CustomerDetail() {
 
   return (
     <>
-      {/* Printed statement header */}
-      <div className="hidden print:block mb-4">
-        <p className="text-xl font-bold">{shop?.data.name}</p>
-        <p>{shop?.data.address}</p>
-        <p className="mt-3 text-lg font-bold">
-          Khata statement — {customer.name} {customer.phone && `(${customer.phone})`}
-        </p>
-        <p>
-          {range.from || range.to ? `${range.from ? date(range.from) : "start"} to ${range.to ? date(range.to) : "today"}` : `As on ${date(new Date())}`}
-        </p>
-      </div>
+      <KhataPrint shop={shop?.data} customer={customer} data={data} range={range} />
 
       <Section className="no-print mb-5">
         <div className="flex flex-wrap items-start justify-between gap-4 p-5 md:p-6">
@@ -325,9 +400,9 @@ export default function CustomerDetail() {
 
       <Section
         title="History"
-        className="mb-5"
+        className="mb-5 no-print"
         right={
-          <span className="no-print flex flex-wrap items-center gap-3">
+          <span className="flex flex-wrap items-center gap-3">
             <label className="flex items-center gap-2">
               From <input type="date" className="border border-gray-300 rounded-lg px-2 py-1 bg-white" value={range.from} onChange={(e) => setRange({ ...range, from: e.target.value })} />
             </label>
@@ -347,19 +422,10 @@ export default function CustomerDetail() {
             <tr>
               <th className={th}>Date</th>
               <th className={th}>What happened</th>
-              {/* On screen it's the shop's view (Khatabook style); the printout goes to the customer. */}
-              <th className={`${th} text-right`}>
-                <span className="print:hidden">You gave</span>
-                <span className="hidden print:inline">Bill amount</span>
-              </th>
-              <th className={`${th} text-right`}>
-                <span className="print:hidden">You got</span>
-                <span className="hidden print:inline">Paid</span>
-              </th>
-              <th className={`${th} text-right`}>
-                <span className="print:hidden">Owes</span>
-                <span className="hidden print:inline">Balance</span>
-              </th>
+              {/* The shop's view (Khatabook style); the printout uses the customer's words. */}
+              <th className={`${th} text-right`}>You gave</th>
+              <th className={`${th} text-right`}>You got</th>
+              <th className={`${th} text-right`}>Owes</th>
             </tr>
           </thead>
           <tbody>
@@ -399,7 +465,7 @@ export default function CustomerDetail() {
                     </Link>
                   )}
                   {line.kind === "payment" && line.receipt_number && !line.receipt_cancelled && can(A.RETURNS) && (
-                    <button type="button" onClick={() => setModal({ cancelReceipt: line })} className="no-print ml-3 text-sm text-red-700 hover:underline">
+                    <button type="button" onClick={() => setModal({ cancelReceipt: line })} className="ml-3 text-sm text-red-700 hover:underline">
                       cancel receipt
                     </button>
                   )}
@@ -416,8 +482,7 @@ export default function CustomerDetail() {
           <tfoot>
             <tr>
               <td className={td} colSpan={4}>
-                <b className="print:hidden">Owes now</b>
-                <b className="hidden print:inline">Balance due</b>
+                <b>Owes now</b>
               </td>
               <td className={`${td} text-right font-bold`}>{money(data.closing_balance)}</td>
             </tr>
