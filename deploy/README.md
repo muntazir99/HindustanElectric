@@ -58,6 +58,24 @@ sudo systemctl start hindustan-electric
 
 On a new server, run `setup.sh` first, copy the two backup files over, then restore as above.
 
+## Help assistant: AI model settings
+
+The ? Help button answers from `docs/HANDBOOK.md`. With no settings it shows the matching handbook topics.
+To let a free AI model write the answers (plan §15), set three settings. The key is asked for without showing:
+
+```bash
+sudo bash /srv/hindustan-electric/app/deploy/set-env.sh HELP_LLM_BASE_URL <OpenAI-compatible URL>
+sudo bash /srv/hindustan-electric/app/deploy/set-env.sh HELP_LLM_MODEL <model name>
+sudo bash /srv/hindustan-electric/app/deploy/set-env.sh HELP_LLM_KEY
+```
+
+| Provider (free) | `HELP_LLM_BASE_URL` | `HELP_LLM_MODEL` (example) |
+|---|---|---|
+| Google Gemini (key from Google AI Studio) | `https://generativelanguage.googleapis.com/v1beta/openai` | a current Gemini Flash model |
+| OpenRouter (key from openrouter.ai) | `https://openrouter.ai/api/v1` | `nvidia/nemotron-3-ultra-550b-a55b:free` |
+
+To turn the AI off, set `HELP_LLM_KEY` to `off`. The handbook answers alone then.
+
 ## Moving to the shop's own domain
 
 Point the domain's A record at the static IP, then run `sudo bash setup.sh <domain>`: it gets a certificate

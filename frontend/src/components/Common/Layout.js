@@ -6,6 +6,7 @@ import { PageProvider, useCurrentPage } from "../../hooks/usePage.js";
 import { useGoBack } from "../../hooks/useTrail.js";
 import { A } from "../../lib/access.js";
 import { BackLink } from "../../ui/index.js";
+import HelpButton from "../HelpButton.js";
 import ItemSearch from "../ItemSearch.js";
 import ScanToFind from "../ScanToFind.js";
 
@@ -139,9 +140,11 @@ export default function Layout() {
       <div className="min-h-screen">
         <TopBar />
         <TrailBar />
-        <main className="max-w-[1200px] mx-auto px-4 md:px-6 py-5 md:py-6 print:p-0 print:max-w-none">
+        {/* pb-24: room for the round Help button, so it never covers a screen's last button. */}
+        <main className="max-w-[1200px] mx-auto px-4 md:px-6 pt-5 md:pt-6 pb-24 print:p-0 print:max-w-none">
           <Outlet />
         </main>
+        <HelpButton />
       </div>
     </PageProvider>
   );

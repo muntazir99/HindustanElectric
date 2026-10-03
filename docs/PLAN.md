@@ -579,7 +579,58 @@ The owner is never restricted. All options are free and built into the app.
 - Do staff use only shop devices, their own phones, or both?
 - Which of the options above?
 
-## 15. Open items
+## 15. Help assistant ("Ask for help") (approved and built 2026-10-03)
+
+Anyone logged in asks how to do something, by typing or speaking in Hindi, Hinglish or English, and gets
+step-by-step steps from the handbook ([HANDBOOK.md](HANDBOOK.md)).
+
+### 15.1 How it answers
+
+- **Server side, one endpoint** `POST /api/help/ask {question}`. Logged-in users only, at most 30 questions an
+  hour per person.
+- **With a free AI model switched on:** the server sends the **whole handbook** (about 12k words, so nothing is
+  left out), the person's switches (so it can say "ask the owner") and the question. The model writes the
+  answer in the asker's language, following the handbook's section 0 rules.
+- **Provider:** any OpenAI-compatible endpoint, set by three server settings (`HELP_LLM_BASE_URL`,
+  `HELP_LLM_MODEL`, `HELP_LLM_KEY`). That covers **Gemini Flash (free)**, **Nemotron 3 Ultra (free on OpenRouter
+  or NVIDIA)** and others with no extra packages. Switching is a settings change.
+- **Without AI, or if it fails, is slow (over 20 s) or hits its limit:** the built-in search finds the 3 closest
+  handbook topics (spelling-tolerant, so "bnate" matches "banate") and shows them as they are. Help never breaks
+  and costs ₹0.
+- **Privacy:** only the handbook, the switch names and the question are sent, never shop data. Long numbers
+  (phones, amounts) are removed from the question first. Free tiers may keep what they're sent.
+
+### 15.2 On screen
+
+- A round **?** button at the bottom right of every screen (not on prints or the login page) opens **Help**:
+  - a question box;
+  - a **mic** button (the browser's free speech input, Hindi or English);
+  - the answer, with bold button names;
+  - a **🔊** button that reads it aloud;
+  - "From the handbook: …" links to show the topics it used.
+- Works on the counter PC and phones. The mic needs Chrome or Edge.
+
+### 15.3 Keys and setup
+
+- You create a free key yourself (Google AI Studio, or OpenRouter / NVIDIA). I never see it.
+- `deploy/set-env.sh` lets you paste the key on the server without it appearing on screen, then restarts the app.
+- First, test 20 real questions on both free models; keep the one that answers better and faster.
+
+### 15.4 Steps
+
+1. Server: handbook loader, search, `/api/help/ask` with the AI call and fallback; tests (search finds the right
+   topic for Hinglish/Hindi questions, fallback works, numbers stripped, login required).
+2. App: the Help button and panel, mic and read-aloud; a test.
+3. `deploy/set-env.sh`, update the server, and you add a key.
+4. Compare the two models on 20 questions; changelog and handbook entry for Help.
+
+### 15.5 Done when
+
+- "estimate kaise bnate hai" (typed or spoken) gets the right steps in Hinglish, on the PC and a phone.
+- With the AI switched off or failing, the right handbook topic still shows.
+- No API key is in git or visible on screen.
+
+## 16. Open items
 
 - [x] Owner approval of Phase 1 design (§6)
 - [x] Remove the old Flask files from the repo root (preserved under tag `flask-final`)

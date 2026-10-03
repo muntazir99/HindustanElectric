@@ -139,6 +139,18 @@ Good to know:
 
 Search also finds **other names** customers use (e.g. "pankha" for fan) if they were added to the item.
 
+### G5. Ask for help in the app
+**Words people use:** help, madad, sawaal poochna, kaise kare samajh nahi aa raha, मदद
+**Who:** everyone.
+1. Press the round **?** button at the bottom right of any screen.
+2. Type your question in Hindi, Hinglish or English (e.g. "estimate kaise banate hai") and press the send arrow.
+   Or press the **mic**, choose **हिंदी** or **English** under **Speaking in**, and speak.
+3. The answer shows step by step, with button names in **bold**. **Read aloud** speaks it. **From the handbook:
+   …** shows the part of this handbook it came from.
+
+If the answer isn't right, try other words, or ask the owner. The mic works in Chrome or Edge. At most 30
+questions an hour per person.
+
 ---
 
 ## 4. Billing (sales)
@@ -230,7 +242,7 @@ Stock is always counted in the smallest unit: one coil of 90 m takes 90 m off st
 - *"shelf stock not checked yet"*: this item hasn't been counted in the app yet. Billing works normally.
 
 ### B7. Buyer details, GSTIN, another state, notes
-**Words people use:** GST bill, GSTIN dalna, dusre state ka customer, address, IGST
+**Words people use:** GST bill, GST wala bill, pakka bill, GSTIN dalna, dusre state ka customer, address, IGST, जीएसटी बिल
 **Who:** **Make bills**.
 1. On New Bill, under **Who is buying?**, press **Buyer's name, address, GSTIN, other state…**.
 2. For a walk-in buyer (no customer chosen), fill **Buyer name**, **Buyer phone**, **Buyer address**, **Buyer
@@ -255,6 +267,7 @@ Good to know:
 - Kept bills also show in **More → Kept for Later**. Nothing changes in stock until a bill is saved.
 
 ### B9. Start over (clear the bill)
+**Words people use:** bill saaf karna, sab hata do, naya shuru, clear bill
 **Who:** **Make bills**.
 Press **Start over** at the bottom of New Bill and confirm. Everything on the bill being made is cleared. Saved
 bills are never affected.
@@ -341,7 +354,7 @@ Good to know: a bill that already had goods returned can't be cancelled. Return 
    and **Owes**.
 
 ### K3. Take an udhaar payment (and give a receipt)
-**Words people use:** udhaar wapas, paisa jama karna, payment lena, khata clear, बकाया जमा
+**Words people use:** udhaar wapas, udhaar ka paisa lena, paisa le liya, paisa jama karna, payment lena, payment aaya, khata clear, रसीद, बकाया जमा
 **Who:** **Take udhaar payments**.
 1. Press **Take Payment** on Home (it lists who owes), then pick the customer. Or open the customer and press
    **Take Payment**.
@@ -354,6 +367,7 @@ Good to know: if the amount is **more** than they owe, the app asks you to confi
 **advance** (press **Yes, keep the advance**). Their next bills use it up.
 
 ### K4. Cancel a receipt entered by mistake
+**Words people use:** receipt galat, galat receipt ban gayi, receipt cancel, payment galti se, रसीद रद्द
 **Who:** **Returns and cancellations**.
 1. Open the customer. In their khata, next to the payment, press **cancel receipt**.
 2. Write a **Reason** and press **Cancel receipt**.
@@ -390,6 +404,7 @@ The printout is a compact A4 statement: shop name, **KHATA STATEMENT**, customer
 Paid, Balance) and **Balance due**.
 
 ### K8. Edit a customer
+**Words people use:** customer edit, naam badalna, phone number badalna, limit badhana, customer ki jankari
 **Who:** **See khata** or **Udhaar control**.
 Open the customer and press **Edit details**. The credit limit and fixed discount can only be changed with
 **Udhaar control**.
@@ -421,6 +436,7 @@ Good to know:
 - For many items at once, use Excel instead (I5).
 
 ### I2. Add an item while entering a distributor's bill
+**Words people use:** purchase me naya item, maal me naya saman, bill me item nahi mila
 **Who:** **Enter goods arrived** and **Add new items**.
 On **Goods Arrived**, press **New item** next to the item search. Fill **Brand**, **Product name**, **Variant**,
 **Sold in**, **HSN**, **GST %**, **Selling price** (GST included), **Barcode (single unit)**, and optionally
@@ -428,7 +444,7 @@ On **Goods Arrived**, press **New item** next to the item search. Fill **Brand**
 Goods Arrived. On New Bill, an item that isn't found must first be added with Add New Item.)
 
 ### I3. Change an item (price, rack, min stock, other names, switch it off)
-**Words people use:** rate badalna, price update, rack badalna, item band karna
+**Words people use:** rate badalna, rate badle, price badle, price change, daam badlo, rack badalna, item band karna, item edit
 **Who:** **Add new items** or **Change prices and items**. Price and MRP need **Change prices and items**.
 1. Open the item (G4) and press **Edit**.
 2. Change **Variant**, **Rack**, **Min stock**, **Other names (aliases)** (comma separated, e.g. "kit-kat, fuse
@@ -499,6 +515,8 @@ What happens: those items' stock is set to what was counted (allowing for anythi
 they're marked as counted. **Cancel this count** discards it without changing stock.
 
 ### S2. When to count
+**Words people use:** kab ginti kare, roz kitna gine, counting plan
+
 Count gradually, one rack or kind of item a day. Costly and fast-moving items first (fans, MCBs, wire coils),
 small hardware last. Items not counted yet show **Not checked yet**, never a made-up number. After everything is
 counted once, do small weekly checks.
@@ -541,6 +559,7 @@ Good to know:
 - Find bills later in **More → Purchase Bills**.
 
 ### P2. Distributors
+**Words people use:** supplier add, distributor jodna, company ka naam, wholesaler
 **Who:** **Enter goods arrived**.
 **More → Distributors**: add or edit names, phone numbers and GSTIN. Also from the + next to **Distributor** on
 Goods Arrived.
@@ -550,6 +569,7 @@ Goods Arrived.
 ## 9. Money on Home
 
 ### M1. Today's figures
+**Words people use:** aaj ki bikri, aaj kitna bika, galla, cash kitna hai, aaj ka hisaab, आज की बिक्री
 **Who:** **See today's sales and cash**.
 Home's **Today** box: **Sales** (and number of bills), **Cash in drawer** (cash taken minus cash given back),
 **Given on udhaar**, **Udhaar paid back**, and **Goods returned** if any. **Today's bills** opens the list.
@@ -575,6 +595,7 @@ To change someone's switches later, open their row in Staff & Access and tick or
 straight away. Each row shows when they last logged in.
 
 ### O2. Reset a staff password / switch a login off
+**Words people use:** password reset, naya password, staff hatana, kaam chhod diya, login band karna
 **Who:** owner.
 - **New password:** open the person in **Staff & Access**, press **New password** (at least 8 characters; not only
   numbers, not a common word) and tell them.
@@ -584,6 +605,7 @@ straight away. Each row shows when they last logged in.
   the top.
 
 ### O3. Shop details printed on bills (GSTIN, address, bank, UPI)
+**Words people use:** dukaan ki jankari, shop ka naam, GST number dalna, bank details, UPI ID, bill pe address
 **Who:** owner.
 1. **More → Shop Details** (opens the back office).
 2. Fill **Name**, **GSTIN**, state code (Bihar is 10), **Address**, **Phone**, **Email**, bank name, branch,
@@ -596,6 +618,7 @@ If the GSTIN is missing, the bill print screen warns: *"Shop GSTIN is not set �
 office."*
 
 ### O4. Back office
+**Words people use:** admin, back office, settings
 **Who:** owner only.
 **More → Back office (advanced)** opens the full records screen: shop settings, users, and every record.
 Daily work is all in the app; use the back office for settings. It has its own limit on wrong passwords.

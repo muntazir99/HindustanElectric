@@ -5,6 +5,26 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-03 — Help assistant ("?" on every screen)
+
+Plan: [PLAN.md §15](docs/PLAN.md) (approved 2026-10-03).
+
+**Added**
+- A round **?** button at the bottom right of every screen opens **Help**:
+  - ask by typing or with the **mic**, in Hindi or English speech;
+  - the answer shows with button names in bold, and **Read aloud** speaks it;
+  - "From the handbook: …" shows the topics used.
+- Server: `POST /api/help/ask` (`backend/core/help.py`). Logged-in users only, 30 questions an hour each.
+  - **With a free AI model set up:** the whole handbook, the asker's switches and the question go to any OpenAI-compatible endpoint (Gemini, OpenRouter/Nemotron…) set by `HELP_LLM_BASE_URL`, `HELP_LLM_MODEL` and `HELP_LLM_KEY`. Nothing extra to install.
+  - **Without it, or when it fails or is slow (20 s):** the closest handbook topics are shown. The search is spelling-tolerant and reads Devanagari in Roman letters too ("एस्टीमेट" finds "estimate").
+  - **What is sent:** never shop data. Long numbers are removed from questions.
+- `deploy/set-env.sh`: sets a live setting; a key is typed without showing on screen. Provider settings are in `deploy/README.md`.
+- Handbook:
+  - new topic **G5. Ask for help in the app**;
+  - "Words people use" added to 12 topics that had none, so the search finds them.
+- The search finds the right topic first for 25 test questions (Hinglish, Hindi, English, misspellings).
+- Tests: 9 server (search, numbers stripped, the AI call, failure fallback, "off", empty question) and 3 app (answer, handbook fallback, line joining). The security sweep covers the new address.
+
 ### 2026-10-03 — App handbook
 
 **Added**

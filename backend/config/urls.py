@@ -4,6 +4,7 @@ from django.http import JsonResponse
 from django.urls import include, path
 
 from catalog.import_views import CatalogueSample, ImportTemplate, ImportUpload
+from core.help import HelpView
 from shop.views import ShopSettingsView
 
 from .admin_login import limit_login
@@ -29,6 +30,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/health", health),
     path("api/auth/", include("accounts.urls")),
+    path("api/help/ask", HelpView.as_view(), name="help-ask"),
     path("api/shop/settings", ShopSettingsView.as_view(), name="shop-settings"),
     path("api/catalog/", include("catalog.urls")),
     path("api/stock/", include("stock.urls")),

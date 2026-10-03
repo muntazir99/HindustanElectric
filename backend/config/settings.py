@@ -130,8 +130,8 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.ScopedRateThrottle",
     ],
-    # Slows down password guessing on the login endpoint.
-    "DEFAULT_THROTTLE_RATES": {"login": "10/min"},
+    # Slows down password guessing on the login endpoint; keeps the help assistant inside free AI limits.
+    "DEFAULT_THROTTLE_RATES": {"login": "10/min", "help": "30/hour"},
     # How many proxies (e.g. nginx) sit in front of Django. 0 = use the connecting address and ignore
     # X-Forwarded-For, which anyone can fake to dodge the login limit.
     "NUM_PROXIES": int(os.environ.get("DJANGO_NUM_PROXIES", "0")),
