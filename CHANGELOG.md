@@ -5,6 +5,19 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-03 — App handbook
+
+**Added**
+- `docs/HANDBOOK.md`: how to do every job in the app, step by step, for staff, the owner and the planned help assistant.
+  - **Covers:** getting around, scanning, billing (cash, udhaar, part payment, discounts, packs, buyer details, kept for later, estimates, returns, cancellations), khata, items and prices, Excel upload, stock checks, Fix Stock, Goods Arrived, Home figures, owner jobs, printing, the messages people may see, and daily rules.
+  - **Each topic has:** words people use (English / Hinglish / Hindi, for search), who can do it (switch), numbered steps with the exact button names, what happens to stock, khata and money, and what to do when something goes wrong.
+  - **Section 0** tells the assistant how to answer: only from the handbook, in the asker's language, step by step, naming the switch needed.
+  - Checked against the code (screens, buttons, switches and server rules), not from memory.
+- Rule: any change to a screen, button or rule updates the handbook in the same commit.
+
+**Fixed**
+- The 2026-10-02 changelog said the quick Add item box opens from New Bill; it only opens from Goods Arrived.
+
 ### 2026-10-02 — Staff & Access shows real login times
 
 **Fixed**
@@ -30,7 +43,7 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 ### 2026-10-02 — Camera scan in barcode fields
 
 **Added**
-- A camera button in every barcode field: **Add New Item** (unit and pack barcode on each row), **Item page → Add pack**, and the **quick Add item** box that opens from New Bill and Goods Arrived. On a phone, scan the product's own barcode to fill the field instead of typing 13 digits.
+- A camera button in every barcode field: **Add New Item** (unit and pack barcode on each row), **Item page → Add pack**, and the **New item** box on Goods Arrived. On a phone, scan the product's own barcode to fill the field instead of typing 13 digits.
 - After a scan it checks the code. If another item already has it, it says *"Already used by …"* before saving, because each barcode belongs to one item or pack.
 - Shared `BarcodeInput` component. Tests: plain box without a camera, a scan fills it, the "already used" warning (46 app tests).
 
