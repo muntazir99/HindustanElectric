@@ -615,6 +615,7 @@ step-by-step steps from the handbook ([HANDBOOK.md](HANDBOOK.md)).
 - You create a free key yourself (Google AI Studio, or OpenRouter / NVIDIA). I never see it.
 - `deploy/set-env.sh` lets you paste the key on the server without it appearing on screen, then restarts the app.
 - First, test 20 real questions on both free models; keep the one that answers better and faster.
+- **Chosen 2026-10-03:** NVIDIA Nemotron 3 Ultra through NVIDIA's own API (owner's key), with thinking off for speed.
 
 ### 15.4 Steps
 

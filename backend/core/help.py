@@ -173,6 +173,9 @@ def ask_model(question, user):
         "temperature": 0.2,
         "max_tokens": 1500,
     }
+    if "nvidia.com" in base:
+        # Nemotron thinks at length by default; a how-to answer from the handbook needs no thinking, and is faster.
+        body["chat_template_kwargs"] = {"enable_thinking": False}
     request = urllib.request.Request(
         base.rstrip("/") + "/chat/completions",
         data=json.dumps(body).encode(),

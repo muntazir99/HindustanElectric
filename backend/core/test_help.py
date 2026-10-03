@@ -100,3 +100,19 @@ def test_when_the_ai_fails_the_handbook_still_answers(staff_api, monkeypatch):
     assert response.status_code == 200
     assert body["source"] == "handbook"
     assert body["topics"][0]["id"] == "B14"
+
+
+def test_nvidia_nemotron_answers_without_long_thinking(staff_api, monkeypatch):
+    monkeypatch.setenv("HELP_LLM_BASE_URL", "https://integrate.api.nvidia.com/v1")
+    monkeypatch.setenv("HELP_LLM_MODEL", "nvidia/nemotron-3-ultra-550b-a55b")
+    monkeypatch.setenv("HELP_LLM_KEY", "test-key")
+    sent = {}
+
+    def fake_urlopen(request, timeout):
+        sent["body"] = json.loads(request.data)
+        return io.BytesIO(json.dumps({"choices": [{"message": {"content": "1. **New Bill**"}}]}).encode())
+
+    with mock.patch("core.help.urllib.request.urlopen", fake_urlopen):
+        staff_api.post("/api/help/ask", {"question": "estimate kaise banaye"}, format="json")
+    assert sent["body"]["chat_template_kwargs"] == {"enable_thinking": False}
+    assert sent["body"]["model"] == "nvidia/nemotron-3-ultra-550b-a55b"

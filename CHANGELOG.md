@@ -5,6 +5,13 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-03 — Help assistant uses NVIDIA Nemotron 3 Ultra directly
+
+**Changed**
+- The Help assistant's AI model is **Nemotron 3 Ultra from NVIDIA's own API** (`https://integrate.api.nvidia.com/v1`, model `nvidia/nemotron-3-ultra-550b-a55b`), not through OpenRouter.
+- For NVIDIA, requests turn Nemotron's long "thinking" off (`enable_thinking: false`). A how-to answer from the handbook doesn't need it and comes back faster. Other providers never get this setting.
+- `deploy/README.md`: the provider table lists NVIDIA instead of OpenRouter. Test added (15 help tests).
+
 ### 2026-10-03 — Help assistant ("?" on every screen)
 
 Plan: [PLAN.md §15](docs/PLAN.md) (approved 2026-10-03).

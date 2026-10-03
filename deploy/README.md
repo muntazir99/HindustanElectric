@@ -72,7 +72,7 @@ sudo bash /srv/hindustan-electric/app/deploy/set-env.sh HELP_LLM_KEY
 | Provider (free) | `HELP_LLM_BASE_URL` | `HELP_LLM_MODEL` (example) |
 |---|---|---|
 | Google Gemini (key from Google AI Studio) | `https://generativelanguage.googleapis.com/v1beta/openai` | a current Gemini Flash model |
-| OpenRouter (key from openrouter.ai) | `https://openrouter.ai/api/v1` | `nvidia/nemotron-3-ultra-550b-a55b:free` |
+| **NVIDIA Nemotron 3 Ultra** (key from build.nvidia.com) — in use | `https://integrate.api.nvidia.com/v1` | `nvidia/nemotron-3-ultra-550b-a55b` |
 
 To turn the AI off, set `HELP_LLM_KEY` to `off`. The handbook answers alone then.
 
