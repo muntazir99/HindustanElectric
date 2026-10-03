@@ -145,8 +145,17 @@ Search also finds **other names** customers use (e.g. "pankha" for fan) if they 
 1. Press the round **?** button at the bottom right of any screen.
 2. Type your question in Hindi, Hinglish or English (e.g. "estimate kaise banate hai") and press the send arrow.
    Or press the **mic**, choose **हिंदी** or **English** under **Speaking in**, and speak.
-3. The answer shows step by step, with button names in **bold**. **Read aloud** speaks it. **From the handbook:
-   …** shows the part of this handbook it came from.
+3. The answer comes as numbered steps, with button names in **bold** and a progress bar ("Step 1 of 4").
+4. Follow the steps while using the app:
+   - **Open …** on a step goes to the screen it names. The help stays open, and the step says **You're here**.
+   - **Show me** outlines the button the step names on the screen.
+   - **Done, next step** moves on.
+5. **Read aloud** speaks the answer. **Handbook: …** shows the part of this handbook it came from.
+
+On the counter PC, Help stays open as a panel on the right while you work, and the page moves over to make room.
+On a phone, it opens from the bottom. **Follow these steps** (or the down arrow) shrinks it to a one-line step bar
+with back, next, and an up arrow to open it again. The **?** button shows which step you're on (e.g. 3/4) while
+Help is closed. **×** ends the steps.
 
 If the answer isn't right, try other words, or ask the owner. The mic works in Chrome or Edge. At most 30
 questions an hour per person.

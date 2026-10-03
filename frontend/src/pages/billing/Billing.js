@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Clock, FileText, Minus, Plus, Printer, RotateCcw, Trash2, TriangleAlert } from "lucide-react";
 import api from "../../api.js";
 import CustomerPicker from "../../components/CustomerPicker.js";
+import { useHelp } from "../../components/Help.js";
 import ItemSearch from "../../components/ItemSearch.js";
 import { useAuth } from "../../context/AuthContext.js";
 import { A } from "../../lib/access.js";
@@ -110,6 +111,7 @@ export default function Billing() {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const { can } = useAuth();
+  const { docked } = useHelp();
   const mayGoLow = can(A.LOW_PRICES);
   usePage("New Bill", ["/dashboard", "Home"]);
 
@@ -528,8 +530,9 @@ export default function Billing() {
   }
 
   return (
-    // Two columns only on wide screens, so the items table always has room for every column.
-    <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_380px] gap-5 items-start">
+    // Two columns only on wide screens (and not while Help is docked beside the page), so the items table
+    // always has room for every column.
+    <div className={`grid grid-cols-1 gap-5 items-start ${docked ? "" : "xl:grid-cols-[minmax(0,1fr)_380px]"}`}>
       <div className="min-w-0 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-[28px] font-bold leading-tight">New Bill</h1>
@@ -646,7 +649,7 @@ export default function Billing() {
         </Section>
       </div>
 
-      <div className="space-y-4 xl:sticky xl:top-28">
+      <div className={`space-y-4 ${docked ? "" : "xl:sticky xl:top-28"}`}>
         <Section title="Who is buying?" bodyClassName="p-4">
           <CustomerPicker value={header.customer} onChange={(customer) => changeHeader({ customer })} />
           {!header.customer && <p className="text-sm text-gray-600 mt-1.5">Leave empty for a cash customer. Choose a customer to give udhaar.</p>}

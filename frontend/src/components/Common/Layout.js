@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { ChevronDown, Home, LayoutGrid, LogOut, Plus } from "lucide-react";
 import { useAuth } from "../../context/AuthContext.js";
@@ -6,7 +6,7 @@ import { PageProvider, useCurrentPage } from "../../hooks/usePage.js";
 import { useGoBack } from "../../hooks/useTrail.js";
 import { A } from "../../lib/access.js";
 import { BackLink } from "../../ui/index.js";
-import HelpButton from "../HelpButton.js";
+import Help, { HelpProvider, useHelp } from "../Help.js";
 import ItemSearch from "../ItemSearch.js";
 import ScanToFind from "../ScanToFind.js";
 
@@ -27,9 +27,21 @@ function TopBar() {
   const { pathname } = useLocation();
   const [accountOpen, setAccountOpen] = useState(false);
   const onBilling = pathname === "/billing";
+  const bar = useRef(null);
+
+  // The docked Help panel starts right under this bar, whatever its height.
+  useLayoutEffect(() => {
+    const element = bar.current;
+    const measure = () => document.documentElement.style.setProperty("--top-bar-h", `${element.offsetHeight}px`);
+    measure();
+    if (typeof ResizeObserver === "undefined") return undefined;
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <header className="print:hidden sticky top-0 z-40 bg-steel-800 text-white">
+    <header ref={bar} className="print:hidden sticky top-0 z-40 bg-steel-800 text-white">
       <div className="max-w-[1200px] mx-auto px-3 sm:px-4 md:px-6 py-2.5 flex items-center gap-1.5 sm:gap-3">
         {/* On a phone the Home button takes the name's place. */}
         <Link to="/dashboard" className="hidden sm:block mr-auto lg:mr-2 shrink-0 leading-tight text-white">
@@ -134,18 +146,30 @@ function TrailBar() {
   );
 }
 
+/** Below the top bar: the page, moved over to make room while Help is docked on the right. */
+function Body() {
+  const { docked } = useHelp();
+  return (
+    <div className={docked ? "lg:pr-[400px] print:pr-0" : ""}>
+      <TrailBar />
+      {/* pb-24: room for the round Help button and the phone's step bar, so neither covers a screen's last button. */}
+      <main className="max-w-[1200px] mx-auto px-4 md:px-6 pt-5 md:pt-6 pb-24 print:p-0 print:max-w-none">
+        <Outlet />
+      </main>
+    </div>
+  );
+}
+
 export default function Layout() {
   return (
     <PageProvider>
-      <div className="min-h-screen">
-        <TopBar />
-        <TrailBar />
-        {/* pb-24: room for the round Help button, so it never covers a screen's last button. */}
-        <main className="max-w-[1200px] mx-auto px-4 md:px-6 pt-5 md:pt-6 pb-24 print:p-0 print:max-w-none">
-          <Outlet />
-        </main>
-        <HelpButton />
-      </div>
+      <HelpProvider>
+        <div className="min-h-screen">
+          <TopBar />
+          <Body />
+          <Help />
+        </div>
+      </HelpProvider>
     </PageProvider>
   );
 }

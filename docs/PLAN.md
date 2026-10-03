@@ -610,6 +610,10 @@ step-by-step steps from the handbook ([HANDBOOK.md](HANDBOOK.md)).
   - "From the handbook: …" links to show the topics it used.
 - Works on the counter PC and phones. The mic needs Chrome or Edge.
 
+**Revised 2026-10-03 (design "Help side panel", approved):** on a PC, Help is a panel docked on the right
+and the app stays usable beside it. On a phone it's a bottom sheet that shrinks to a step bar. Answers become
+steps you follow across screens: **Open …**, **You're here**, **Show me**, **Done, next step**.
+
 ### 15.3 Keys and setup
 
 - You create a free key yourself (Google AI Studio, or OpenRouter / NVIDIA). I never see it.

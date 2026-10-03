@@ -5,6 +5,26 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-03 — Help beside the app, following you between screens
+
+Design: the "Help side panel" canvas (approved 2026-10-03).
+
+**Changed**
+- **PC:** Help no longer covers the screen. It is a panel docked on the right, under the top bar; the page moves over to make room and stays fully usable. New Bill uses one column while Help is docked, so its table still fits.
+- **Phones:** Help opens as a sheet from the bottom. **Follow these steps** shrinks it to a one-line step bar (step, back, next, open again).
+- **Steps you can follow:**
+  - Answers show as numbered steps with a progress bar.
+  - **Open …** goes to the screen a step names, keeping the conversation; on arrival the step says **You're here**.
+  - **Show me** outlines the button a step names, with the step number.
+  - **Done, next step** moves on.
+  - The ? button shows the step (e.g. 3/4) while Help is closed.
+- The conversation lives above the pages (`Help.js` with `HelpProvider` in the layout), so it survives moving between screens.
+
+**Fixed**
+- A crash in today's Chrome: its `scrollIntoView` returns a promise, which an effect must not return. A test now copies Chrome's behaviour, and it fails without the fix.
+
+Tests: step splitting, screen detection, the phone flow (open a screen, you're here, next, Show me, step bar), the PC flow (stays docked), and the Chrome case. 53 app tests. Checked in the browser at 1366 px (docked, Open New Bill, Show me on Make estimate) and 360 px (sheet, step bar, no overflow). Handbook G5 updated.
+
 ### 2026-10-03 — Help assistant uses NVIDIA Nemotron 3 Ultra directly
 
 **Changed**

@@ -33,3 +33,27 @@ input, button, select, textarea {
     display: none !important;
   }
 }
+
+/* Help's "Show me": outlines the button a step names, with the step's number. */
+[data-help-spot] {
+  position: relative;
+  outline: 3px solid #264b6b;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 7px #c9d8e6;
+  z-index: 1;
+}
+[data-help-spot]::after {
+  content: attr(data-help-spot);
+  position: absolute;
+  top: -0.9rem;
+  right: -0.5rem;
+  padding: 0 0.45rem;
+  border-radius: 999px;
+  background: #264b6b;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
+  pointer-events: none;
+}
