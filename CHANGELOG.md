@@ -5,6 +5,21 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-06 — Phase 3 reports, step 1: Close the day
+
+Plan: [PLAN.md §16](docs/PLAN.md) (approved 2026-10-06).
+
+**Added**
+- **Close the day** (More → Reports, and a link in Home's Today box), for **See today's sales and cash**:
+  - for any day: cash in drawer, and a **Cash counted** box that says matches, short or extra;
+  - sales and bill count, udhaar given and paid back, goods returned, bills cancelled, estimates made;
+  - money by type (in, given back, net), and **By person** (bills, sales, cash, UPI, udhaar collected, given back);
+  - **Print** makes a one-page sheet with "Counted by / Checked by".
+- Server: `GET /api/sales/day-end?date=`. The day's money comes from one shared function (`day_money`) that Home's Today box now uses too, so the two always agree.
+- Handbook: new topic **M2. Close the day**.
+- Tests: a busy day checked to the rupee (two people; cash, UPI and udhaar bills; an udhaar payment, a return, a cancellation, an estimate; cash in drawer ₹340), matching Home's Today box; another day empty; access; bad date; the cash-count wording. 339 server, 54 app tests.
+- Checked in the browser: 1 Oct test data gives cash in drawer ₹3,760, which matches a hand count; the cash count says "Short by ₹60.00" and "Matches".
+
 ### 2026-10-06 — Losses: what written-off stock cost the shop
 
 **Added**

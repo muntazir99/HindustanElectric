@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import {
   Ban,
   Building2,
+  CalendarCheck,
   ClipboardCheck,
   Clock,
   ExternalLink,
@@ -62,6 +63,12 @@ const SECTIONS = [
     tiles: [
       { to: "/customers", icon: Users, name: "Customers", text: "Who owes what", need: [A.VIEW_KHATA, A.PAYMENTS] },
       { to: "/customers?owing=1", icon: HandCoins, name: "Take Payment", text: "A customer pays their udhaar", tone: "green", need: [A.PAYMENTS] },
+    ],
+  },
+  {
+    title: "Reports",
+    tiles: [
+      { to: "/reports/day-end", icon: CalendarCheck, name: "Close the day", text: "Cash in drawer, money by type, each person", need: [A.VIEW_SALES] },
     ],
   },
   {

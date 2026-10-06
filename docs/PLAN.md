@@ -635,7 +635,73 @@ steps you follow across screens: **Open …**, **You're here**, **Show me**, **D
 - With the AI switched off or failing, the right handbook topic still shows.
 - No API key is in git or visible on screen.
 
-## 16. Open items
+## 16. Phase 3, part 1: reports (approved 2026-10-06)
+
+Three reports built from what bills, payments and returns already record: each bill line keeps its GST and the
+item's cost on the day of sale, and each payment keeps its mode and who took it. Nothing about billing changes.
+₹0, no new packages.
+
+### 16.1 Day-end summary ("Close the day")
+
+- Pick a day (today by default):
+  - **Bills:** count and total; estimates made; bills cancelled.
+  - **Money in by mode:** cash, UPI, card, from bills and from udhaar payments; **money given back** for
+    returns and cancellations.
+  - **Cash in drawer** = cash taken − cash given back. Optionally type the **cash counted**, and it shows
+    *short* or *extra*. On screen and on the printout only; not saved.
+  - **Udhaar:** given on today's bills, and collected.
+  - **Per staff member:** bills made (count and total), cash and UPI taken, udhaar payments taken.
+- **Print:** a compact A4 for the day's file.
+- **Who:** **See today's sales and cash**. The same numbers as Home's Today box, so the two always agree.
+
+### 16.2 Sales and profit
+
+- **Pick a period:** a day, a month (this month by default), or from–to.
+- **Totals:**
+  - sales with GST, taxable value, GST collected, returns, net sales;
+  - **profit** = taxable value − the cost saved on each bill line;
+  - margin %.
+  Returns come off both sales and profit. Lines with no cost (old stock with no purchase entered) show as
+  "profit unknown on ₹… of sales", never guessed.
+- **Broken down by:** day (within a month), month (within a year), item (top sellers), category; each with quantity, sales, profit, margin.
+- **Excel download** of each list.
+- **Who:** sales figures need **See today's sales and cash**; cost and profit also need **See costs and profit**.
+
+### 16.3 GST summary for the CA (monthly Excel)
+
+- **On screen:** pick a month; totals by GST rate (taxable, CGST, SGST, IGST); **Download Excel**.
+- **Excel sheets**, in GSTR-1 layout:
+  - **B2B:** per invoice and rate, for registered buyers (GSTIN, number, date, value, place of supply, rate,
+    taxable, taxes).
+  - **B2CL:** inter-state sales to unregistered buyers above ₹1,00,000 per invoice. *Confirm with CA.*
+  - **B2CS:** all other sales to unregistered buyers, totalled by place of supply and rate.
+  - **CDNR:** returns from registered buyers. Returns from unregistered buyers net into B2CS. *Confirm with CA.*
+  - **HSN summary:** HSN, unit, quantity, taxable value, taxes.
+  - **Documents:** first and last number, count and cancelled count, for bills and for credit notes.
+- **Left out:** cancelled bills (only counted under Documents) and estimates.
+- **Who:** owner only.
+- **Before relying on it:** the CA checks the first month's file against their own working.
+
+### 16.4 Where
+
+- A new **Reports** group on **More**: Day-end summary, Sales and profit, GST summary (each only for those allowed).
+- Home's Today box gets a **Close the day** link.
+
+### 16.5 Steps (one commit each, each put live)
+
+1. Day-end summary, with print.
+2. Sales and profit, with Excel.
+3. GST summary with Excel; the first month checked with the CA.
+
+Each step: server tests with known bills checked to the paisa, a handbook topic, and a changelog entry.
+
+### 16.6 Done when
+
+- Day-end figures match Home's Today box, and the cash counted at closing.
+- Profit for a test month matches a hand calculation from the bill lines.
+- The CA accepts one month's GST Excel, or tells us what to change.
+
+## 17. Open items
 
 - [x] Owner approval of Phase 1 design (§6)
 - [x] Remove the old Flask files from the repo root (preserved under tag `flask-final`)

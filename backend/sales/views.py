@@ -1,3 +1,4 @@
+from datetime import date
 from decimal import Decimal
 
 from django.db.models import Count, DecimalField, Prefetch, Q, Sum, Value
@@ -293,6 +294,34 @@ class CreditNoteViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewse
 
 
 
+def day_money(day):
+    """
+    One day's bills and money: Home's Today box and the day-end summary both use this, so they always agree.
+    Bills count on the day they were made; payments, refunds and returns on the day they happened.
+    """
+    bills = Invoice.objects.filter(kind=Invoice.Kind.INVOICE, status=Invoice.Status.FINAL, invoice_date=day)
+    totals = bills.aggregate(count=Count("id"), total=Sum("total"), on_khata=Sum("credit_amount"))
+    money_in = Payment.objects.filter(
+        date=day, kind__in=[Payment.Kind.SALE, Payment.Kind.KHATA], cancelled_at__isnull=True
+    )
+    refunds = Payment.objects.filter(date=day, kind=Payment.Kind.REFUND)
+    by_mode = {}
+    for mode, label in Payment.Mode.choices:
+        received = money_in.filter(mode=mode).aggregate(total=Sum("amount"))["total"] or ZERO
+        refunded = refunds.filter(mode=mode).aggregate(total=Sum("amount"))["total"] or ZERO
+        if received or refunded:
+            by_mode[mode] = {"label": label, "received": str(received), "refunded": str(refunded), "net": str(received - refunded)}
+    khata_in = money_in.filter(kind=Payment.Kind.KHATA)
+    return {
+        "bills": totals["count"],
+        "sales": str(totals["total"] or ZERO),
+        "returns": str(CreditNote.objects.filter(date=day).aggregate(total=Sum("total"))["total"] or ZERO),
+        "by_mode": by_mode,
+        "on_khata": str(totals["on_khata"] or ZERO),
+        "khata_collected": str(khata_in.aggregate(total=Sum("amount"))["total"] or ZERO),
+    }
+
+
 class TodaySummary(APIView):
     """
     Today's counter numbers for the home screen and the end-of-day cash handover. Each part is only for
@@ -305,32 +334,14 @@ class TodaySummary(APIView):
     def get(self, request):
         today = timezone.localdate()
         data = {"date": today}
+        figures = day_money(today)
         if can(request, VIEW_SALES):
-            bills = Invoice.objects.filter(kind=Invoice.Kind.INVOICE, status=Invoice.Status.FINAL, invoice_date=today)
-            totals = bills.aggregate(count=Count("id"), total=Sum("total"))
-            money_in = Payment.objects.filter(
-                date=today, kind__in=[Payment.Kind.SALE, Payment.Kind.KHATA], cancelled_at__isnull=True
-            )
-            refunds = Payment.objects.filter(date=today, kind=Payment.Kind.REFUND)
-            by_mode = {}
-            for mode, label in Payment.Mode.choices:
-                received = money_in.filter(mode=mode).aggregate(total=Sum("amount"))["total"] or ZERO
-                refunded = refunds.filter(mode=mode).aggregate(total=Sum("amount"))["total"] or ZERO
-                if received or refunded:
-                    by_mode[mode] = {"label": label, "received": str(received), "refunded": str(refunded), "net": str(received - refunded)}
-            data.update(
-                bills=totals["count"],
-                sales=str(totals["total"] or ZERO),
-                returns=str(CreditNote.objects.filter(date=today).aggregate(total=Sum("total"))["total"] or ZERO),
-                by_mode=by_mode,
-            )
+            data.update({key: figures[key] for key in ("bills", "sales", "returns", "by_mode")})
         if can(request, VIEW_KHATA):
-            today_bills = Invoice.objects.filter(kind=Invoice.Kind.INVOICE, status=Invoice.Status.FINAL, invoice_date=today)
-            khata_in = Payment.objects.filter(date=today, kind=Payment.Kind.KHATA, cancelled_at__isnull=True)
             owing = customers_with_balance().filter(balance_value__gt=0)
             data.update(
-                on_khata=str(today_bills.aggregate(total=Sum("credit_amount"))["total"] or ZERO),
-                khata_collected=str(khata_in.aggregate(total=Sum("amount"))["total"] or ZERO),
+                on_khata=figures["on_khata"],
+                khata_collected=figures["khata_collected"],
                 udhaar_outstanding=str(owing.aggregate(total=Sum("balance_value"))["total"] or ZERO),
                 customers_owing=owing.count(),
             )
@@ -339,3 +350,69 @@ class TodaySummary(APIView):
                 kind=Invoice.Kind.INVOICE, status=Invoice.Status.DRAFT, held=True
             ).count()
         return Response(data)
+
+
+class DayEnd(APIView):
+    """
+    Closing the day (plan §16.1): GET ?date=2026-10-06 (default today). The day's bills, money in and given
+    back by mode, cash in drawer, udhaar given and collected, estimates, cancelled bills, and each person's
+    share. The figures are Home's Today box's (day_money), so the two always agree.
+    """
+
+    access = {"get": VIEW_SALES}
+
+    def get(self, request):
+        try:
+            day = date.fromisoformat(request.query_params["date"]) if request.query_params.get("date") else timezone.localdate()
+        except ValueError:
+            return Response({"detail": "Date must look like 2026-10-06."}, status=status.HTTP_400_BAD_REQUEST)
+        data = {"date": day, **day_money(day)}
+        data["cash_in_drawer"] = data["by_mode"].get("cash", {}).get("net", str(ZERO))
+        data["estimates"] = Invoice.objects.filter(kind=Invoice.Kind.QUOTATION, invoice_date=day).count()
+        cancelled = Invoice.objects.filter(
+            kind=Invoice.Kind.INVOICE, status=Invoice.Status.CANCELLED, cancelled_at__date=day
+        ).aggregate(count=Count("id"), total=Sum("total"))
+        data["cancelled"] = {"count": cancelled["count"], "total": str(cancelled["total"] or ZERO)}
+        data["staff"] = self.staff(day)
+        return Response(data)
+
+    @staticmethod
+    def staff(day):
+        """Each person's bills (made that day) and the money they took or gave back."""
+        from accounts.models import User
+
+        people = {}
+
+        def person(user_id):
+            return people.setdefault(
+                user_id, {"bills": 0, "sales": ZERO, "received": {}, "given_back": ZERO, "khata_collected": ZERO}
+            )
+
+        made = Invoice.objects.filter(kind=Invoice.Kind.INVOICE, status=Invoice.Status.FINAL, invoice_date=day)
+        for row in made.values("finalised_by").annotate(count=Count("id"), total=Sum("total")):
+            person(row["finalised_by"]).update(bills=row["count"], sales=row["total"] or ZERO)
+        taken = Payment.objects.filter(
+            date=day, kind__in=[Payment.Kind.SALE, Payment.Kind.KHATA], cancelled_at__isnull=True
+        )
+        for row in taken.values("created_by", "mode", "kind").annotate(total=Sum("amount")):
+            entry = person(row["created_by"])
+            entry["received"][row["mode"]] = entry["received"].get(row["mode"], ZERO) + row["total"]
+            if row["kind"] == Payment.Kind.KHATA:
+                entry["khata_collected"] += row["total"]
+        given = Payment.objects.filter(date=day, kind=Payment.Kind.REFUND)
+        for row in given.values("created_by").annotate(total=Sum("amount")):
+            person(row["created_by"])["given_back"] = row["total"]
+
+        names = {user.pk: user.get_full_name() or user.username for user in User.objects.filter(pk__in=people)}
+        rows = [
+            {
+                "name": names.get(user_id, "?"),
+                "bills": entry["bills"],
+                "sales": str(entry["sales"]),
+                "received": {mode: str(amount) for mode, amount in entry["received"].items()},
+                "given_back": str(entry["given_back"]),
+                "khata_collected": str(entry["khata_collected"]),
+            }
+            for user_id, entry in people.items()
+        ]
+        return sorted(rows, key=lambda row: -Decimal(row["sales"]))

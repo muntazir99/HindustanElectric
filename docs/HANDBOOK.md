@@ -603,6 +603,21 @@ Others on Home:
 - **Udhaar to collect:** needs **See khata**.
 - **Needs attention:** items running low, stock checks not finished, items not checked yet.
 
+### M2. Close the day (day-end summary)
+**Words people use:** din band karna, galla milana, hisaab milana, cash ginna, closing, day end, आज का हिसाब
+**Who:** **See today's sales and cash**.
+1. On Home, in the **Today** box, press **Close the day**. Or go to **More → Close the day**.
+2. **Cash in drawer** shows the cash that should be in the drawer: cash taken (bills and udhaar paid back) minus
+   cash given back (returns, cancelled bills).
+3. Count the cash and type it in **Cash counted in the drawer (₹)**. The app says **Matches the cash in
+   drawer**, **Short by ₹…** or **Extra ₹…**.
+4. Look over the rest: sales and number of bills, udhaar given and paid back, goods returned, bills cancelled,
+   estimates made, money by type (cash, UPI, card), and **By person** (each person's bills and money).
+5. Press **Print** for a one-page sheet with "Counted by" and "Checked by" lines.
+
+To see another day, pick the date at the top. The figures are the same as Home's **Today** box. The cash
+counted isn't saved, only shown and printed.
+
 ---
 
 ## 10. Owner only

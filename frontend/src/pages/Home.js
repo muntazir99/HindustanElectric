@@ -70,7 +70,15 @@ function TodayBox({ today, canBill }) {
   const others = Object.entries(today.by_mode).filter(([mode]) => mode !== "cash");
   const backHint = (row) => (Number(row.refunded) > 0 ? `${money(row.received)} in, ${money(row.refunded)} given back` : null);
   return (
-    <Section title="Today" right={seeAll("/bills", "Today's bills")}>
+    <Section
+      title="Today"
+      right={
+        <span className="flex flex-wrap gap-x-4">
+          {seeAll("/reports/day-end", "Close the day")}
+          {seeAll("/bills", "Today's bills")}
+        </span>
+      }
+    >
       <div className="flex flex-wrap -mb-px -mr-px">
         <Figure label={`Sales · ${plural(today.bills, "bill")}`} value={bigMoney(today.sales)} />
         <Figure label="Cash in drawer" value={bigMoney(cash?.net || 0)} hint={cash ? backHint(cash) : null} />
