@@ -531,7 +531,7 @@ small hardware last. Items not counted yet show **Not checked yet**, never a mad
 counted once, do small weekly checks.
 
 ### S3. Fix stock (broken, lost, used in shop, mistake)
-**Words people use:** saman toot gaya, kho gaya, sample diya, dukaan me use hua, stock theek karna
+**Words people use:** saman toot gaya, kho gaya, sample diya, dukaan me use hua, stock theek karna, damage, nuksan
 **Who:** **Fix stock**.
 1. **More → Fix Stock**, then choose the item under **Which item?** (scan or search). Or press **Fix stock** on the
    item's page.
@@ -539,6 +539,21 @@ counted once, do small weekly checks.
 3. Choose the **Reason**: **Damaged / broken**, **Lost / missing**, **Given as sample**, **Used in shop**, **Entry
    mistake correction** or **Other**. Write a **Note** ("What happened?").
 4. Save. It's listed under **Stock fixed so far**, and the change shows in the item's stock history.
+
+### S4. See how much was lost (damaged, lost, samples)
+**Words people use:** nuksan kitna hua, loss, damage ka hisaab, kitna toota, kitna kho gaya, घाटा, नुकसान
+**Who:** **See costs and profit** (and **Fix stock** to open the screen).
+1. **More → Fix Stock**.
+2. The **Losses** box shows the total written off this month, in ₹, and below it the amount for each reason:
+   **Damaged / broken**, **Lost / missing**, **Given as sample**, **Used in shop**, **Other**.
+3. To see another month, pick it in the month box at the top right of **Losses**.
+
+Good to know:
+- Each write-off is valued at the item's average buying cost on the day it was written off (S3).
+- Stock added back (e.g. a lost item found again) comes off the loss. **Entry mistake correction** isn't counted,
+  because it fixes typing, not a real loss.
+- Items from before the app with no purchase entered have no cost yet. They're listed as "had no cost yet" and
+  aren't in the total.
 
 ---
 

@@ -5,6 +5,15 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-06 — Losses: what written-off stock cost the shop
+
+**Added**
+- A **Losses** box on **Fix Stock**, for people with **See costs and profit**: the month's total written off in ₹ and the amount for each reason (damaged, lost, samples, used in shop, other), with a month picker. It refreshes after each write-off.
+- Server: `GET /api/stock/losses?month=YYYY-MM`. Each Fix Stock entry is valued at the item's average cost saved on that day; stock added back reduces the loss; "Entry mistake correction" is left out. Write-offs of items with no cost yet are counted separately, not guessed.
+- Handbook: new topic **S4. See how much was lost**.
+- Tests: 5 server tests (totals by reason with a lost item found again, corrections left out, no-cost items, other months, access, bad month). 334 server tests.
+- Checked in the browser: writing off 2 switches at ₹35 shows ₹70, and an item with no cost is listed as such.
+
 ### 2026-10-03 — Help beside the app, following you between screens
 
 Design: the "Help side panel" canvas (approved 2026-10-03).

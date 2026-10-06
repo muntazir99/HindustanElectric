@@ -1,6 +1,9 @@
+from datetime import datetime, time, timedelta
 from decimal import Decimal
 
-from django.db.models import Count, F, Sum
+from django.contrib.contenttypes.models import ContentType
+from django.db.models import Count, F, OuterRef, Subquery, Sum
+from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
@@ -12,7 +15,8 @@ from accounts.permissions import OPEN, can
 from catalog.models import Item
 
 from . import services
-from .models import Adjustment, StockCount, StockCountLine
+from core.numbers import money
+from .models import Adjustment, StockCount, StockCountLine, StockMovement
 from .serializers import (
     AdjustmentCreateSerializer,
     AdjustmentSerializer,
@@ -133,3 +137,54 @@ class StockSummary(APIView):
             )["total"]
             data["stock_value"] = str((value or Decimal("0")).quantize(Decimal("0.01")))
         return Response(data)
+
+
+class Losses(APIView):
+    """
+    What written-off stock cost the shop in a month, by reason: GET ?month=2026-10 (default: this month).
+    Each Fix Stock entry is valued at the item's average cost when it was made; stock added back (found again)
+    counts against the loss. "Entry mistake correction" fixes typing, not real losses, so it's left out.
+    """
+
+    access = {"get": SEE_COSTS}
+
+    def get(self, request):
+        month = request.query_params.get("month") or timezone.localdate().strftime("%Y-%m")
+        try:
+            first = datetime.strptime(month, "%Y-%m").date()
+        except ValueError:
+            return Response({"detail": "Month must look like 2026-10."}, status=status.HTTP_400_BAD_REQUEST)
+        after = (first + timedelta(days=32)).replace(day=1)
+        start, end = (timezone.make_aware(datetime.combine(day, time.min)) for day in (first, after))
+
+        cost_then = StockMovement.objects.filter(
+            source_type=ContentType.objects.get_for_model(Adjustment), source_id=OuterRef("pk")
+        ).values("unit_cost")[:1]
+        entries = (
+            Adjustment.objects.filter(created_at__gte=start, created_at__lt=end)
+            .exclude(reason=Adjustment.Reason.CORRECTION)
+            .annotate(unit_cost=Subquery(cost_then))
+            .values("reason", "quantity", "unit_cost")
+        )
+        totals = {}
+        for entry in entries:
+            row = totals.setdefault(entry["reason"], {"value": Decimal("0"), "entries": 0, "uncosted": 0})
+            row["entries"] += 1
+            if entry["unit_cost"] is None:  # bought before the app, no purchase entered yet: cost unknown
+                row["uncosted"] += 1
+            else:
+                row["value"] += -entry["quantity"] * entry["unit_cost"]
+
+        by_reason = [
+            {"reason": code, "label": label, "value": str(money(totals[code]["value"])), **{k: totals[code][k] for k in ("entries", "uncosted")}}
+            for code, label in Adjustment.Reason.choices
+            if code in totals
+        ]
+        return Response(
+            {
+                "month": first.strftime("%Y-%m"),
+                "total": str(money(sum((row["value"] for row in totals.values()), Decimal("0")))),
+                "uncosted": sum(row["uncosted"] for row in totals.values()),
+                "by_reason": by_reason,
+            }
+        )

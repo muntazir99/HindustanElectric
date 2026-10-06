@@ -9,5 +9,6 @@ router.register("counts", views.StockCountViewSet, basename="count")
 
 urlpatterns = [
     path("summary", views.StockSummary.as_view(), name="stock-summary"),
+    path("losses", views.Losses.as_view(), name="stock-losses"),
     *router.urls,
 ]
