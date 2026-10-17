@@ -35,8 +35,8 @@ Living document. Decisions are recorded here; individual changes go in [CHANGELO
 | **0. Foundation** | Monorepo, Django + Postgres, owner/staff users, JWT login, shop settings, Django admin, test setup | Done 2026-10-01 |
 | **1. Catalogue & stock-in** | Products/variants, units & barcodes, Excel import, purchase bill entry, stock ledger, stock counts, adjustments, low-stock list | Done 2026-10-01 |
 | **2. Counter billing** | Scanner-friendly billing, GST-correct invoices, FY numbering, A4 print, customers & khata, payments, returns/credit notes, quotations | Done 2026-10-01 — CA confirmation pending before go-live |
-| **3. Back office & reports** | Day-end summary, sales & profit, GST summary for CA, supplier payables, expenses, reorder list → purchase orders, barcode label printing, Excel/DB exports & backups | Later |
-| **4. Growth** | Public website, WhatsApp bills & reminders, read bill photos/PDFs into draft purchase entries automatically, electrician loyalty, demand forecasting | Later |
+| **3. Back office & reports** | Day-end summary, sales & profit, GST summary for CA, supplier payables, expenses, reorder list → purchase orders, barcode label printing, Excel/DB exports & backups | Reports done 2026-10-17 (§16); purchase orders (§18) and labels (§19) proposed; the rest later |
+| **4. Growth** | Public website, WhatsApp bills & reminders, read bill photos/PDFs into draft purchase entries automatically, electrician loyalty, demand forecasting | WhatsApp done 2026-10-17 (§12); the rest later |
 
 **First version = Phases 0–2.** Phase 1 ships first so catalogue entry (the slowest, human part) can start while Phase 2 is built.
 
@@ -720,3 +720,113 @@ Each step: server tests with known bills checked to the paisa, a handbook topic,
 - [ ] Decide: "log out everywhere", also on password change (review item 5)
 - [ ] Decide: limits on staff using the app from outside the shop (§14) — approved devices, shop hours, login log
 - [ ] Upgrade npm on the dev Mac (npm 10.7 crashes on `npm audit fix`; only dev tools have open advisories)
+
+## 18. Reorder list → purchase orders (proposed 2026-10-17)
+
+What runs low becomes an order to the distributor, and the order fills **Goods Arrived** when the goods come.
+₹0, no new packages.
+
+### 18.1 Reorder list (More → Reorder list)
+
+- **Which items:** those at or below their **minimum stock** (the same rule as "running low" today: counted
+  items with a minimum set).
+- **Grouped by distributor:** the one each item was last bought from. Items never bought sit under
+  **No distributor yet**, where you pick one.
+- **Each line shows:**
+  - stock now and the minimum;
+  - **suggested quantity**: enough to reach twice the minimum, rounded up to whole packs (e.g. 90 m coils)
+    when the item has a pack;
+  - with **See costs and profit** only: the last purchase rate and date.
+- Change any quantity, untick lines you don't want, then press **Make order** for that distributor.
+
+### 18.2 Purchase order
+
+- **Number:** PO/26-27/00001, its own series per financial year.
+- **What it holds:** distributor, date, lines (item, pack or unit, quantity), a note.
+- **States:** **Draft** (editable) → **Sent** → **Received** (linked to the purchase bill), or **Cancelled**.
+- **Send it:**
+  - **Print:** a compact A4 with shop and distributor, items, quantities, and "Please send by…".
+  - **WhatsApp:** to the distributor's phone, with the item list typed (as in §12).
+  - Rates are **not** printed or sent. Distributors quote their own, and costs stay private.
+- **Orders list** (More → Orders): open, sent and received orders, newest first.
+
+### 18.3 When the goods come
+
+- **Goods Arrived → Fill from order:** pick an open order from that distributor. Its lines fill the bill;
+  rates, GST and quantities are then corrected from the distributor's bill as usual.
+- **Posting the bill marks the order Received.** If less came than was ordered, the order page shows ordered
+  vs received. Make a new order for the rest. *(Not built: part-deliveries that keep one order open.)*
+
+### 18.4 Who
+
+- **Reorder list and orders:** **Goods arrived** (the existing purchases switch).
+- **Last purchase rates:** also need **See costs and profit**.
+
+### 18.5 Steps (one commit each, each put live)
+
+1. Purchase orders: data, numbering, API with tests; order page, print, WhatsApp, orders list.
+2. Reorder list with suggested quantities and **Make order**.
+3. **Fill from order** on Goods Arrived, and marking orders received.
+
+Each step: tests, a handbook topic, and a changelog entry.
+
+### 18.6 Done when
+
+- A low item shows on the reorder list under its last distributor, with a sensible suggested quantity.
+- An order prints on one A4 page and opens WhatsApp to the distributor with the list.
+- Filling Goods Arrived from the order and posting it marks the order received.
+
+## 19. Barcode label printing (proposed 2026-10-17)
+
+Stickers for items without a maker's barcode (loose wire, local makes, old stock), so they can be scanned at the
+counter like any other item.
+
+### 19.1 What a label carries
+
+- A **Code 128 barcode** of the item's short code (e.g. 10023). The app already finds an item by its code when
+  scanned, and USB scanners and the phone camera both read Code 128.
+- The item name (two lines at most), its selling price per unit (e.g. ₹28/m), and the code in plain digits.
+- Optionally the rack.
+
+### 19.2 Printing: on the A4 printer, ₹0 extra
+
+- Uses ready-cut **A4 sticker sheets** from a stationery shop (a few rupees a sheet). There's no label printer
+  to buy.
+- **Sheet sizes to choose from:**
+  - **65 per sheet** (38 × 21 mm), for small items;
+  - **24 per sheet** (64 × 34 mm);
+  - **12 per sheet** (bigger, for boxes and coils).
+- **Start at label N:** reuses a part-used sheet.
+- Print at **Actual size / 100%** (the screen reminds you). A test print on plain paper held against the sheet
+  shows whether it lines up.
+- **Later, only if needed:** a thermal label printer (about ₹8,000–15,000). Not planned.
+
+### 19.3 Where you print from
+
+- **Item page → Print labels:** choose how many.
+- **Goods Arrived** (a posted bill) **→ Print labels:** one label per piece received, or per pack; change the
+  counts before printing. Items that already have a maker's barcode are unticked.
+- **Items list → tick several → Print labels.**
+- **Packs** (coil, box): a pack's label carries the pack's own barcode. A pack without one gets a base-unit
+  label. *(Not built: making up barcodes for packs.)*
+
+### 19.4 Who
+
+**Add items**, **Edit items** or **Goods arrived**.
+
+### 19.5 How it's built
+
+- In the app only; there's no server change. The barcode is drawn by the barcode library the app already has
+  (zxing, which reads the camera today), so there's no new package.
+- **Tests:** the barcode for a code reads back as the same code, and the sheet layout puts N labels at the right
+  places, including "start at label N".
+
+### 19.6 Steps
+
+1. Label sheet screen (sizes, start at, counts) and the item page button.
+2. From Goods Arrived and from the items list.
+
+### 19.7 Done when
+
+- A printed label scans at the counter with the USB scanner and the phone camera, and puts the item on the bill.
+- Labels line up on the chosen sticker sheet.

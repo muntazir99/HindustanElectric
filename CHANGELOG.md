@@ -5,6 +5,20 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-17 — Plans: purchase orders and barcode labels
+
+**Docs**
+- [PLAN.md §18](docs/PLAN.md), reorder list → purchase orders:
+  - low items grouped by last distributor, with a suggested quantity (up to twice the minimum, in whole packs);
+  - PO numbers, print and WhatsApp to the distributor, with no rates sent;
+  - **Fill from order** on Goods Arrived marks the order received.
+- [PLAN.md §19](docs/PLAN.md), barcode labels:
+  - Code 128 of the item's short code, on A4 sticker sheets (65, 24 or 12 per sheet, start at label N);
+  - printed from the item page, a Goods Arrived bill or the items list;
+  - no new package: the installed zxing library draws the barcode (checked: it writes "10023" and reads it back).
+- Roadmap: reports and WhatsApp marked done.
+- Both plans wait for the owner's approval.
+
 ### 2026-10-17 — WhatsApp messages
 
 Plan: [PLAN.md §12](docs/PLAN.md) (proposed 2026-10-02, go-ahead 2026-10-17).
