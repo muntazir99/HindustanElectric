@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { FileSpreadsheet, Plus, Search } from "lucide-react";
+import { Barcode, FileSpreadsheet, Plus, Search } from "lucide-react";
 import { useAuth } from "../../context/AuthContext.js";
 import { A } from "../../lib/access.js";
 import { useFetch } from "../../hooks/useFetch.js";
@@ -35,6 +35,10 @@ export default function ItemList() {
   const status = params.get("status") || "";
   const category = params.get("category") || "";
   const page = Number(params.get("page") || 1);
+  // Items ticked for printing barcode labels; kept while moving between pages and filters.
+  const canLabels = can(A.ADD_ITEMS, A.EDIT_ITEMS, A.PURCHASES);
+  const [picked, setPicked] = useState([]);
+  const toggle = (id) => setPicked(picked.includes(id) ? picked.filter((p) => p !== id) : [...picked, id]);
 
   // Update the URL (and so the list) shortly after typing stops.
   useEffect(() => {
@@ -61,6 +65,11 @@ export default function ItemList() {
         back={["/more", "All options"]}
         subtitle={data ? `${data.count} item${data.count === 1 ? "" : "s"}` : ""}
       >
+        {picked.length > 0 && (
+          <Button variant="primary" to={`/labels?items=${picked.join(",")}&back=/items`}>
+            <Barcode size={18} /> Print labels ({picked.length})
+          </Button>
+        )}
         {can(A.IMPORT) && (
           <Button to="/import">
             <FileSpreadsheet size={18} /> Upload from Excel
@@ -114,6 +123,11 @@ export default function ItemList() {
             <Table>
               <thead>
                 <tr>
+                  {canLabels && (
+                    <th className={`${th} w-10`}>
+                      <span className="sr-only">Pick for labels</span>
+                    </th>
+                  )}
                   <th className={th}>Code</th>
                   <th className={th}>Item</th>
                   <th className={th}>Rack</th>
@@ -126,6 +140,12 @@ export default function ItemList() {
               <tbody>
                 {data.results.map((item) => (
                   <tr key={item.id} className="hover:!bg-steel-50 cursor-pointer" onClick={() => navigate(`/items/${item.id}`)}>
+                    {canLabels && (
+                      <td className={`${td} py-2`} onClick={(e) => e.stopPropagation()}>
+                        <input type="checkbox" className="w-5 h-5 m-2" checked={picked.includes(item.id)} onChange={() => toggle(item.id)}
+                          aria-label={`Pick ${item.name} for labels`} />
+                      </td>
+                    )}
                     <td className={`${td} text-gray-500 font-mono text-sm`}>{item.code}</td>
                     <td className={td}>
                       <div className="font-semibold text-blue-800">{item.name}</div>

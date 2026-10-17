@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { CheckCircle2, ClipboardList, Paperclip, Plus, Trash2 } from "lucide-react";
+import { Barcode, CheckCircle2, ClipboardList, Paperclip, Plus, Trash2 } from "lucide-react";
 import api from "../../api.js";
 import ItemSearch from "../../components/ItemSearch.js";
 import { useFetch } from "../../hooks/useFetch.js";
@@ -383,9 +383,14 @@ export default function PurchaseEntry() {
           {bill && <Badge color={posted ? "green" : "amber"}>{posted ? "Added to stock" : "Not added yet"}</Badge>}
         </h1>
         {posted && (
-          <p className="text-gray-600">
-            Added to stock {date(bill.posted_at)} by {bill.posted_by}
-          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="text-gray-600">
+              Added to stock {date(bill.posted_at)} by {bill.posted_by}
+            </p>
+            <Button to={`/labels?bill=${bill.id}&back=/purchases/${bill.id}`}>
+              <Barcode size={18} /> Print labels
+            </Button>
+          </div>
         )}
       </div>
 

@@ -5,6 +5,42 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-17 — Barcode labels
+
+Plan: [PLAN.md §19](docs/PLAN.md) (approved 2026-10-17).
+
+**Added**
+- **Print barcode labels** on A4 sticker sheets:
+  - **Sheet sizes:** 65 per sheet (38 × 21 mm), 24 per sheet (64 × 34 mm), 12 per sheet (64 × 72 mm).
+  - **Start at sticker N:** for part-used sheets.
+  - **Counts:** labels per item; untick items you don't want.
+  - **Rack:** optional on the label.
+  - **Printer nudge:** "Move by (mm)" right and down, remembered on that computer.
+  - **On screen:** dashed sticker outlines show where each label lands; they don't print.
+- **What a label holds:** item name, price per unit, a Code 128 barcode, and the code in digits.
+  - A loose item uses its short code. The scan lookup already finds items by code.
+  - A pack with its own barcode uses that barcode and the pack price.
+- **Where from:**
+  - **Print labels** on an item's page;
+  - tick boxes on **All Items**, then **Print labels (n)**;
+  - **Print labels** on a purchase bill after **Add to stock**: one per piece or pack, one for loose wire, with
+    items that have a maker's barcode unticked.
+- **No new package:** the barcode is drawn by the zxing library the camera scanner already uses (its writer,
+  served from the app).
+- Handbook: new topic **I8**.
+- Tests:
+  - the drawn bars read back as the same code with zxing's reader;
+  - sheet layout (across then down, start-at, onto a second sheet, nudge);
+  - every size fits A4;
+  - which barcode and price a loose item, a pack with a barcode and a pack without one get;
+  - how many labels a bill line gives.
+- Checked in the browser:
+  - 11 labels with all barcodes drawn and nothing overflowing a sticker (checked on 65 and 24 per sheet);
+  - ticking on All Items builds the link;
+  - a received bill gives 2 coil labels and 1 box label, unticked because they have makers' barcodes.
+- Still to do at the shop: a test print on plain paper against a sticker sheet, then one scan with the USB
+  scanner.
+
 ### 2026-10-17 — Purchase orders, step 3: goods arrived against an order
 
 Plan: [PLAN.md §18.3](docs/PLAN.md).

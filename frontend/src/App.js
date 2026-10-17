@@ -21,6 +21,7 @@ const OrderList = lazy(() => import("./pages/purchases/OrderList.js"));
 const OrderDetail = lazy(() => import("./pages/purchases/OrderDetail.js"));
 const OrderPrint = lazy(() => import("./pages/purchases/OrderPrint.js"));
 const ReorderList = lazy(() => import("./pages/purchases/ReorderList.js"));
+const Labels = lazy(() => import("./pages/items/Labels.js"));
 const CountList = lazy(() => import("./pages/stock/CountList.js"));
 const CountSheet = lazy(() => import("./pages/stock/CountSheet.js"));
 const Adjustments = lazy(() => import("./pages/stock/Adjustments.js"));
@@ -104,6 +105,7 @@ function AppRoutes() {
               <PrivateRoute>{ok([A.PAYMENTS, A.VIEW_KHATA], <ReceiptPrint />)}</PrivateRoute>
             }
           />
+          <Route path="/labels" element={<PrivateRoute>{ok([A.ADD_ITEMS, A.EDIT_ITEMS, A.PURCHASES], <Labels />)}</PrivateRoute>} />
           <Route path="/orders/:id/print" element={<PrivateRoute>{ok([A.PURCHASES], <OrderPrint />)}</PrivateRoute>} />
           <Route
             path="/"

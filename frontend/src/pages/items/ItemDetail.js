@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Pencil, Plus, SlidersHorizontal, Trash2 } from "lucide-react";
+import { Barcode, Pencil, Plus, SlidersHorizontal, Trash2 } from "lucide-react";
 import api from "../../api.js";
 import BarcodeInput from "../../components/BarcodeInput.js";
 import { useAuth } from "../../context/AuthContext.js";
@@ -408,6 +408,11 @@ export default function ItemDetail() {
           {canPrice && (
             <Button onClick={() => setModal("product")}>
               <Pencil size={18} /> Product, HSN & GST
+            </Button>
+          )}
+          {can(A.ADD_ITEMS, A.EDIT_ITEMS, A.PURCHASES) && (
+            <Button to={`/labels?items=${item.id}&back=/items/${item.id}`}>
+              <Barcode size={18} /> Print labels
             </Button>
           )}
           {can(A.FIX_STOCK) && (

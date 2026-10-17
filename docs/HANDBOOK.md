@@ -535,6 +535,36 @@ Stock columns don't change stock directly. They go into a **stock check** for th
 again**, or **Not sold any more**. **More → Running Low** opens the running-low list directly. Home's **Needs
 attention** box also shows these counts. To order what's running low, use **More → Reorder List** (P4).
 
+### I8. Print barcode labels (stickers)
+**Words people use:** barcode sticker, label print, barcode chhapna, sticker lagana, बारकोड
+**Who:** **Add items**, **Change prices and items**, or **Enter goods arrived**.
+
+Where to start:
+- **One item:** open it and press **Print labels**.
+- **Several items:** in **More → All Items**, tick the box at the start of each row (it works across pages and
+  searches), then press **Print labels (n)** at the top.
+- **Goods that just came:** open the bill in **Purchase Bills** (after **Add to stock**) and press **Print labels**.
+  You get one label per piece or pack received, and one for loose wire. Items that already have the maker's
+  barcode start unticked.
+
+On the label screen:
+1. **Sticker sheet:** **65 per sheet** (38 × 21 mm, small items), **24 per sheet** (64 × 34 mm) or **12 per sheet**
+   (64 × 72 mm, boxes and coils). Use ready-cut A4 sticker sheets of that size, from any stationery shop.
+2. **Start at sticker:** on a part-used sheet, type where to start. 1 is top-left, then across the row.
+3. Change how many labels for each item, or untick items you don't want. Tick **Show the rack on the label** if
+   useful.
+4. Press **Print**. In the print box choose **Actual size / 100%**, margins **None**, no headers or footers.
+
+Each label has the item name, its price per unit (e.g. ₹28/m), a barcode, and the code under it. Scanning it at
+the counter (USB scanner or phone camera) puts the item on the bill.
+
+Good to know:
+- **First time:** print on plain paper and hold it against a sticker sheet up to the light. If everything is a
+  little off, use **Printer off a little? Move by (mm)**. This computer remembers it.
+- A loose item's label carries its code (e.g. 10026). A pack with its own barcode (e.g. a coil) gets that
+  barcode and the pack price. A pack without one gets the loose label.
+- The price is printed on the sticker. After a price change, print new labels.
+
 ---
 
 ## 7. Stock

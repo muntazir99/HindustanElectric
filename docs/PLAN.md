@@ -35,7 +35,7 @@ Living document. Decisions are recorded here; individual changes go in [CHANGELO
 | **0. Foundation** | Monorepo, Django + Postgres, owner/staff users, JWT login, shop settings, Django admin, test setup | Done 2026-10-01 |
 | **1. Catalogue & stock-in** | Products/variants, units & barcodes, Excel import, purchase bill entry, stock ledger, stock counts, adjustments, low-stock list | Done 2026-10-01 |
 | **2. Counter billing** | Scanner-friendly billing, GST-correct invoices, FY numbering, A4 print, customers & khata, payments, returns/credit notes, quotations | Done 2026-10-01 — CA confirmation pending before go-live |
-| **3. Back office & reports** | Day-end summary, sales & profit, GST summary for CA, supplier payables, expenses, reorder list → purchase orders, barcode label printing, Excel/DB exports & backups | Reports done 2026-10-17 (§16); purchase orders (§18) and labels (§19) proposed; the rest later |
+| **3. Back office & reports** | Day-end summary, sales & profit, GST summary for CA, supplier payables, expenses, reorder list → purchase orders, barcode label printing, Excel/DB exports & backups | Reports, purchase orders and labels done 2026-10-17 (§16, §18, §19); the rest later |
 | **4. Growth** | Public website, WhatsApp bills & reminders, read bill photos/PDFs into draft purchase entries automatically, electrician loyalty, demand forecasting | WhatsApp done 2026-10-17 (§12); the rest later |
 
 **First version = Phases 0–2.** Phase 1 ships first so catalogue entry (the slowest, human part) can start while Phase 2 is built.
@@ -776,7 +776,7 @@ Each step: tests, a handbook topic, and a changelog entry.
 - An order prints on one A4 page and opens WhatsApp to the distributor with the list.
 - Filling Goods Arrived from the order and posting it marks the order received.
 
-## 19. Barcode label printing (proposed 2026-10-17)
+## 19. Barcode label printing (approved and built 2026-10-17)
 
 Stickers for items without a maker's barcode (loose wire, local makes, old stock), so they can be scanned at the
 counter like any other item.
