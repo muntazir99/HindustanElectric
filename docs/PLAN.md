@@ -635,7 +635,7 @@ steps you follow across screens: **Open …**, **You're here**, **Show me**, **D
 - With the AI switched off or failing, the right handbook topic still shows.
 - No API key is in git or visible on screen.
 
-## 16. Phase 3, part 1: reports (approved 2026-10-06)
+## 16. Phase 3, part 1: reports (approved 2026-10-06; built 2026-10-17)
 
 Three reports built from what bills, payments and returns already record: each bill line keeps its GST and the
 item's cost on the day of sale, and each payment keeps its mode and who took it. Nothing about billing changes.
@@ -691,7 +691,7 @@ item's cost on the day of sale, and each payment keeps its mode and who took it.
 
 1. Day-end summary, with print.
 2. Sales and profit, with Excel.
-3. GST summary with Excel; the first month checked with the CA.
+3. GST summary with Excel; the first month checked with the CA. *(Built 2026-10-17; also offers quarters, in case the CA files quarterly. CA check pending.)*
 
 Each step: server tests with known bills checked to the paisa, a handbook topic, and a changelog entry.
 

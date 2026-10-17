@@ -5,6 +5,31 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-17 — Phase 3 reports, step 3: GST summary for the CA
+
+Plan: [PLAN.md §16.3](docs/PLAN.md) (approved 2026-10-06).
+
+**Added**
+- **GST summary** (More → Reports), owner only:
+  - pick a month (last month by default) or a GST quarter;
+  - **Tax by rate:** value before GST, IGST, CGST, SGST, net of returns;
+  - warnings for a missing shop GSTIN and for items sold with no HSN code;
+  - what the file holds: B2B and B2CL bill counts, returns, first and last numbers.
+- **Excel for CA:** a Summary sheet, then GSTR-1 sheets with the portal's column names: b2b, b2cl (inter-state,
+  unregistered, over ₹1,00,000), b2cs (by state and rate, net of unregistered returns), cdnr, exemp (0% lines),
+  hsn(b2b), hsn(b2c) (net of returns), docs. Tax columns marked "(to check)" sit after the portal's columns.
+- Left out: cancelled bills (counted only in docs) and estimates. A return on a B2CL bill would also come off
+  b2cs; the portal wants CDNUR. Not built, since it hasn't happened yet.
+- Server: `GET /api/sales/gst?from=&to=` (up to 92 days; `&download=xlsx`); logic in `sales/gst.py`. Sales and
+  profit now shares the period check and Excel response with it.
+- Handbook: new topic **M4. GST summary for the CA**.
+- Tests: a hand-checkable month at 18% (B2B ₹236, walk-in ₹354, ₹1,18,000 to Uttar Pradesh, two returns, a
+  cancelled bill, a 0% item with no HSN, an estimate). Each sheet is checked to the rupee. Also owner only, a
+  quarter at most, last month by default, and the period list (12 months, 4 quarters, leap February). 349 server, 58 app.
+- Checked in the browser with the October test data: ₹2,651.71 before GST and ₹477.29 GST, the same as the
+  Sales and profit report; the docs row reads HE/26-27/00001 to 00007, 1 cancelled. Fits a phone.
+- Still to do: the CA checks the first month's file.
+
 ### 2026-10-17 — Phase 3 reports, step 2: Sales and profit
 
 **Added**

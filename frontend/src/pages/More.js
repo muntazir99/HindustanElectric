@@ -10,6 +10,7 @@ import {
   FileSpreadsheet,
   FileText,
   HandCoins,
+  Landmark,
   LogOut,
   Package,
   PackagePlus,
@@ -71,6 +72,7 @@ const SECTIONS = [
     tiles: [
       { to: "/reports/day-end", icon: CalendarCheck, name: "Close the day", text: "Cash in drawer, money by type, each person", need: [A.VIEW_SALES] },
       { to: "/reports/sales", icon: ChartColumn, name: "Sales and profit", text: "By day, month, item and category; Excel", need: [A.VIEW_SALES] },
+      { to: "/reports/gst", icon: Landmark, name: "GST summary", text: "Tax by rate; GSTR-1 Excel for the CA", need: OWNER, tone: "owner" },
     ],
   },
   {

@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
 from django.db.models import Count, DecimalField, Prefetch, Q, Sum, Value
@@ -427,23 +427,50 @@ class SalesProfit(APIView):
     access = {"get": VIEW_SALES}
 
     def get(self, request):
-        from django.http import HttpResponse
-
         from .reports import sales_and_profit, workbook
 
         today = timezone.localdate()
-        try:
-            start = date.fromisoformat(request.query_params.get("from") or today.replace(day=1).isoformat())
-            end = date.fromisoformat(request.query_params.get("to") or today.isoformat())
-        except ValueError:
-            return Response({"detail": "Dates must look like 2026-10-01."}, status=status.HTTP_400_BAD_REQUEST)
-        if end < start or (end - start).days > 366:
-            return Response({"detail": "Pick a period of up to one year, from before to."}, status=status.HTTP_400_BAD_REQUEST)
+        start, end = period(request, today.replace(day=1), today, max_days=366)
         with_costs = can(request, SEE_COSTS)
         report = sales_and_profit(start, end, with_costs=with_costs)
         if request.query_params.get("download") != "xlsx":
             return Response(report)
-        response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-        response["Content-Disposition"] = f'attachment; filename="sales-{start}-to-{end}.xlsx"'
-        workbook(report, with_costs).save(response)
-        return response
+        return excel(workbook(report, with_costs), f"sales-{start}-to-{end}.xlsx")
+
+
+def period(request, start, end, *, max_days):
+    """?from=&to= as dates (defaults start, end); refused if backwards or longer than max_days."""
+    try:
+        start = date.fromisoformat(request.query_params.get("from") or start.isoformat())
+        end = date.fromisoformat(request.query_params.get("to") or end.isoformat())
+    except ValueError:
+        raise ValidationError("Dates must look like 2026-10-01.")
+    if end < start or (end - start).days > max_days:
+        raise ValidationError("Pick a shorter period, from before to.")
+    return start, end
+
+
+def excel(book, filename):
+    from django.http import HttpResponse
+
+    response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    book.save(response)
+    return response
+
+
+class GstSummary(APIView):
+    """
+    GST summary for the CA (plan §16.3): GET ?from=2026-09-01&to=2026-09-30 (default: last month), up to a quarter.
+    Add &download=xlsx for the GSTR-1 style Excel. Owner only.
+    """
+
+    def get(self, request):
+        from .gst import gst_summary, workbook
+
+        last_month_end = timezone.localdate().replace(day=1) - timedelta(days=1)
+        start, end = period(request, last_month_end.replace(day=1), last_month_end, max_days=92)
+        screen, sheets = gst_summary(start, end)
+        if request.query_params.get("download") != "xlsx":
+            return Response(screen)
+        return excel(workbook(screen, sheets), f"gst-{start}-to-{end}.xlsx")

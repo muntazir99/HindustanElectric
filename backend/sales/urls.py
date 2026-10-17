@@ -13,5 +13,6 @@ urlpatterns = [
     path("today", views.TodaySummary.as_view(), name="sales-today"),
     path("day-end", views.DayEnd.as_view(), name="sales-day-end"),
     path("report", views.SalesProfit.as_view(), name="sales-report"),
+    path("gst", views.GstSummary.as_view(), name="sales-gst"),
     *router.urls,
 ]

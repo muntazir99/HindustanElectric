@@ -3,7 +3,7 @@
 How to do every job in the shop app, step by step. Written for the people who use it (owner and staff) and for
 the help assistant, which answers questions from this file.
 
-Matches the app as of **3 October 2026**. **Rule for changes:** any change to a screen, button or rule updates
+Matches the app as of **17 October 2026**. **Rule for changes:** any change to a screen, button or rule updates
 this handbook in the same commit.
 
 ---
@@ -635,6 +635,27 @@ Good to know:
 - Items from before the app with no purchase entered have no cost yet. Their sales show as "Profit unknown on
   ₹…", and their profit as "—", never guessed.
 - Cancelled bills aren't counted. The sales figures match **Close the day** and Home's **Today** box.
+
+### M4. GST summary for the CA
+**Words people use:** GST return, GSTR-1, CA ko bhejna, GST file, tax kitna bana, HSN summary, GST रिटर्न
+**Who:** owner only.
+1. **More → GST summary**.
+2. Pick the period. It opens on **last month**, the one being filed. The list also has the last 12 months and
+   the last 4 quarters (Apr–Jun, Jul–Sep, Oct–Dec, Jan–Mar) for a CA who files quarterly.
+3. **Tax by rate** shows, for each GST rate, the value before GST and the IGST, CGST and SGST, net of returns.
+4. Press **Excel for CA** and send the file to the CA. Its sheets follow the GSTR-1 layout: **b2b** (bills to
+   buyers with a GSTIN), **b2cl** (bills over ₹1,00,000 to other states without a GSTIN), **b2cs** (every other
+   sale, totalled by state and rate), **cdnr** (returns from buyers with a GSTIN), **exemp** (0% items),
+   **hsn(b2b)** and **hsn(b2c)** (HSN summary), and **docs** (first and last bill and credit note numbers,
+   with cancelled count).
+
+Good to know:
+- Fill the shop's GSTIN first (O3); the screen warns if it's missing.
+- If items were sold with no HSN code, the screen lists them. Add the HSN on the item's product; new bills will
+  carry it, bills already made keep the blank.
+- Returns from buyers without a GSTIN come off b2cs. Cancelled bills appear only in docs; estimates are left out.
+- CGST and SGST can differ by a few paise over a month: on each bill line the odd paisa goes to CGST.
+- The CA checks the first month against their own working before you rely on it.
 
 ---
 

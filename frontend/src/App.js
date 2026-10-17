@@ -22,6 +22,7 @@ const CountSheet = lazy(() => import("./pages/stock/CountSheet.js"));
 const Adjustments = lazy(() => import("./pages/stock/Adjustments.js"));
 const DayEnd = lazy(() => import("./pages/reports/DayEnd.js"));
 const SalesProfit = lazy(() => import("./pages/reports/SalesProfit.js"));
+const GstSummary = lazy(() => import("./pages/reports/GstSummary.js"));
 const ImportPage = lazy(() => import("./pages/ImportPage.js"));
 const Suppliers = lazy(() => import("./pages/Suppliers.js"));
 const Billing = lazy(() => import("./pages/billing/Billing.js"));
@@ -122,6 +123,7 @@ function AppRoutes() {
             <Route path="adjustments" element={ok([A.FIX_STOCK], <Adjustments />)} />
             <Route path="reports/day-end" element={ok([A.VIEW_SALES], <DayEnd />)} />
             <Route path="reports/sales" element={ok([A.VIEW_SALES], <SalesProfit />)} />
+            <Route path="reports/gst" element={ok(OWNER, <GstSummary />)} />
             <Route path="import" element={ok([A.IMPORT, A.EDIT_ITEMS], <ImportPage />)} />
             <Route path="staff" element={ok(OWNER, <StaffAccess />)} />
             <Route path="create-user" element={<Navigate to="/staff" replace />} />
