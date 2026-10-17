@@ -43,6 +43,10 @@ class PurchaseBill(models.Model):
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.DRAFT)
     attachment = models.FileField(upload_to="purchase-bills/%Y/%m/", blank=True)
     notes = models.TextField(blank=True)
+    order = models.ForeignKey(
+        "PurchaseOrder", null=True, blank=True, on_delete=models.PROTECT, related_name="bills",
+        help_text="The order these goods came against; posting the bill marks it received.",
+    )
 
     taxable_total = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
     tax_total = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))

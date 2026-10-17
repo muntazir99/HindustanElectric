@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { CheckCircle2, Paperclip, Plus, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { CheckCircle2, ClipboardList, Paperclip, Plus, Trash2 } from "lucide-react";
 import api from "../../api.js";
 import ItemSearch from "../../components/ItemSearch.js";
 import { useFetch } from "../../hooks/useFetch.js";
@@ -44,6 +44,23 @@ function lineFromItem(item, unitId) {
     rate: "",
     discount_percent: "0",
     gst_rate: plain(item.gst_rate),
+  };
+}
+
+/** A line from an order: item, unit and quantity; the rate is filled from the distributor's bill. */
+function lineFromOrder(line) {
+  return {
+    key: nextKey++,
+    item: line.item,
+    item_name: line.item_name,
+    item_code: line.item_code,
+    base_unit: line.base_unit,
+    units: line.item_units,
+    unit: line.unit,
+    quantity: plain(line.quantity),
+    rate: "",
+    discount_percent: "0",
+    gst_rate: plain(line.gst_rate),
   };
 }
 
@@ -153,7 +170,11 @@ export default function PurchaseEntry() {
   const { data: loaded, error: loadError, loading } = useFetch(isNew ? null : `/purchases/bills/${id}`);
 
   const [bill, setBill] = useState(null);
-  const [header, setHeader] = useState({ supplier: "", bill_number: "", bill_date: today(), notes: "", round_off: "0" });
+  const [header, setHeader] = useState({ supplier: "", bill_number: "", bill_date: today(), notes: "", round_off: "0", order: null });
+  const [orderNumber, setOrderNumber] = useState("");
+  const [params] = useSearchParams();
+  // Open orders from the chosen distributor, offered under "Fill from order" (plan §18.3).
+  const { data: openOrders } = useFetch(isNew || loaded?.status === "draft" ? (header.supplier ? `/purchases/orders?status=open&supplier=${header.supplier}` : null) : null);
   const [lines, setLines] = useState([]);
   const [paperTotal, setPaperTotal] = useState("");
   const [error, setError] = useState("");
@@ -188,9 +209,33 @@ export default function PurchaseEntry() {
       bill_date: loaded.bill_date,
       notes: loaded.notes,
       round_off: plain(loaded.round_off) || "0",
+      order: loaded.order,
     });
+    setOrderNumber(loaded.order_number || "");
     setLines(loaded.lines.map(lineFromServer));
   }, [loaded]);
+
+  /** Fill the bill from an order: its distributor, items and quantities. */
+  async function fillFromOrder(orderId) {
+    try {
+      const order = (await api.get(`/purchases/orders/${orderId}`)).data;
+      setHeader((current) => ({ ...current, supplier: String(order.supplier), order: order.id }));
+      setOrderNumber(order.number);
+      setLines((current) => [...current, ...order.lines.map(lineFromOrder)]);
+      setNotice(`Filled from order ${order.number}. Enter the rates from the distributor's bill, and fix any quantity that differs.`);
+    } catch (err) {
+      setError(errorMessage(err));
+    }
+  }
+
+  // "Goods arrived" on an order opens /purchases/new?order=12. Filled once, even if the effect runs twice.
+  const filledFromLink = useRef(false);
+  useEffect(() => {
+    if (!isNew || !params.get("order") || filledFromLink.current) return;
+    filledFromLink.current = true;
+    fillFromOrder(params.get("order"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   usePage(isNew ? "Goods Arrived" : `Purchase bill ${(bill || loaded)?.bill_number || ""}`.trim(), ["/purchases", "Purchase Bills"]);
 
@@ -376,6 +421,24 @@ export default function PurchaseEntry() {
           <Field label="Bill date *">
             <Input type="date" value={header.bill_date} onChange={setH("bill_date")} disabled={posted} max={today()} />
           </Field>
+          {header.order ? (
+            <p className="md:col-span-4 flex items-center gap-2 text-steel-800">
+              <ClipboardList size={18} /> Goods against order <Link to={`/orders/${header.order}`} className="font-semibold underline">{orderNumber}</Link>
+              {!posted && <span className="text-gray-600">— it's marked received when you add these to stock.</span>}
+            </p>
+          ) : (
+            !posted &&
+            openOrders?.results?.length > 0 && (
+              <div className="md:col-span-4 flex flex-wrap items-center gap-2">
+                <span className="font-semibold text-gray-700">Fill from order:</span>
+                {openOrders.results.map((order) => (
+                  <Button key={order.id} onClick={() => fillFromOrder(order.id)}>
+                    <ClipboardList size={18} /> {order.number} · {date(order.order_date)} · {plural(order.line_count, "item")}
+                  </Button>
+                ))}
+              </div>
+            )
+          )}
           <Field label="Notes" className="md:col-span-3">
             <Input value={header.notes} onChange={setH("notes")} disabled={posted} />
           </Field>

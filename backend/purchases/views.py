@@ -79,7 +79,7 @@ class PurchaseBillViewSet(viewsets.ModelViewSet):
     http_method_names = ["get", "post", "patch", "delete"]
 
     def get_queryset(self):
-        queryset = PurchaseBill.objects.select_related("supplier", "created_by", "posted_by")
+        queryset = PurchaseBill.objects.select_related("supplier", "created_by", "posted_by", "order")
         if self.action == "list":
             params = self.request.query_params
             queryset = queryset.annotate(line_count=Count("lines")).order_by("-bill_date", "-id")
@@ -172,7 +172,7 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
             if supplier:
                 queryset = queryset.filter(supplier_id=supplier)
         else:
-            queryset = queryset.prefetch_related("lines__item__product__brand", "lines__item__units", "lines__unit")
+            queryset = queryset.prefetch_related("lines__item__product__brand", "lines__item__units", "lines__unit", "bills")
         return queryset
 
     def get_serializer_class(self):

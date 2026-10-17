@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { Ban, Printer, Send, Trash2 } from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { Ban, Printer, Send, Trash2, Truck } from "lucide-react";
 import api from "../../api.js";
 import ItemSearch from "../../components/ItemSearch.js";
 import WhatsAppButton from "../../components/WhatsAppButton.js";
@@ -13,6 +13,13 @@ import { Alert, Badge, Button, Field, Input, Section, Select, Spinner, inputClas
 import { ORDER_STATUS } from "./OrderList.js";
 
 let nextKey = 1;
+
+function ReceivedCell({ line, received }) {
+  const factor = Number(line.units.find((unit) => unit.id === line.unit)?.factor || 1);
+  const got = Math.round((Number(received[line.item] || 0) / factor) * 1000) / 1000;
+  const short = got < Number(line.quantity);
+  return <td className={`px-3 py-2 text-right font-semibold ${short ? "text-red-700" : "text-green-700"}`}>{got}{short && " (short)"}</td>;
+}
 
 const editable = (line) => ({
   key: nextKey++,
@@ -47,6 +54,8 @@ export default function OrderDetail() {
   if (!isNew && !loaded) return loadError ? <Alert>{loadError}</Alert> : <Spinner />;
   const order = loaded;
   const draft = isNew || order.status === "draft";
+  // Once goods are entered against it: how much of each line came, in the line's own unit.
+  const received = order?.bills.some((bill) => bill.status === "posted") ? order.received : null;
 
   function change(next) {
     setForm({ ...form, ...next });
@@ -123,6 +132,11 @@ export default function OrderDetail() {
                 <Send size={18} /> Mark as sent
               </Button>
             )}
+            {["draft", "sent"].includes(order.status) && !dirty && (
+              <Button variant="success" to={`/purchases/new?order=${order.id}`}>
+                <Truck size={18} /> Goods arrived
+              </Button>
+            )}
             {["draft", "sent"].includes(order.status) && (
               <Button variant="danger" onClick={() => move("cancel", `Cancel order ${order.number}?`)} disabled={busy}>
                 <Ban size={18} /> Cancel order
@@ -156,6 +170,20 @@ export default function OrderDetail() {
         </Section>
       )}
       {!draft && order.note && <p className="mb-4 text-gray-700">Note: {order.note}</p>}
+      {order?.bills.length > 0 && (
+        <p className="mb-4 text-gray-700">
+          Goods entered on bill{order.bills.length > 1 ? "s" : ""}{" "}
+          {order.bills.map((bill, index) => (
+            <span key={bill.id}>
+              {index > 0 && ", "}
+              <Link to={`/purchases/${bill.id}`} className="font-semibold text-blue-800 underline">
+                {bill.bill_number}
+              </Link>
+              {bill.status === "draft" && " (not added to stock yet)"}
+            </span>
+          ))}
+        </p>
+      )}
 
       <Section title={`Items${form.lines.length ? ` (${form.lines.length})` : ""}`} bodyClassName={draft ? "p-4" : ""}>
         {draft && (
@@ -173,6 +201,7 @@ export default function OrderDetail() {
                   <th className="px-3 py-2">Item</th>
                   <th className="px-3 py-2 w-28 text-right">Qty</th>
                   <th className="px-3 py-2 w-40">Unit</th>
+                  {received && <th className="px-3 py-2 w-28 text-right">Received</th>}
                   {draft && <th className="w-10" />}
                 </tr>
               </thead>
@@ -210,6 +239,7 @@ export default function OrderDetail() {
                       <>
                         <td className="px-3 py-2 text-right font-semibold">{line.quantity}</td>
                         <td className="px-3 py-2">{line.units.find((unit) => unit.id === line.unit)?.name}</td>
+                        {received && <ReceivedCell line={line} received={received} />}
                       </>
                     )}
                   </tr>

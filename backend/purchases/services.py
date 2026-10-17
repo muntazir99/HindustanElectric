@@ -5,7 +5,7 @@ from core.numbers import cost, qty
 from stock.models import StockMovement
 from stock.services import StockError, lock_items, record_movement, weighted_average_cost
 
-from .models import PurchaseBill
+from .models import PurchaseBill, PurchaseOrder
 
 
 def post_bill(bill, user):
@@ -34,6 +34,10 @@ def post_bill(bill, user):
                 unit_cost=unit_cost,
                 source=line,
                 note=f"Bill {bill.bill_number} · {bill.supplier.name}",
+            )
+        if bill.order_id:
+            PurchaseOrder.objects.filter(pk=bill.order_id, status__in=PurchaseOrder.OPEN).update(
+                status=PurchaseOrder.Status.RECEIVED
             )
         bill.recalculate()
         bill.status = PurchaseBill.Status.POSTED

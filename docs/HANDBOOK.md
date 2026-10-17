@@ -609,6 +609,11 @@ Good to know:
 What happens: stock goes up, and each item's average cost is updated from this bill (GST excluded). The screen
 says **Goods added to stock**. After this the bill can't be changed.
 
+**Goods against an order:** once you choose the distributor, any open orders from them show under **Fill from
+order**. Press one to fill the items and quantities, then enter the rates from the paper bill and fix any
+quantity that differs. Or open the order and press **Goods arrived**. When you **Add to stock**, the order is
+marked **Received** (P3).
+
 Good to know:
 - Lines with no rate are added as free goods (₹0); the app warns before adding.
 - A draft (not yet added to stock) can be removed with **Delete this bill**.
@@ -636,6 +641,9 @@ Good to know:
 - A draft order can be changed: edit, then **Save changes**. Save before printing or sending.
 - A sent order can't be changed. If it's wrong, press **Cancel order** and make a new one.
 - **More → Orders** lists **Open** (draft and sent), **Received** and **All** orders.
+- **When the goods come:** press **Goods arrived** on the order (or **Fill from order** on Goods Arrived, P1).
+  Adding that bill to stock marks the order **Received**. The order then shows a **Received** column. Anything
+  that came short is marked **(short)** in red. For the rest, make a new order.
 
 ### P4. Reorder list: what's running low and how much to order
 **Words people use:** kya mangana hai, reorder, kitna order karein, khatam hone wala maal, order list

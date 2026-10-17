@@ -5,6 +5,32 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-17 — Purchase orders, step 3: goods arrived against an order
+
+Plan: [PLAN.md §18.3](docs/PLAN.md).
+
+**Added**
+- **Goods Arrived → Fill from order:**
+  - after choosing the distributor, their open orders show as buttons;
+  - one press fills the items, units, quantities and GST, and links the bill to the order;
+  - rates are typed from the paper bill as usual.
+- **Goods arrived** button on an open order: opens Goods Arrived already filled from it.
+- **Add to stock** on that bill marks the order **Received**.
+- **The order page now shows:**
+  - the bills entered against it;
+  - once posted, a **Received** column, with short deliveries in red.
+- **Server:**
+  - `PurchaseBill.order` (migration `purchases/0003`);
+  - a bill can only use an open order from its own distributor;
+  - orders now carry `bills` and `received` (per item, base units), and their lines carry `gst_rate`.
+- Handbook: P1 and P3.
+- Tests: bill from a sent order → still sent until posted → received; 2 of 3 coils = 180 m received; the bill
+  listed on the order; a received order can't be used again; another distributor's bill is refused.
+- Checked in the browser: **Goods arrived** on PO/26-27/00002 filled 4 coils at 18% GST. Saving linked the bill
+  to the order, and the order listed it as "not added to stock yet" (test draft deleted afterwards).
+- Fixed before it shipped: opening Goods Arrived from an order added the lines twice in development mode. A
+  one-time guard stops it.
+
 ### 2026-10-17 — Purchase orders, step 2: reorder list
 
 Plan: [PLAN.md §18.1](docs/PLAN.md).

@@ -721,7 +721,7 @@ Each step: server tests with known bills checked to the paisa, a handbook topic,
 - [ ] Decide: limits on staff using the app from outside the shop (§14) — approved devices, shop hours, login log
 - [ ] Upgrade npm on the dev Mac (npm 10.7 crashes on `npm audit fix`; only dev tools have open advisories)
 
-## 18. Reorder list → purchase orders (proposed 2026-10-17)
+## 18. Reorder list → purchase orders (approved and built 2026-10-17)
 
 What runs low becomes an order to the distributor, and the order fills **Goods Arrived** when the goods come.
 ₹0, no new packages.

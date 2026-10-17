@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.db.models import DecimalField, F, Sum
 from django.utils import timezone
 from rest_framework import serializers
 
@@ -64,12 +65,14 @@ class PurchaseBillSerializer(serializers.ModelSerializer):
     lines = PurchaseLineSerializer(many=True, required=False)
     # Only whether there is one: the file itself comes from GET .../attachment, for logged-in users.
     has_attachment = serializers.SerializerMethodField()
+    order = serializers.PrimaryKeyRelatedField(queryset=PurchaseOrder.objects.all(), required=False, allow_null=True)
+    order_number = serializers.CharField(source="order.number", read_only=True, default=None)
 
     class Meta:
         model = PurchaseBill
         fields = [
             "id", "supplier", "supplier_name", "bill_number", "bill_date", "status", "status_display",
-            "has_attachment", "notes", "round_off", "taxable_total", "tax_total", "total",
+            "order", "order_number", "has_attachment", "notes", "round_off", "taxable_total", "tax_total", "total",
             "created_by", "created_at", "posted_by", "posted_at", "lines",
         ]
         read_only_fields = ["status", "taxable_total", "tax_total", "total", "created_at", "posted_at"]
@@ -94,6 +97,11 @@ class PurchaseBillSerializer(serializers.ModelSerializer):
                     f"(dated {existing.bill_date:%d %b %Y}, {existing.get_status_display().lower()})."
                 }
             )
+        order = attrs.get("order", getattr(self.instance, "order", None))
+        if order and order.supplier_id != supplier.pk:
+            raise serializers.ValidationError({"order": f"Order {order.number} is for {order.supplier}, not {supplier}."})
+        if attrs.get("order") and order.status not in PurchaseOrder.OPEN and getattr(self.instance, "order_id", None) != order.pk:
+            raise serializers.ValidationError({"order": f"Order {order.number} is {order.get_status_display().lower()}."})
         return attrs
 
     def _save_lines(self, bill, lines):
@@ -150,10 +158,14 @@ class OrderLineSerializer(serializers.ModelSerializer):
     unit_name = serializers.CharField(source="unit.name", read_only=True)
     unit_factor = serializers.DecimalField(source="unit.factor", max_digits=12, decimal_places=3, read_only=True)
     item_units = serializers.SerializerMethodField()
+    gst_rate = serializers.DecimalField(source="item.product.gst_rate", max_digits=4, decimal_places=2, read_only=True)
 
     class Meta:
         model = PurchaseOrderLine
-        fields = ["id", "item", "item_name", "item_code", "base_unit", "item_units", "unit", "unit_name", "unit_factor", "quantity"]
+        fields = [
+            "id", "item", "item_name", "item_code", "base_unit", "item_units", "unit", "unit_name", "unit_factor",
+            "quantity", "gst_rate",
+        ]
 
     get_item_units = PurchaseLineSerializer.get_item_units
 
@@ -171,12 +183,15 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source="get_status_display", read_only=True)
     created_by = serializers.CharField(source="created_by.username", read_only=True)
     lines = OrderLineSerializer(many=True)
+    bills = serializers.SerializerMethodField()
+    received = serializers.SerializerMethodField()
 
     class Meta:
         model = PurchaseOrder
         fields = [
-            "id", "number", "supplier", "supplier_name", "supplier_phone", "supplier_address", "supplier_gstin", "order_date", "status", "status_display",
-            "note", "created_by", "created_at", "sent_at", "lines",
+            "id", "number", "supplier", "supplier_name", "supplier_phone", "supplier_address", "supplier_gstin",
+            "order_date", "status", "status_display", "note", "created_by", "created_at", "sent_at", "lines",
+            "bills", "received",
         ]
         read_only_fields = ["number", "order_date", "status", "created_at", "sent_at"]
 
@@ -186,6 +201,18 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
         if "lines" in attrs and not attrs["lines"]:
             raise serializers.ValidationError({"lines": "Add at least one item."})
         return attrs
+
+    def get_bills(self, order):
+        return [{"id": bill.id, "bill_number": bill.bill_number, "status": bill.status} for bill in order.bills.all()]
+
+    def get_received(self, order):
+        """Base quantity received per item, from posted bills filled from this order: {item id: "180"}."""
+        rows = (
+            PurchaseLine.objects.filter(bill__order=order, bill__status=PurchaseBill.Status.POSTED)
+            .values("item_id")
+            .annotate(total=Sum(F("quantity") * F("unit__factor"), output_field=DecimalField()))
+        )
+        return {str(row["item_id"]): format(row["total"].normalize(), "f") for row in rows}
 
     def _save_lines(self, order, lines):
         order.lines.all().delete()
