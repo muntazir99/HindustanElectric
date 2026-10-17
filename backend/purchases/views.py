@@ -9,8 +9,10 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
-from accounts.access import PURCHASES
+from accounts.access import PURCHASES, SEE_COSTS
+from accounts.permissions import can
 from core.params import id_param
 
 from .models import PurchaseBill, PurchaseOrder, Supplier
@@ -196,3 +198,14 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def cancel(self, request, pk=None):
         return self._move(pk, PurchaseOrder.OPEN, status=PurchaseOrder.Status.CANCELLED)
+
+
+class Reorder(APIView):
+    """Items running low, by last distributor, with suggested quantities (plan §18.1). Last rates need See costs."""
+
+    access = {"get": PURCHASES}
+
+    def get(self, request):
+        from .reorder import reorder_list
+
+        return Response({"groups": reorder_list(with_costs=can(request, SEE_COSTS))})

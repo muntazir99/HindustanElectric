@@ -2,10 +2,13 @@ from decimal import Decimal
 
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
-from django.db.models import Q
+from django.db.models import F, Q
 from django.db.models.functions import Lower
 
 GST_RATES = [(Decimal(rate), f"{rate}%") for rate in ("0", "5", "12", "18", "28", "40")]
+
+# "Running low": counted, with a minimum set, and at or below it. Used by the items list, Home and the reorder list.
+LOW_STOCK = Q(counted_at__isnull=False, min_stock__gt=0, stock_qty__lte=F("min_stock"))
 
 hsn_validator = RegexValidator(r"^(\d{4}|\d{6}|\d{8})$", "HSN code is 4, 6 or 8 digits.")
 

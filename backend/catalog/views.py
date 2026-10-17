@@ -1,5 +1,5 @@
 from django.db import transaction
-from django.db.models import F, Q
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, mixins, status, viewsets
 from rest_framework.decorators import action
@@ -12,7 +12,7 @@ from accounts.permissions import OPEN, can
 from core.params import id_param
 
 from . import services
-from .models import Brand, Category, Item, ItemUnit, Product
+from .models import LOW_STOCK, Brand, Category, Item, ItemUnit, Product
 from .serializers import (
     BrandSerializer,
     CategorySerializer,
@@ -53,7 +53,7 @@ def filter_items(queryset, params):
     elif params.get("include_inactive") != "1":
         queryset = queryset.filter(is_active=True)
     if status_filter == "low":
-        queryset = queryset.filter(counted_at__isnull=False, min_stock__gt=0, stock_qty__lte=F("min_stock"))
+        queryset = queryset.filter(LOW_STOCK)
     elif status_filter == "not_counted":
         queryset = queryset.filter(counted_at__isnull=True)
     elif status_filter == "needs_recount":

@@ -1,5 +1,5 @@
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Plus } from "lucide-react";
+import { Plus, ShoppingCart } from "lucide-react";
 import { useFetch } from "../../hooks/useFetch.js";
 import { date } from "../../lib/format.js";
 import { Alert, Badge, Button, Empty, PageHeader, Pagination, Pills, Section, Spinner, Table, td, th } from "../../ui/index.js";
@@ -25,6 +25,9 @@ export default function OrderList() {
   return (
     <>
       <PageHeader title="Orders" back={["/more", "All options"]} subtitle="Orders for distributors: made, sent, received.">
+        <Button to="/reorder">
+          <ShoppingCart size={18} /> Reorder list
+        </Button>
         <Button variant="primary" to="/orders/new">
           <Plus size={18} /> New order
         </Button>
@@ -37,7 +40,7 @@ export default function OrderList() {
         {loading && !data ? (
           <Spinner />
         ) : !data?.results.length ? (
-          <Empty>{status === "open" ? "No open orders." : "No orders."}</Empty>
+          <Empty>{status === "open" ? "No open orders. Make one from the reorder list." : "No orders."}</Empty>
         ) : (
           <Table>
             <thead>

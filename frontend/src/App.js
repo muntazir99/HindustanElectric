@@ -20,6 +20,7 @@ const PurchaseEntry = lazy(() => import("./pages/purchases/PurchaseEntry.js"));
 const OrderList = lazy(() => import("./pages/purchases/OrderList.js"));
 const OrderDetail = lazy(() => import("./pages/purchases/OrderDetail.js"));
 const OrderPrint = lazy(() => import("./pages/purchases/OrderPrint.js"));
+const ReorderList = lazy(() => import("./pages/purchases/ReorderList.js"));
 const CountList = lazy(() => import("./pages/stock/CountList.js"));
 const CountSheet = lazy(() => import("./pages/stock/CountSheet.js"));
 const Adjustments = lazy(() => import("./pages/stock/Adjustments.js"));
@@ -129,6 +130,7 @@ function AppRoutes() {
             <Route path="purchases/:id" element={ok([A.PURCHASES], <PurchaseEntryRoute />)} />
             <Route path="counts" element={ok([A.COUNT_STOCK, A.FIX_STOCK], <CountList />)} />
             <Route path="counts/:id" element={ok([A.COUNT_STOCK, A.FIX_STOCK], <CountSheet />)} />
+            <Route path="reorder" element={ok([A.PURCHASES], <ReorderList />)} />
             <Route path="orders" element={ok([A.PURCHASES], <OrderList />)} />
             <Route path="orders/:id" element={ok([A.PURCHASES], <OrderDetailRoute />)} />
             <Route path="suppliers" element={ok([A.PURCHASES], <Suppliers />)} />

@@ -5,6 +5,33 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-17 — Purchase orders, step 2: reorder list
+
+Plan: [PLAN.md §18.1](docs/PLAN.md).
+
+**Added**
+- **Reorder List** (More → Buying from distributors, and on the Orders page), for **Enter goods arrived**:
+  - **What's on it:** running-low items (counted, with a minimum, at or below it), grouped by the distributor
+    each was last bought from; **No distributor yet** for the rest, with a distributor picker.
+  - **Each line:** stock, minimum, already on order, and (with **See costs and profit**) the last purchase date
+    and rate before GST.
+  - **Suggested quantity:** up to twice the minimum, less what's on open orders, in the unit last bought in
+    (else the smallest pack), rounded up to whole packs. Editable; tick or untick each line.
+  - **Make order:** makes the draft order for that distributor and opens it.
+- The "running low" rule now lives in one place (`catalog.models.LOW_STOCK`), shared by the items list, Home
+  and the reorder list.
+- Server: `GET /api/purchases/reorder` (`purchases/reorder.py`).
+- Handbook: new topic **P4**, and a pointer from I7.
+- Tests:
+  - grouped by last distributor;
+  - 170 m short → 2 coils of 90 m; loose items in pieces;
+  - the last rate after discount (₹1,000 less 10% = ₹900/coil);
+  - an open order comes off the suggestion;
+  - items never counted are left out;
+  - no rates without See costs.
+- Checked in the browser on the local data: 80 m left of a 180 m minimum suggests **4 coils**. **Make order**
+  opened PO/26-27/00002. Back on the list it showed "360 m already on order", with 0 and unticked.
+
 ### 2026-10-17 — Purchase orders, step 1: orders for distributors
 
 Plan: [PLAN.md §18](docs/PLAN.md) (approved 2026-10-17).

@@ -17,6 +17,7 @@ import {
   PackagePlus,
   ReceiptText,
   ShieldCheck,
+  ShoppingCart,
   SlidersHorizontal,
   Store,
   Tag,
@@ -58,6 +59,7 @@ const SECTIONS = [
     tiles: [
       { to: "/purchases/new", icon: Truck, name: "Goods Arrived", text: "Enter a distributor's bill", need: [A.PURCHASES] },
       { to: "/purchases", icon: FileText, name: "Purchase Bills", text: "All bills from distributors", need: [A.PURCHASES] },
+      { to: "/reorder", icon: ShoppingCart, name: "Reorder List", text: "What's low, and how much to order", need: [A.PURCHASES] },
       { to: "/orders", icon: ClipboardList, name: "Orders", text: "Orders sent to distributors", need: [A.PURCHASES] },
       { to: "/suppliers", icon: Building2, name: "Distributors", text: "Names, phone numbers, GSTIN", need: [A.PURCHASES] },
     ],

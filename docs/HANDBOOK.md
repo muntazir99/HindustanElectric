@@ -533,7 +533,7 @@ Stock columns don't change stock directly. They go into a **stock check** for th
 **Who:** everyone.
 **More → All Items**. Choose **All**, **Running low** (at or below min stock), **Not checked yet**, **Check
 again**, or **Not sold any more**. **More → Running Low** opens the running-low list directly. Home's **Needs
-attention** box also shows these counts.
+attention** box also shows these counts. To order what's running low, use **More → Reorder List** (P4).
 
 ---
 
@@ -636,6 +636,27 @@ Good to know:
 - A draft order can be changed: edit, then **Save changes**. Save before printing or sending.
 - A sent order can't be changed. If it's wrong, press **Cancel order** and make a new one.
 - **More → Orders** lists **Open** (draft and sent), **Received** and **All** orders.
+
+### P4. Reorder list: what's running low and how much to order
+**Words people use:** kya mangana hai, reorder, kitna order karein, khatam hone wala maal, order list
+**Who:** **Enter goods arrived**. The last purchase rate also needs **See costs and profit**.
+1. **More → Reorder List** (or **Reorder list** on the Orders page).
+2. Items at or below their minimum stock are listed under the distributor they were last bought from. Items
+   never bought from anyone are under **No distributor yet**; choose a distributor there in **Order these
+   from…**.
+3. Each item shows its stock, its minimum, anything already on order, and (with **See costs and profit**) when
+   it was last bought and at what rate before GST.
+4. The quantity is filled in for you. Change it or the unit if you like, and untick items you don't want.
+5. Press **Make order** for that distributor. The order opens; send it as in P3.
+
+How the quantity is worked out: enough to bring the stock up to **twice the minimum**, less what's already on
+open orders. It's in the unit the item was last bought in (or its smallest pack), rounded up to whole packs.
+Example: minimum 180 m, stock 80 m, coils of 90 m → 360 − 80 = 280 m → **4 coils**.
+
+Good to know:
+- Only items that have been counted and have a minimum stock set appear (as in **Running low**, I7). Set the
+  minimum on the item's page (I3).
+- An item already fully on order shows **0** and is unticked.
 
 ---
 
