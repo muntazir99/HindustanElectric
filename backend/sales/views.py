@@ -10,7 +10,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from accounts.access import BILLING, KHATA_CONTROL, PAYMENTS, RETURNS, VIEW_BILLS, VIEW_KHATA, VIEW_SALES
+from accounts.access import BILLING, KHATA_CONTROL, PAYMENTS, RETURNS, SEE_COSTS, VIEW_BILLS, VIEW_KHATA, VIEW_SALES
 from accounts.permissions import OPEN, can
 from catalog.models import ItemUnit
 from core.params import id_param
@@ -416,3 +416,34 @@ class DayEnd(APIView):
             for user_id, entry in people.items()
         ]
         return sorted(rows, key=lambda row: -Decimal(row["sales"]))
+
+
+class SalesProfit(APIView):
+    """
+    Sales and profit (plan §16.2): GET ?from=2026-10-01&to=2026-10-31 (default: this month). Add
+    &download=xlsx for the Excel file. Profit, margin and cost need "See costs and profit".
+    """
+
+    access = {"get": VIEW_SALES}
+
+    def get(self, request):
+        from django.http import HttpResponse
+
+        from .reports import sales_and_profit, workbook
+
+        today = timezone.localdate()
+        try:
+            start = date.fromisoformat(request.query_params.get("from") or today.replace(day=1).isoformat())
+            end = date.fromisoformat(request.query_params.get("to") or today.isoformat())
+        except ValueError:
+            return Response({"detail": "Dates must look like 2026-10-01."}, status=status.HTTP_400_BAD_REQUEST)
+        if end < start or (end - start).days > 366:
+            return Response({"detail": "Pick a period of up to one year, from before to."}, status=status.HTTP_400_BAD_REQUEST)
+        with_costs = can(request, SEE_COSTS)
+        report = sales_and_profit(start, end, with_costs=with_costs)
+        if request.query_params.get("download") != "xlsx":
+            return Response(report)
+        response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        response["Content-Disposition"] = f'attachment; filename="sales-{start}-to-{end}.xlsx"'
+        workbook(report, with_costs).save(response)
+        return response

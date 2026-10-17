@@ -3,6 +3,7 @@ import {
   Ban,
   Building2,
   CalendarCheck,
+  ChartColumn,
   ClipboardCheck,
   Clock,
   ExternalLink,
@@ -69,6 +70,7 @@ const SECTIONS = [
     title: "Reports",
     tiles: [
       { to: "/reports/day-end", icon: CalendarCheck, name: "Close the day", text: "Cash in drawer, money by type, each person", need: [A.VIEW_SALES] },
+      { to: "/reports/sales", icon: ChartColumn, name: "Sales and profit", text: "By day, month, item and category; Excel", need: [A.VIEW_SALES] },
     ],
   },
   {

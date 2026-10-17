@@ -618,6 +618,24 @@ Others on Home:
 To see another day, pick the date at the top. The figures are the same as Home's **Today** box. The cash
 counted isn't saved, only shown and printed.
 
+### M3. Sales and profit
+**Words people use:** kitna bika, munafa kitna hua, profit, margin, mahine ki bikri, sabse zyada kya bikta hai, मुनाफा, बिक्री
+**Who:** **See today's sales and cash**. Profit and margin also need **See costs and profit**.
+1. **More → Sales and profit**.
+2. Pick the period: **Today**, **This month**, **Last month**, or your own **From** / **To** dates (up to a year).
+3. The top box shows sales (with GST), returns, net sales (with the amount before GST and the GST), and
+   **Profit** with its margin.
+4. Below: **By day** (or **By month** for long periods), **Top items** (press **Show all** for every item),
+   and **By category**, each with net sales, profit and margin.
+5. **Excel** downloads all of it as one file: a summary sheet plus the day/month, item and category sheets.
+
+Good to know:
+- Profit = sales before GST minus what the goods cost when they were sold. Returns are taken off on the day
+  they happened, with their share of the cost.
+- Items from before the app with no purchase entered have no cost yet. Their sales show as "Profit unknown on
+  ₹…", and their profit as "—", never guessed.
+- Cancelled bills aren't counted. The sales figures match **Close the day** and Home's **Today** box.
+
 ---
 
 ## 10. Owner only

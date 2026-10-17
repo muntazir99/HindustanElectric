@@ -5,6 +5,24 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-17 — Phase 3 reports, step 2: Sales and profit
+
+**Added**
+- **Sales and profit** (More → Reports), for **See today's sales and cash**; profit and margin also need **See costs and profit**:
+  - **Period:** Today, This month, Last month, or From–To (up to a year).
+  - **Totals:** sales with GST, returns, net sales (before GST and GST), profit and margin.
+  - **Lists:** by day (by month for long periods), top items (show all), by category.
+  - **Excel:** one file with a summary sheet and the three lists.
+- How it counts:
+  - **Sales:** bill totals, as in Close the day and Home.
+  - **Profit:** sales before GST minus the cost saved on each bill line when it was sold.
+  - **Returns:** taken off on their own day, with their share of the cost.
+  - **Lines with no cost yet:** reported as "profit unknown" and shown as "—", never as ₹0 or a guess.
+- Server: `GET /api/sales/report?from=&to=` (`&download=xlsx` for Excel); logic in `sales/reports.py`.
+- Handbook: new topic **M3. Sales and profit**.
+- Tests: hand-checkable 0% GST month (₹350 sales, ₹60 returned, profit ₹80 at 33.3%, ₹50 with no cost); no profit without See costs; other months left out; Excel sheets and figures; bad periods; "90" not "9E+1". 345 server, 56 app.
+- Checked in the browser with the 1–17 Oct test data: 6 bills, net sales ₹3,131, profit ₹285.81 (13.3%), ₹503.40 with no cost yet. This check caught both "9E+1 m" and "₹0.00" for unknown profit, now fixed.
+
 ### 2026-10-06 — Phase 3 reports, step 1: Close the day
 
 Plan: [PLAN.md §16](docs/PLAN.md) (approved 2026-10-06).
