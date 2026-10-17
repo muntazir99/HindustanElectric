@@ -521,6 +521,16 @@ Removing a pack size needs **Change prices and items**.
 Stock columns don't change stock directly. They go into a **stock check** for the owner to look over and save
 (S1, step 5).
 
+**Cost price** (needs **See costs and profit**): what one unit cost you, **before GST**, per the **Unit** column.
+For wire bought at ₹1,800 a 90 m coil, put 20 (per m). Use it for stock from before the app, so its profit shows
+instead of "Profit unknown" (M3).
+- It only fills items that have **no cost yet**. A cost from purchase bills, or an earlier upload, is never
+  changed; the preview says so.
+- Without **See costs and profit**, the column is left out and the preview says so.
+- Bills made before the upload stay "unknown"; bills from then on have a profit.
+- Fill only costs you know (old bills, the price list less your discount). A guess makes profit look exact when
+  it isn't.
+
 ### I6. Update prices from a distributor's new price list
 **Words people use:** naya rate list, rate badal gaye, price update excel
 **Who:** **Change prices and items**.
@@ -741,7 +751,8 @@ Good to know:
 - Profit = sales before GST minus what the goods cost when they were sold. Returns are taken off on the day
   they happened, with their share of the cost.
 - Items from before the app with no purchase entered have no cost yet. Their sales show as "Profit unknown on
-  ₹…", and their profit as "—", never guessed.
+  ₹…", and their profit as "—", never guessed. An item gets a cost from its first Goods Arrived bill, or from
+  the **Cost price** column in an Excel upload (I5).
 - Cancelled bills aren't counted. The sales figures match **Close the day** and Home's **Today** box.
 
 ### M4. GST summary for the CA

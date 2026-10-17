@@ -5,6 +5,22 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-17 — Cost price column in the Excel upload
+
+Plan: [PLAN.md §20](docs/PLAN.md) (asked for and approved 2026-10-17).
+
+**Added**
+- **Cost price** column on the item Excel sheet (after Selling price), per unit and before GST. It gives stock
+  from before the app a cost, so Sales and profit shows its profit instead of "Profit unknown".
+  - It only fills items with **no cost yet**. A cost from purchase bills or an earlier upload is never changed,
+    and the preview row says "Cost price not changed: it already has ₹… per …".
+  - It needs **See costs and profit**. Without it the column is left out, and the preview says so.
+  - Bills made before the upload stay "unknown"; bills after it have a profit.
+- The template and its help sheet pick up the column automatically. The upload screen and handbook (I5, M3)
+  explain it.
+- Tests (3): an uploaded cost is set and a later sale shows profit ₹2.20 with nothing unknown; an existing cost
+  is not overwritten; an importer without See costs gets it left out.
+
 ### 2026-10-17 — Barcode labels
 
 Plan: [PLAN.md §19](docs/PLAN.md) (approved 2026-10-17).

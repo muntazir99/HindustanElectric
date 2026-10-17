@@ -11,7 +11,7 @@ import { Alert, Badge, Button, PageHeader, Pills, Section, Table, td, th } from 
 const KINDS = {
   catalogue: {
     label: "Items (catalogue)",
-    text: "Add new items or update existing ones: names, sizes, units, packs, barcodes, prices, racks. Fill the green Stock columns with what's on the shelf: they go into a stock check for you to look over and save to stock.",
+    text: "Add new items or update existing ones: names, sizes, units, packs, barcodes, prices, racks. Fill the green Stock columns with what's on the shelf: they go into a stock check for you to look over and save to stock. Cost price (before GST) gives old stock a cost, so its profit isn't unknown.",
   },
   prices: {
     label: "Price update",

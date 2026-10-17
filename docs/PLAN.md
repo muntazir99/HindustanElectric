@@ -830,3 +830,14 @@ counter like any other item.
 
 - A printed label scans at the counter with the USB scanner and the phone camera, and puts the item on the bill.
 - Labels line up on the chosen sticker sheet.
+
+## 20. Cost price for old stock in the Excel upload (approved and built 2026-10-17)
+
+Old stock entered from Excel has no cost, so its sales show "Profit unknown". A cost appears only with the first
+purchase bill, so slow movers stay unknown.
+
+- **New column:** **Cost price** on the item sheet: per unit, before GST.
+- **Fills only missing costs:** a cost from purchase bills, or an earlier upload, is never overwritten.
+- **Who:** **See costs and profit** only. For anyone else the column is left out, and the preview says so.
+- **Past bills:** bills made before the upload stay "unknown". The app doesn't rewrite past bills.
+- **Opening stock:** a stock count posted after the upload records the cost with the stock.

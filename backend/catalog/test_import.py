@@ -263,3 +263,39 @@ class TestSampleSheet:
         summary = response.data["summary"]
         assert (summary["errors"], summary["created"]) == (0, len(SAMPLE_ROWS))
         assert summary["stock_lines"] == sum(1 for r in SAMPLE_ROWS if r.get("stock_packs") or r.get("stock_loose"))
+
+
+class TestOpeningCost:
+    """Cost price column: old stock gets a cost, so its profit isn't "unknown" (plan §20)."""
+
+    SWITCH_AT_30 = row(brand="Anchor", product="Roma switch", variant="6A White", unit="pc", selling_price=38, cost_price=30)
+
+    def test_cost_is_set_and_profit_is_known(self, owner_api):
+        response = upload(owner_api, xlsx([self.SWITCH_AT_30]), commit="true")
+        assert "Cost price set: ₹30.00 per pc" in response.data["rows"][0]["messages"]
+        item = Item.objects.get(product__name="Roma switch")
+        assert item.cost_price == D("30")
+        unit = item.units.get(is_base=True)
+        draft = owner_api.post("/api/sales/invoices", {"lines": [{"item": item.pk, "unit": unit.pk, "quantity": "1"}]}, format="json").data
+        owner_api.post(f"/api/sales/invoices/{draft['id']}/finalise", {"payments": [{"mode": "cash", "amount": draft["total"]}]}, format="json")
+        summary = owner_api.get("/api/sales/report").json()["summary"]
+        # ₹38 with 18% GST is ₹32.20 before GST; less the ₹30 cost.
+        assert (summary["profit"], summary["unknown_cost_sales"]) == ("2.20", "0.00")
+
+    def test_a_cost_from_purchases_is_never_overwritten(self, owner_api):
+        upload(owner_api, xlsx([self.SWITCH_AT_30]), commit="true")
+        lower = row(brand="Anchor", product="Roma switch", variant="6A White", cost_price=25)
+        response = upload(owner_api, xlsx([lower]), commit="true")
+        assert response.data["rows"][0]["messages"] == ["Cost price not changed: it already has ₹30.00 per pc."]
+        assert Item.objects.get(product__name="Roma switch").cost_price == D("30")
+
+    def test_left_out_without_see_costs(self, db):
+        from rest_framework.test import APIClient
+
+        from accounts.models import User
+        from conftest import PASSWORD, login
+
+        importer = User.objects.create_user(username="importer", password=PASSWORD, role=User.Role.STAFF, access=["import"])
+        response = upload(login(APIClient(), importer), xlsx([self.SWITCH_AT_30]), commit="true")
+        assert response.data["rows"][0]["messages"] == ["Cost price left out: only someone with See costs and profit can set it."]
+        assert Item.objects.get(product__name="Roma switch").cost_price is None

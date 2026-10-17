@@ -17,6 +17,8 @@ from django.db import IntegrityError, transaction
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 
+from accounts.access import SEE_COSTS
+from core.numbers import cost, money
 from stock.models import StockCount
 from stock.services import StockError, count_item
 
@@ -53,6 +55,8 @@ CATALOGUE_COLUMNS = [
     ("Unit", "unit", "Smallest unit you sell in: pc, m, ft, kg, l, set, pair, pkt, roll. Default pc."),
     ("MRP", "mrp", "MRP per unit."),
     ("Selling price", "selling_price", "Your price per unit, GST included."),
+    ("Cost price", "cost_price", "What one unit cost you, before GST (e.g. coil bought at 1800 for 90 m: 20). "
+     "Owner only. Fills items with no cost yet; never changes a cost from purchase bills."),
     ("Barcode", "barcode", "Barcode of a single unit, if it has one."),
     ("Pack unit", "pack_unit", "If also bought/sold in packs: coil, box, bundle..."),
     ("Pack size", "pack_size", "Units in one pack, e.g. 90 (m in a coil) or 100 (pc in a box)."),
@@ -271,6 +275,7 @@ def import_catalogue(upload, *, commit=False, skip_errors=False, user=None):
     """
     rows = read_rows(upload, CATALOGUE_COLUMNS)
     has_stock = any(row[key] for _, row in rows for key in STOCK_KEYS)
+    sees_costs = bool(user and user.can(SEE_COSTS))
     seen = {}
     state = {"count": None}
 
@@ -288,10 +293,13 @@ def import_catalogue(upload, *, commit=False, skip_errors=False, user=None):
             raise CatalogError(f"Same product and variant as row {seen[key]}.")
         seen[key] = number
         result, item = _catalogue_row(row)
+        messages = _opening_cost(row, item, sees_costs)
         stock = _stock_quantity(row, item)
         if stock is not None:
             count_item(state["count"], item.pk, stock, user)
-            result["messages"] = [f"On shelf: {format_quantity(stock, item.base_unit, item.units.all())} — goes into a stock count to review"]
+            messages.append(f"On shelf: {format_quantity(stock, item.base_unit, item.units.all())} — goes into a stock count to review")
+        if messages:
+            result["messages"] = messages
         return result
 
     def after():
@@ -305,6 +313,23 @@ def import_catalogue(upload, *, commit=False, skip_errors=False, user=None):
         return {"stock_count_id": count.pk, "stock_count_title": count.title, "stock_lines": lines}
 
     return _run(rows, handle, commit=commit, skip_errors=skip_errors, before=before, after=after)
+
+
+def _opening_cost(row, item, sees_costs):
+    """
+    Cost price for stock from before the app, so its profit isn't "unknown". It only fills a missing cost:
+    a cost from purchase bills (or an earlier upload) is never overwritten. Needs See costs and profit.
+    """
+    value = _decimal(row, "cost_price", "Cost price")
+    if value is None:
+        return []
+    if not sees_costs:
+        return ["Cost price left out: only someone with See costs and profit can set it."]
+    if item.cost_price is not None:
+        return [f"Cost price not changed: it already has ₹{money(item.cost_price)} per {item.base_unit}."]
+    item.cost_price = cost(value)
+    item.save(update_fields=["cost_price", "updated_at"])
+    return [f"Cost price set: ₹{money(value)} per {item.base_unit}"]
 
 
 def _stock_quantity(row, item):
