@@ -10,6 +10,8 @@ import { errorMessage } from "../../lib/errors.js";
 import { date, dateTime, money, plain } from "../../lib/format.js";
 import { Alert, Badge, Button, Field, Input, Modal, NumberInput, Section, Spinner, Table, td, th } from "../../ui/index.js";
 import { BILL_STATUS } from "./BillList.js";
+import WhatsAppButton from "../../components/WhatsAppButton.js";
+import { billMessage } from "../../lib/whatsapp.js";
 
 function CancelModal({ bill, onClose, onDone }) {
   const [reason, setReason] = useState("");
@@ -161,6 +163,7 @@ export default function BillDetail() {
   const [cancelling, setCancelling] = useState(false);
   const [returning, setReturning] = useState(false);
   const [actionError, setActionError] = useState("");
+  const { data: shop } = useFetch("/shop/settings");
 
   usePage(bill ? `${bill.kind === "quotation" ? "Estimate" : "Bill"} ${bill.number}` : "Bill", ["/bills", "Old Bills"]);
 
@@ -206,10 +209,13 @@ export default function BillDetail() {
             </p>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="primary" to={`/bills/${bill.id}/print`}>
             <Printer size={18} /> Print
           </Button>
+          {shop && bill.number && bill.status !== "cancelled" && (
+            <WhatsAppButton phone={bill.buyer_phone || bill.customer_detail?.phone} text={billMessage(bill, shop.data)} />
+          )}
           {quotation && can(A.BILLING) && (
             <Button variant="success" onClick={convert}>
               <FileOutput size={18} /> Make it a bill

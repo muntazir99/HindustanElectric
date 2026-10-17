@@ -5,6 +5,8 @@ import { ArrowLeft, Printer } from "lucide-react";
 import { useFetch } from "../../hooks/useFetch.js";
 import { money, plain } from "../../lib/format.js";
 import { Alert, Button, Spinner } from "../../ui/index.js";
+import WhatsAppButton from "../../components/WhatsAppButton.js";
+import { billMessage } from "../../lib/whatsapp.js";
 
 function UpiQr({ upiId, shopName, amount, billNumber }) {
   const [src, setSrc] = useState("");
@@ -61,6 +63,7 @@ export default function BillPrint() {
         <Button variant="primary" onClick={() => window.print()}>
           <Printer size={18} /> Print
         </Button>
+        {!cancelled && bill.number && <WhatsAppButton phone={bill.buyer_phone || bill.customer_detail?.phone} text={billMessage(bill, s)} />}
         {!s.gstin && <span className="text-sm text-amber-800">Shop GSTIN is not set — fill in Shop settings in the back office.</span>}
       </div>
       {warnings.length > 0 && (

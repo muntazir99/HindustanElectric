@@ -5,6 +5,35 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-17 — WhatsApp messages
+
+Plan: [PLAN.md §12](docs/PLAN.md) (proposed 2026-10-02, go-ahead 2026-10-17).
+
+**Added**
+- A green **WhatsApp** button opens WhatsApp with the message typed and the customer's number filled in; staff
+  press Send. It goes from the shop's own WhatsApp: free, no API, nothing sent automatically.
+  - **Bill / estimate:** on the bill page and on the print screen after Save & Print. Not on cancelled bills.
+  - **Receipt:** **Send on WhatsApp** after Take Payment, and on a receipt opened from the khata. Needs Take
+    udhaar payments; not on cancelled receipts.
+  - **Udhaar reminder:** **Send reminder** on the khata page when the customer owes, and a button per row in
+    **Khata → Owe money** (the "Send reminders" list).
+- Messages are in Hinglish:
+  - bill: items (first 10, then "+N aur items"), total, how paid, this bill's udhaar, total owed;
+  - estimate: valid-until date;
+  - receipt: amount, mode, number, balance or advance;
+  - reminder: amount as of today, UPI ID, shop phone.
+- Numbers: 10 digits get 91 added, as do 0… and +91… forms. With no usable number, WhatsApp asks who to send to.
+- The shared `Button` now also opens an outside link (`href`, new tab).
+- Handbook: new topic **K9**, with pointers from B12, K2 and K3.
+- Tests: every message's text, the 10-item limit, estimate vs bill, receipt balance/advance, reminder with and
+  without UPI ID, the +91 rules and the no-number case. 66 app tests.
+- Checked in the browser on the local data:
+  - each button's number and text are right: bill, estimate, khata reminder, owe-money row, receipt;
+  - no button on a cancelled receipt;
+  - nothing extra on the bill printout;
+  - pages still fit a phone.
+- Not done (plan §12.3): a link to the full bill, which waits for the shop's own domain.
+
 ### 2026-10-17 — Phase 3 reports, step 3: GST summary for the CA
 
 Plan: [PLAN.md §16.3](docs/PLAN.md) (approved 2026-10-06).

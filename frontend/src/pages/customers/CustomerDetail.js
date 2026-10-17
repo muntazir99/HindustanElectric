@@ -8,7 +8,7 @@ import { A } from "../../lib/access.js";
 import { useFetch } from "../../hooks/useFetch.js";
 import { usePage } from "../../hooks/usePage.js";
 import { errorMessage } from "../../lib/errors.js";
-import { bigMoney, date, money } from "../../lib/format.js";
+import { bigMoney, date, money, today } from "../../lib/format.js";
 import {
   Alert,
   Badge,
@@ -26,6 +26,8 @@ import {
   th,
 } from "../../ui/index.js";
 import { BalanceText } from "./CustomerList.js";
+import WhatsAppButton from "../../components/WhatsAppButton.js";
+import { receiptMessage, reminderMessage } from "../../lib/whatsapp.js";
 
 const KIND_LABEL = Object.fromEntries(CUSTOMER_KINDS);
 // What each khata line means, in shop words. The printed statement uses the same words.
@@ -329,6 +331,7 @@ export default function CustomerDetail() {
         <Button className="h-14 text-lg" to={`/receipts/${receipt.id}/print`}>
           <Printer size={20} /> Print receipt
         </Button>
+        {shop && <WhatsAppButton className="h-14 text-lg" phone={customer.phone} text={receiptMessage(receipt, shop.data)} label="Send on WhatsApp" />}
         <button type="button" onClick={() => setReceipt(null)} className="self-center p-2 font-semibold text-blue-800 hover:underline">
           See {customer.name}'s khata
         </button>
@@ -381,6 +384,9 @@ export default function CustomerDetail() {
           <Button className="h-14" onClick={() => window.print()}>
             <Printer size={20} /> Print khata
           </Button>
+          {shop && Number(customer.balance) > 0 && (
+            <WhatsAppButton className="h-14" phone={customer.phone} text={reminderMessage(customer, shop.data, today())} label="Send reminder" />
+          )}
           {can(A.VIEW_KHATA, A.KHATA_CONTROL) && (
             <Button className="h-14" onClick={() => setModal("edit")}>
               <Pencil size={18} /> Edit details

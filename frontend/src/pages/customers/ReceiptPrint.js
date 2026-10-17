@@ -4,6 +4,10 @@ import { ArrowLeft, Printer } from "lucide-react";
 import { useFetch } from "../../hooks/useFetch.js";
 import { money } from "../../lib/format.js";
 import { Alert, Button, Spinner } from "../../ui/index.js";
+import WhatsAppButton from "../../components/WhatsAppButton.js";
+import { useAuth } from "../../context/AuthContext.js";
+import { A } from "../../lib/access.js";
+import { receiptMessage } from "../../lib/whatsapp.js";
 
 /** Payment receipt for money received against khata (half an A4 sheet). */
 export default function ReceiptPrint() {
@@ -11,6 +15,7 @@ export default function ReceiptPrint() {
   const [params] = useSearchParams();
   const { data: receipt, error } = useFetch(`/sales/receipts/${id}`);
   const { data: shop } = useFetch("/shop/settings");
+  const { can } = useAuth();
 
   useEffect(() => {
     if (!receipt || !shop || params.get("auto") !== "1") return undefined;
@@ -25,13 +30,16 @@ export default function ReceiptPrint() {
 
   return (
     <div className="bg-gray-200 min-h-screen py-6 print:bg-white print:py-0">
-      <div className="no-print max-w-[210mm] mx-auto mb-4 flex gap-3 px-2">
+      <div className="no-print max-w-[210mm] mx-auto mb-4 flex flex-wrap gap-3 px-2">
         <Button to={`/customers/${receipt.customer}`}>
           <ArrowLeft size={18} /> Back to khata
         </Button>
         <Button variant="primary" onClick={() => window.print()}>
           <Printer size={18} /> Print
         </Button>
+        {can(A.PAYMENTS) && !receipt.cancelled_at && (
+          <WhatsAppButton phone={receipt.customer_detail?.phone} text={receiptMessage(receipt, s)} />
+        )}
       </div>
       <article className="bg-white max-w-[210mm] mx-auto p-[8mm] text-[12px] text-black shadow print:shadow-none print:p-0">
         <div className="border border-black p-4">

@@ -487,7 +487,7 @@ On the Paid plan, a budget alert is set at $20/month.
 - A backup has been restored successfully and a copy is on your Mac.
 - A reminder is set to upgrade the AWS project to Paid before go-live (and in any case before 2 April 2027).
 
-## 12. WhatsApp messages (proposed 2026-10-02)
+## 12. WhatsApp messages (proposed 2026-10-02; go-ahead and built 2026-10-17)
 
 ### 12.1 How it works — free
 

@@ -309,7 +309,7 @@ The estimate then shows **Billed as HE/…**. One estimate can be billed only on
 2. Use **Show → Day** (**Today**, **Yesterday**, **Any day**, or pick a date) and **Kind** (**Bills**, **Kept
    for later**, **Estimates**, **Cancelled**). Or type a bill number, name or phone in the search and press
    Enter.
-3. Open the bill and press **Print**.
+3. Open the bill and press **Print**, or **WhatsApp** to send it to the customer (K9).
 
 The list shows the day's total at the top.
 
@@ -358,7 +358,8 @@ Good to know: a bill that already had goods returned can't be cancelled. Return 
 **Who:** **See khata** (with only **Take udhaar payments**: the list without the totals).
 1. **More → Customers** (or **Khata** on Home). The **Udhaar** box shows **You will get** (total owed),
    **Received today** and **Given on udhaar today**.
-2. Choose **Owe money** to see only those who owe. Search by name or phone.
+2. Choose **Owe money** to see only those who owe. Search by name or phone. Each person who owes has a green
+   WhatsApp button that sends them a reminder (K9).
 3. Open a customer to see their full khata: every bill, payment and correction, with **You gave**, **You got**
    and **Owes**.
 
@@ -370,7 +371,8 @@ Good to know: a bill that already had goods returned can't be cancelled. Return 
 2. Enter **Amount received (₹)**. It starts with the full amount owed.
 3. Choose **Paid by**: **Cash**, **UPI**, **Card**, **Bank** or **Cheque**. Add a **Reference** (UPI transaction
    ID, cheque number) and **Note** if useful.
-4. Press **Save & make receipt**. The next screen shows what's still due. Press **Print receipt** to print it.
+4. Press **Save & make receipt**. The next screen shows what's still due. Press **Print receipt** to print it,
+   or **Send on WhatsApp** to send the receipt to the customer (K9).
 
 Good to know: if the amount is **more** than they owe, the app asks you to confirm. The extra is kept as an
 **advance** (press **Yes, keep the advance**). Their next bills use it up.
@@ -417,6 +419,36 @@ Paid, Balance) and **Balance due**.
 **Who:** **See khata** or **Udhaar control**.
 Open the customer and press **Edit details**. The credit limit and fixed discount can only be changed with
 **Udhaar control**.
+
+### K9. Send a bill, estimate, receipt or udhaar reminder on WhatsApp
+**Words people use:** WhatsApp pe bhejo, bill bhejna, reminder bhejna, tagada, yaad dilana, paisa mangna, receipt bhejo, व्हाट्सएप
+**Who:** whoever can open the bill or estimate; receipts need **Take udhaar payments**; reminders need **See
+khata** or **Take udhaar payments**.
+
+Where the green **WhatsApp** button is:
+- **Bill or estimate:** on the bill's page (**Old Bills** → open it) and on the print screen after **Save & Print
+  Bill**. Not on cancelled bills.
+- **Receipt:** **Send on WhatsApp** on the screen after **Take Payment**, and on a receipt opened from the khata's
+  payment lines. Not on cancelled receipts.
+- **Udhaar reminder:** **Send reminder** on a customer's khata page (only when they owe), and the button on each
+  row of **Khata → Owe money**.
+
+How it works:
+1. Press the button. WhatsApp opens (WhatsApp Desktop or Web on the PC, the WhatsApp app on a phone) with the
+   message already typed and the customer's number filled in.
+2. Read it, then press **Send** in WhatsApp. Nothing is sent until you press Send.
+
+What each message says (in Hinglish):
+- **Bill:** shop, bill number and date, items (first 10, then "+N aur items"), total, how it was paid, this bill's
+  udhaar and the total owed if any.
+- **Estimate:** items, total, and the date the rates are valid until.
+- **Receipt:** amount received and how, receipt number, and what is still owed (or the advance).
+- **Reminder:** the amount owed as of today, the shop's UPI ID (if filled in Shop Details), and the shop's phone.
+
+Good to know:
+- It is sent from the shop's own WhatsApp (the free WhatsApp Business app is best). It costs nothing.
+- A 10-digit number gets +91 added. If the customer has no number, WhatsApp opens and asks who to send it to.
+- It can't send by itself or attach the PDF; that needs Meta's paid service.
 
 ---
 

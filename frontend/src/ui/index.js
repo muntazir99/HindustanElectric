@@ -21,6 +21,13 @@ export function Button({ variant = "secondary", className = "", to, children, ..
       </Link>
     );
   }
+  if (props.href) {
+    return (
+      <a target="_blank" rel="noopener noreferrer" className={classes} {...props}>
+        {children}
+      </a>
+    );
+  }
   return (
     <button type="button" className={classes} {...props}>
       {children}

@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Plus, Search } from "lucide-react";
+import { MessageCircle, Plus, Search } from "lucide-react";
 import CustomerForm, { CUSTOMER_KINDS } from "../../components/CustomerForm.js";
 import { useFetch } from "../../hooks/useFetch.js";
-import { bigMoney, money, plural } from "../../lib/format.js";
+import { bigMoney, money, plural, today as todayDate } from "../../lib/format.js";
+import { reminderMessage, whatsappLink } from "../../lib/whatsapp.js";
 import { Alert, Button, Empty, PageHeader, Pagination, Pills, Section, Spinner, Table, td, th } from "../../ui/index.js";
 
 const KIND_LABEL = Object.fromEntries(CUSTOMER_KINDS);
@@ -45,6 +46,8 @@ export default function CustomerList() {
   if (owing) query.set("owing", "1");
   if (params.get("search")) query.set("search", params.get("search"));
   const { data, error, loading } = useFetch(`/sales/customers?${query}`);
+  const { data: shop } = useFetch(owing ? "/shop/settings" : null);
+  const remind = owing && shop; // the "Send reminders" list: Owe money, with a WhatsApp button per person
 
   return (
     <>
@@ -105,6 +108,7 @@ export default function CustomerList() {
                 <th className={`${th} hidden sm:table-cell`}>Phone</th>
                 <th className={`${th} hidden sm:table-cell`}>Type</th>
                 <th className={`${th} text-right`}>Udhaar</th>
+                {remind && <th className={`${th} w-14`}><span className="sr-only">Reminder</span></th>}
               </tr>
             </thead>
             <tbody>
@@ -133,6 +137,23 @@ export default function CustomerList() {
                         </>
                       )}
                     </td>
+                    {remind && (
+                      <td className={`${td} py-1.5`}>
+                        {balance > 0 && (
+                          <a
+                            href={whatsappLink(customer.phone, reminderMessage(customer, shop.data, todayDate()))}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            aria-label={`Send ${customer.name} a reminder on WhatsApp`}
+                            title="Send reminder on WhatsApp"
+                            className="inline-flex items-center justify-center w-11 h-11 rounded-lg border border-gray-300 bg-white hover:bg-green-50 text-green-700"
+                          >
+                            <MessageCircle size={20} />
+                          </a>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 );
               })}
