@@ -64,3 +64,17 @@ export function reminderMessage(customer, shop, day) {
     thanks(shop),
   ]);
 }
+
+/** An order for a distributor: every item and quantity, no rates. */
+export function orderMessage(order, shop) {
+  return join([
+    "Namaste 🙏",
+    `${shop.name} — Order ${order.number}, ${date(order.order_date)}`,
+    "",
+    ...order.lines.map((line, i) => `${i + 1}. ${line.item_name} — ${plain(line.quantity)} ${line.unit_name}`),
+    ...(order.note ? ["", order.note] : []),
+    "",
+    "Kripya maal bhejne ki tareekh bata dein.",
+    thanks(shop),
+  ]);
+}

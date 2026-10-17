@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { billMessage, receiptMessage, reminderMessage, whatsappLink } from "./whatsapp.js";
+import { billMessage, orderMessage, receiptMessage, reminderMessage, whatsappLink } from "./whatsapp.js";
 
 const shop = { name: "Hindustan Electric", phone: "9876543210", upi_id: "hindustan@upi" };
 const text = (link) => decodeURIComponent(link.split("?text=")[1]);
@@ -99,5 +99,19 @@ describe("messages", () => {
       "Namaste Ramesh ji 🙏 Hindustan Electric mein aapka *₹2,757* baaki hai (02 Oct 2026 tak). Suvidha anusaar jama kar dein.\nUPI: hindustan@upi\n\nDhanyavaad, Hindustan Electric · 9876543210",
     );
     expect(reminderMessage(customer, { name: "Hindustan Electric", upi_id: "" }, "2026-10-02")).not.toContain("UPI");
+  });
+
+  it("order: every item and quantity, the note, no rates", () => {
+    const order = {
+      number: "PO/26-27/00001",
+      order_date: "2026-10-17",
+      note: "Send by Saturday",
+      lines: Array.from({ length: 12 }, (_, i) => ({ item_name: `Wire ${i + 1}`, quantity: "2.000", unit_name: "coil", rate: "999" })),
+    };
+    const message = orderMessage(order, shop);
+    expect(message.startsWith("Namaste 🙏\nHindustan Electric — Order PO/26-27/00001, 17 Oct 2026\n\n1. Wire 1 — 2 coil\n")).toBe(true);
+    expect(message).toContain("12. Wire 12 — 2 coil");
+    expect(message).toContain("\n\nSend by Saturday\n");
+    expect(message).not.toContain("999");
   });
 });

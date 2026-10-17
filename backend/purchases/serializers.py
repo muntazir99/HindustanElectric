@@ -1,10 +1,11 @@
 from django.db import transaction
+from django.utils import timezone
 from rest_framework import serializers
 
 from catalog.models import Item, ItemUnit
 from core.fields import GstRateField
 
-from .models import PurchaseBill, PurchaseLine, Supplier
+from .models import PurchaseBill, PurchaseLine, PurchaseOrder, PurchaseOrderLine, Supplier
 
 
 class SupplierSerializer(serializers.ModelSerializer):
@@ -138,3 +139,86 @@ class PurchaseBillListSerializer(serializers.ModelSerializer):
 
     def get_has_attachment(self, bill):
         return bool(bill.attachment)
+
+
+class OrderLineSerializer(serializers.ModelSerializer):
+    item = serializers.PrimaryKeyRelatedField(queryset=Item.objects.select_related("product"))
+    unit = serializers.PrimaryKeyRelatedField(queryset=ItemUnit.objects.all())
+    item_name = serializers.CharField(source="item.name", read_only=True)
+    item_code = serializers.CharField(source="item.code", read_only=True)
+    base_unit = serializers.CharField(source="item.base_unit", read_only=True)
+    unit_name = serializers.CharField(source="unit.name", read_only=True)
+    unit_factor = serializers.DecimalField(source="unit.factor", max_digits=12, decimal_places=3, read_only=True)
+    item_units = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PurchaseOrderLine
+        fields = ["id", "item", "item_name", "item_code", "base_unit", "item_units", "unit", "unit_name", "unit_factor", "quantity"]
+
+    get_item_units = PurchaseLineSerializer.get_item_units
+
+    def validate(self, attrs):
+        if attrs["unit"].item_id != attrs["item"].pk:
+            raise serializers.ValidationError({"unit": "This unit belongs to a different item."})
+        return attrs
+
+
+class PurchaseOrderSerializer(serializers.ModelSerializer):
+    supplier_name = serializers.CharField(source="supplier.name", read_only=True)
+    supplier_phone = serializers.CharField(source="supplier.phone", read_only=True)
+    supplier_address = serializers.CharField(source="supplier.address", read_only=True)
+    supplier_gstin = serializers.CharField(source="supplier.gstin", read_only=True)
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+    created_by = serializers.CharField(source="created_by.username", read_only=True)
+    lines = OrderLineSerializer(many=True)
+
+    class Meta:
+        model = PurchaseOrder
+        fields = [
+            "id", "number", "supplier", "supplier_name", "supplier_phone", "supplier_address", "supplier_gstin", "order_date", "status", "status_display",
+            "note", "created_by", "created_at", "sent_at", "lines",
+        ]
+        read_only_fields = ["number", "order_date", "status", "created_at", "sent_at"]
+
+    def validate(self, attrs):
+        if self.instance and self.instance.status != PurchaseOrder.Status.DRAFT:
+            raise serializers.ValidationError("Only a draft order can be changed.")
+        if "lines" in attrs and not attrs["lines"]:
+            raise serializers.ValidationError({"lines": "Add at least one item."})
+        return attrs
+
+    def _save_lines(self, order, lines):
+        order.lines.all().delete()
+        PurchaseOrderLine.objects.bulk_create(PurchaseOrderLine(order=order, **line) for line in lines)
+
+    @transaction.atomic
+    def create(self, validated_data):
+        from sales.numbering import next_number
+
+        lines = validated_data.pop("lines")
+        day = timezone.localdate()
+        order = PurchaseOrder.objects.create(
+            number=next_number("purchase_order", day, "PO"), order_date=day, **validated_data
+        )
+        self._save_lines(order, lines)
+        return order
+
+    @transaction.atomic
+    def update(self, order, validated_data):
+        lines = validated_data.pop("lines", None)
+        for field, value in validated_data.items():
+            setattr(order, field, value)
+        order.save()
+        if lines is not None:
+            self._save_lines(order, lines)
+        return order
+
+
+class PurchaseOrderListSerializer(serializers.ModelSerializer):
+    supplier_name = serializers.CharField(source="supplier.name")
+    status_display = serializers.CharField(source="get_status_display")
+    line_count = serializers.IntegerField()
+
+    class Meta:
+        model = PurchaseOrder
+        fields = ["id", "number", "supplier", "supplier_name", "order_date", "status", "status_display", "line_count", "sent_at"]

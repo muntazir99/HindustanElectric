@@ -5,6 +5,7 @@ import {
   CalendarCheck,
   ChartColumn,
   ClipboardCheck,
+  ClipboardList,
   Clock,
   ExternalLink,
   FileSpreadsheet,
@@ -57,6 +58,7 @@ const SECTIONS = [
     tiles: [
       { to: "/purchases/new", icon: Truck, name: "Goods Arrived", text: "Enter a distributor's bill", need: [A.PURCHASES] },
       { to: "/purchases", icon: FileText, name: "Purchase Bills", text: "All bills from distributors", need: [A.PURCHASES] },
+      { to: "/orders", icon: ClipboardList, name: "Orders", text: "Orders sent to distributors", need: [A.PURCHASES] },
       { to: "/suppliers", icon: Building2, name: "Distributors", text: "Names, phone numbers, GSTIN", need: [A.PURCHASES] },
     ],
   },

@@ -17,6 +17,9 @@ const ItemNew = lazy(() => import("./pages/items/ItemNew.js"));
 const ItemDetail = lazy(() => import("./pages/items/ItemDetail.js"));
 const PurchaseList = lazy(() => import("./pages/purchases/PurchaseList.js"));
 const PurchaseEntry = lazy(() => import("./pages/purchases/PurchaseEntry.js"));
+const OrderList = lazy(() => import("./pages/purchases/OrderList.js"));
+const OrderDetail = lazy(() => import("./pages/purchases/OrderDetail.js"));
+const OrderPrint = lazy(() => import("./pages/purchases/OrderPrint.js"));
 const CountList = lazy(() => import("./pages/stock/CountList.js"));
 const CountSheet = lazy(() => import("./pages/stock/CountSheet.js"));
 const Adjustments = lazy(() => import("./pages/stock/Adjustments.js"));
@@ -38,6 +41,12 @@ const CreditNotePrint = lazy(() => import("./pages/billing/CreditNotePrint.js"))
 function PurchaseEntryRoute() {
   const { id } = useParams();
   return <PurchaseEntry key={id || "new"} />;
+}
+
+/** A fresh screen per order, so saving /orders/new as /orders/12 starts clean. */
+function OrderDetailRoute() {
+  const { id } = useParams();
+  return <OrderDetail key={id} />;
 }
 
 /** A fresh, empty form each time "Add another item" opens it again. */
@@ -94,6 +103,7 @@ function AppRoutes() {
               <PrivateRoute>{ok([A.PAYMENTS, A.VIEW_KHATA], <ReceiptPrint />)}</PrivateRoute>
             }
           />
+          <Route path="/orders/:id/print" element={<PrivateRoute>{ok([A.PURCHASES], <OrderPrint />)}</PrivateRoute>} />
           <Route
             path="/"
             element={
@@ -119,6 +129,8 @@ function AppRoutes() {
             <Route path="purchases/:id" element={ok([A.PURCHASES], <PurchaseEntryRoute />)} />
             <Route path="counts" element={ok([A.COUNT_STOCK, A.FIX_STOCK], <CountList />)} />
             <Route path="counts/:id" element={ok([A.COUNT_STOCK, A.FIX_STOCK], <CountSheet />)} />
+            <Route path="orders" element={ok([A.PURCHASES], <OrderList />)} />
+            <Route path="orders/:id" element={ok([A.PURCHASES], <OrderDetailRoute />)} />
             <Route path="suppliers" element={ok([A.PURCHASES], <Suppliers />)} />
             <Route path="adjustments" element={ok([A.FIX_STOCK], <Adjustments />)} />
             <Route path="reports/day-end" element={ok([A.VIEW_SALES], <DayEnd />)} />

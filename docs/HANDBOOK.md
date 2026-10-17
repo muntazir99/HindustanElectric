@@ -620,6 +620,23 @@ Good to know:
 **More → Distributors**: add or edit names, phone numbers and GSTIN. Also from the + next to **Distributor** on
 Goods Arrived.
 
+### P3. Order goods from a distributor (purchase order)
+**Words people use:** order dena, maal mangana, purchase order, PO banana, distributor ko order, ऑर्डर
+**Who:** **Enter goods arrived**.
+1. **More → Orders**, press **New order**.
+2. Choose the **Distributor**, and add a **Note for the distributor** if needed (e.g. "Send by Saturday").
+3. Scan or search each item. Set **Qty** and **Unit** (e.g. coil or box). Press **Save order**. It gets a
+   number like PO/26-27/00001.
+4. Send it: **WhatsApp** opens WhatsApp to the distributor's phone with the item list typed (press Send there),
+   or **Print** gives a one-page order.
+5. Press **Mark as sent**.
+
+Good to know:
+- Rates are never on the order. The distributor quotes their own, and your costs stay private.
+- A draft order can be changed: edit, then **Save changes**. Save before printing or sending.
+- A sent order can't be changed. If it's wrong, press **Cancel order** and make a new one.
+- **More → Orders** lists **Open** (draft and sent), **Received** and **All** orders.
+
 ---
 
 ## 9. Money on Home

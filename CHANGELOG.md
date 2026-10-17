@@ -5,6 +5,29 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-17 — Purchase orders, step 1: orders for distributors
+
+Plan: [PLAN.md §18](docs/PLAN.md) (approved 2026-10-17).
+
+**Added**
+- **Orders** (More → Buying from distributors), for **Enter goods arrived**:
+  - **New order:** pick a distributor, add a note, scan or search items, set quantity and unit (pack or loose).
+  - Numbered **PO/26-27/00001**: its own series each financial year.
+  - **States:** Draft (can be changed) → **Mark as sent** → Received, or **Cancel order**. Orders are never
+    deleted.
+  - **Print:** a compact A4 (shop, distributor, items with code, quantity and pack size, "Please send by").
+  - **WhatsApp:** to the distributor's phone, with every item and quantity typed in.
+  - No rates anywhere on an order.
+  - The orders list shows Open, Received and All.
+- Server: `PurchaseOrder` and `PurchaseOrderLine` (migration `purchases/0002`), and `/api/purchases/orders`
+  (with `/send` and `/cancel`).
+- Handbook: new topic **P3**.
+- Tests: numbering, no rates, edit draft then locked once sent, cancel, a unit from another item refused, empty
+  order refused, the open list, and that a counter-only login can't see orders. Also the order message (every
+  line, note, no rates).
+- Checked in the browser: made PO/26-27/00001 for 3 coils. The WhatsApp text and printout were right, and
+  **Mark as sent** worked.
+
 ### 2026-10-17 — Plans: purchase orders and barcode labels
 
 **Docs**

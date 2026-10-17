@@ -2,6 +2,7 @@ import uuid
 from pathlib import Path
 
 from django.db.models import Count, Q
+from django.utils import timezone
 from django.http import FileResponse
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -12,8 +13,14 @@ from rest_framework.response import Response
 from accounts.access import PURCHASES
 from core.params import id_param
 
-from .models import PurchaseBill, Supplier
-from .serializers import PurchaseBillListSerializer, PurchaseBillSerializer, SupplierSerializer
+from .models import PurchaseBill, PurchaseOrder, Supplier
+from .serializers import (
+    PurchaseBillListSerializer,
+    PurchaseBillSerializer,
+    PurchaseOrderListSerializer,
+    PurchaseOrderSerializer,
+    SupplierSerializer,
+)
 from .services import post_bill
 
 ATTACHMENT_MAX_BYTES = 10 * 1024 * 1024
@@ -142,3 +149,50 @@ class PurchaseBillViewSet(viewsets.ModelViewSet):
             bill.attachment.delete(save=False)  # replacing the photo: don't leave the old file behind
         bill.attachment.save(f"{uuid.uuid4().hex}{kind}", upload, save=True)
         return Response(PurchaseBillSerializer(self.get_queryset().get(pk=pk), context={"request": request}).data)
+
+
+class PurchaseOrderViewSet(viewsets.ModelViewSet):
+    """Orders for distributors (plan §18). Never deleted: a wrong one is cancelled."""
+
+    access = {action: PURCHASES for action in ("list", "retrieve", "create", "partial_update", "send", "cancel")}
+    http_method_names = ["get", "post", "patch"]
+
+    def get_queryset(self):
+        queryset = PurchaseOrder.objects.select_related("supplier", "created_by")
+        if self.action == "list":
+            params = self.request.query_params
+            queryset = queryset.annotate(line_count=Count("lines")).order_by("-order_date", "-id")
+            if params.get("status") == "open":
+                queryset = queryset.filter(status__in=PurchaseOrder.OPEN)
+            elif params.get("status"):
+                queryset = queryset.filter(status=params["status"])
+            supplier = id_param(params, "supplier")
+            if supplier:
+                queryset = queryset.filter(supplier_id=supplier)
+        else:
+            queryset = queryset.prefetch_related("lines__item__product__brand", "lines__item__units", "lines__unit")
+        return queryset
+
+    def get_serializer_class(self):
+        return PurchaseOrderListSerializer if self.action == "list" else PurchaseOrderSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
+    def _move(self, pk, allowed, **changes):
+        order = self.get_object()
+        if order.status not in allowed:
+            raise ValidationError(f"This order is {order.get_status_display().lower()}.")
+        for field, value in changes.items():
+            setattr(order, field, value)
+        order.save(update_fields=list(changes))
+        return Response(PurchaseOrderSerializer(self.get_queryset().get(pk=pk), context={"request": self.request}).data)
+
+    @action(detail=True, methods=["post"])
+    def send(self, request, pk=None):
+        """Mark as sent to the distributor (after printing it or sending it on WhatsApp)."""
+        return self._move(pk, PurchaseOrder.OPEN, status=PurchaseOrder.Status.SENT, sent_at=timezone.now())
+
+    @action(detail=True, methods=["post"])
+    def cancel(self, request, pk=None):
+        return self._move(pk, PurchaseOrder.OPEN, status=PurchaseOrder.Status.CANCELLED)

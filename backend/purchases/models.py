@@ -109,3 +109,43 @@ class PurchaseLine(models.Model):
     @property
     def base_quantity(self):
         return self.quantity * self.unit.factor
+
+
+class PurchaseOrder(models.Model):
+    """
+    An order for a distributor (plan §18): items and quantities, no rates (distributors quote their own).
+    Numbered PO/26-27/00001 when made. Draft → Sent → Received (when a bill filled from it is posted), or Cancelled.
+    """
+
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        SENT = "sent", "Sent"
+        RECEIVED = "received", "Received"
+        CANCELLED = "cancelled", "Cancelled"
+
+    OPEN = (Status.DRAFT, Status.SENT)
+
+    number = models.CharField(max_length=16, unique=True)
+    supplier = models.ForeignKey(Supplier, on_delete=models.PROTECT, related_name="orders")
+    order_date = models.DateField()
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.DRAFT)
+    note = models.CharField(max_length=250, blank=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-order_date", "-id"]
+
+    def __str__(self):
+        return self.number
+
+
+class PurchaseOrderLine(models.Model):
+    order = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE, related_name="lines")
+    item = models.ForeignKey(Item, on_delete=models.PROTECT, related_name="+")
+    unit = models.ForeignKey(ItemUnit, on_delete=models.PROTECT, related_name="+")
+    quantity = models.DecimalField(max_digits=12, decimal_places=3, validators=[MinValueValidator(Decimal("0.001"))])
+
+    class Meta:
+        ordering = ["id"]
