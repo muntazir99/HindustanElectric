@@ -57,15 +57,24 @@ def visible():
     )
 
 
+def lowest_mrp(product):
+    """(MRP, per what) for the card: the lowest loose MRP, or for things sold only in packs (wire coils), the lowest pack MRP."""
+    loose = [(item.mrp, item.base_unit) for item in product.live if item.mrp is not None]
+    packs = [(unit.mrp, unit.name) for item in product.live for unit in item.units.all() if not unit.is_base and unit.mrp is not None]
+    prices = loose or packs
+    return min(prices, key=lambda price: price[0]) if prices else (None, None)
+
+
 def card(product):
-    mrps = [item.mrp for item in product.live if item.mrp is not None]
+    mrp, per = lowest_mrp(product)
     photo = next((item.web_photo for item in product.live if item.web_photo), None)
     return {
         "id": product.pk,
         "name": str(product),
         "brand": product.brand.name if product.brand_id else "",
         "category": product.category.name if product.category_id else "",
-        "from_mrp": str(min(mrps)) if mrps else None,
+        "from_mrp": str(mrp) if mrp is not None else None,
+        "mrp_per": per,
         "photo": image_url(photo),
         "tryon": product.tryon_surface or None,
         "variants": len(product.live),

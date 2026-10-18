@@ -977,11 +977,13 @@ shop app (21.5a).
    the desktop Home now follow it. The look is written down in the website repo's `DESIGN.md`.)*
 2. **Shop app:** **Show on website**, website photos, try-on cut-out and description on products; public
    read-only addresses with security tests. *(Built 2026-10-18; MRP only, as the owner chose.)*
-3. **Website pages** (in the website repo): Home, Category, Product, Visit us.
+3. **Website pages** (in the website repo): Home, Category, Product, Visit us. *(Built 2026-10-18. Pages render
+   in the browser for now; building them ahead as HTML for Google moves to step 7, with the domain.)*
 4. **Try on your wall.**
 5. **Estimate and WhatsApp.**
 6. **Book an electrician.**
-7. **Launch:** domain, HTTPS, Google Business Profile, a check on a budget Android phone and an iPhone.
+7. **Launch:** domain, HTTPS, pages built ahead as HTML for Google, Google Business Profile, a check on a
+   budget Android phone and an iPhone.
 
 ### 21.9 Done when
 

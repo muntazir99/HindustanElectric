@@ -59,8 +59,8 @@ def test_only_website_products_and_public_fields(api, switch):
     listed = api.get("/api/public/products").json()["results"]
     assert [row["name"] for row in listed] == ["Anchor Roma 6A switch"]
     product = api.get(f"/api/public/products/{white.product_id}").json()
-    assert set(product) == {"id", "name", "brand", "category", "from_mrp", "photo", "tryon", "variants", "description"}
-    assert (product["from_mrp"], product["tryon"], product["description"]) == ("52.00", "wall", "Smooth click.")
+    assert set(product) == {"id", "name", "brand", "category", "from_mrp", "mrp_per", "photo", "tryon", "variants", "description"}
+    assert (product["from_mrp"], product["mrp_per"], product["tryon"], product["description"]) == ("52.00", "pc", "wall", "Smooth click.")
     by_name = {row["name"]: row for row in product["variants"]}
     assert set(by_name) == {"White", "Black"}  # Grey is no longer sold
     assert set(by_name["White"]) == {"id", "name", "mrp", "unit", "in_stock", "photo", "tryon_image", "packs"}
@@ -72,6 +72,14 @@ def test_only_website_products_and_public_fields(api, switch):
     leaked = [key for key in every - PUBLIC_WORDS if any(word in key for word in SECRET_WORDS)]
     assert leaked == []
     assert api.get(f"/api/public/products/{hidden.product_id}").status_code == 404
+
+
+def test_sold_only_in_packs_shows_the_pack_mrp(api, wire):
+    """Wire with no MRP per metre but an MRP per 90 m coil: the card shows the coil."""
+    Product.objects.filter(pk=wire.product_id).update(on_website=True)
+    wire.units.filter(name="coil").update(mrp=D("2650"))
+    [row] = api.get("/api/public/products").json()["results"]
+    assert (row["from_mrp"], row["mrp_per"]) == ("2650.00", "coil")
 
 
 def test_search_and_category(api, switch):

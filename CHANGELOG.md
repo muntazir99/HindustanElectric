@@ -5,6 +5,15 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-18 — Website step 3 (pages, in the website repo); `mrp_per` in the public data
+
+**Changed**
+- **Public product cards now carry `mrp_per`:** the unit, or the pack (e.g. `coil`) when only the packs have an
+  MRP. So wire sold in coils shows "MRP from ₹1,650 / coil" instead of "Ask for price". Test added.
+- **Plan §21.8:**
+  - step 3 is built (Home, Products, Product, Visit us, in `hindustanelectric-website`);
+  - pre-building pages as HTML for Google moves to the launch step, together with the domain.
+
 ### 2026-10-18 — Website step 2: products on the website, and the public data
 
 Plan: [PLAN.md §21.4](docs/PLAN.md) (approved 2026-10-18, MRP only).
