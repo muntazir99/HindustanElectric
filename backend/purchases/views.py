@@ -13,6 +13,7 @@ from rest_framework.views import APIView
 
 from accounts.access import PURCHASES, SEE_COSTS
 from accounts.permissions import can
+from core.files import attachment_kind
 from core.params import id_param
 
 from .models import PurchaseBill, PurchaseOrder, Supplier
@@ -35,26 +36,6 @@ ATTACHMENT_CONTENT_TYPES = {
     ".webp": "image/webp",
     ".heic": "image/heic",
 }
-HEIC_BRANDS = {b"heic", b"heix", b"hevc", b"heim", b"heis", b"mif1", b"msf1"}
-
-
-def attachment_kind(upload):
-    """The file's real type from its first bytes (".pdf", ".jpg"...), or None. The browser's label is not trusted."""
-    head = upload.read(16)
-    upload.seek(0)
-    if head.startswith(b"%PDF-"):
-        return ".pdf"
-    if head.startswith(b"\xff\xd8\xff"):
-        return ".jpg"
-    if head.startswith(b"\x89PNG\r\n\x1a\n"):
-        return ".png"
-    if head[:4] == b"RIFF" and head[8:12] == b"WEBP":
-        return ".webp"
-    if head[4:8] == b"ftyp" and head[8:12] in HEIC_BRANDS:
-        return ".heic"
-    return None
-
-
 ALL_PURCHASE_ACTIONS = ("list", "retrieve", "create", "partial_update", "destroy", "post_bill", "attachment")
 
 

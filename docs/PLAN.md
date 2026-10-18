@@ -842,7 +842,7 @@ purchase bill, so slow movers stay unknown.
 - **Past bills:** bills made before the upload stay "unknown". The app doesn't rewrite past bills.
 - **Opening stock:** a stock count posted after the upload records the cost with the stock.
 
-## 21. Public website, phone first (proposed 2026-10-18)
+## 21. Public website, phone first (approved 2026-10-18)
 
 The shop's own website: what's new in store, **try a switch or fan on your own wall** with the phone camera, a
 **rough estimate** that ends in a WhatsApp message to the shop, and **book an electrician visit**. It's designed
@@ -961,8 +961,7 @@ shop app (21.5a).
 
 ### 21.7 To decide
 
-1. **Prices on the website:** MRP only (the discount comes on WhatsApp), the shop's price, or "price on
-   request".
+1. ~~**Prices on the website**~~ — **MRP only** (decided 2026-10-18); the discount comes on WhatsApp.
 2. **Domain:** which name. Buy it from any registrar; I'll set it up.
 3. **Language:** English with Hindi words, or a full Hindi/English switch.
 4. **Product photos:** use brand catalogue photos where allowed, take our own, or both.
@@ -977,7 +976,7 @@ shop app (21.5a).
    **The owner chose B, camera first**: dark, with the try-on as the hero and amber actions. Every screen and
    the desktop Home now follow it. The look is written down in the website repo's `DESIGN.md`.)*
 2. **Shop app:** **Show on website**, website photos, try-on cut-out and description on products; public
-   read-only addresses with security tests.
+   read-only addresses with security tests. *(Built 2026-10-18; MRP only, as the owner chose.)*
 3. **Website pages** (in the website repo): Home, Category, Product, Visit us.
 4. **Try on your wall.**
 5. **Estimate and WhatsApp.**

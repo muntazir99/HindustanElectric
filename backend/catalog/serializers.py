@@ -42,6 +42,7 @@ class ItemSerializer(serializers.ModelSerializer):
     units = ItemUnitSerializer(many=True, read_only=True)
     stock_display = serializers.SerializerMethodField()
     is_low = serializers.SerializerMethodField()
+    website = serializers.SerializerMethodField()
 
     class Meta:
         model = Item
@@ -49,8 +50,17 @@ class ItemSerializer(serializers.ModelSerializer):
             "id", "code", "name", "product", "product_name", "brand", "category", "category_id", "variant",
             "hsn_code", "gst_rate", "base_unit", "mrp", "selling_price", "cost_price",
             "stock_qty", "stock_display", "min_stock", "is_low", "rack", "aliases",
-            "is_active", "counted_at", "needs_recount", "units",
+            "is_active", "counted_at", "needs_recount", "units", "website",
         ]
+
+    def get_website(self, item):
+        """The product's website settings, and which pictures this variant has (plan §21.4)."""
+        product = item.product
+        return {
+            "on_website": product.on_website, "description": product.web_description,
+            "tryon_surface": product.tryon_surface, "web_new": product.web_new,
+            "photo": bool(item.web_photo), "tryon": bool(item.tryon_image),
+        }
 
     def get_stock_display(self, item):
         return format_quantity(item.stock_qty, item.base_unit, item.units.all())
@@ -124,7 +134,10 @@ class ProductSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = ["id", "name", "brand", "brand_name", "category", "category_name", "hsn_code", "gst_rate", "description"]
+        fields = [
+            "id", "name", "brand", "brand_name", "category", "category_name", "hsn_code", "gst_rate", "description",
+            "on_website", "web_description", "tryon_surface", "web_new",
+        ]
 
 
 class ProductCreateSerializer(VariantsSerializer):

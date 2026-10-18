@@ -5,6 +5,54 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-18 — Website step 2: products on the website, and the public data
+
+Plan: [PLAN.md §21.4](docs/PLAN.md) (approved 2026-10-18, MRP only).
+
+**Added**
+- **On the website** box on an item's page, for **Change prices and items**:
+  - **Product settings:**
+    - **Show this product on the website** (all its variants);
+    - **Try on** (wall, ceiling or none);
+    - **Show in New in store** (30 days after a Goods Arrived bill, always or never);
+    - a public **Website description**.
+  - **Pictures for each variant:** a **Photo**, and a **Cut-out for try-on** (PNG or WebP with a see-through
+    background).
+    - The app shrinks pictures on the device before sending (longest side 1,200 px, WebP where the browser can).
+    - Pictures are stored under random names; the server accepts JPG, PNG or WebP only, checked by content, up to
+      2 MB.
+- **Shop settings:** **Opening hours**, for the website.
+- **Public, read-only data for the website** (new `public` app). No login, 120 requests a minute per visitor,
+  GET only:
+  - `/api/public/shop`: name, phone, address, opening hours, GSTIN;
+  - `/api/public/categories`: categories with products on the website;
+  - `/api/public/products` (`?category=&brand=&q=`, 24 a page) and `/api/public/products/<id>`: name, brand,
+    category, description, try-on surface, and for each variant still sold: MRP, unit, in stock yes/no,
+    pictures, and pack MRPs;
+  - `/api/public/new`: New in store;
+  - `/api/public/images/<name>`: a picture, only while its product is on the website, cached for 30 days.
+- **Browser access:** only the website's own address may call `/api/public/` from a browser. It's set with
+  `PUBLIC_SITE_ORIGINS` (default `http://localhost:5173` for development); the rest of the API stays closed to
+  it.
+- Upload-type checking moved to `core/files.py`, shared by bill photos and website pictures.
+- Handbook: new topic **I9**; O3 mentions opening hours.
+- **Tests:**
+  - only website products are shown;
+  - every field is checked, and none of cost, selling price, stock count, barcode, HSN, GST, rack or aliases
+    appears anywhere;
+  - variants no longer sold are hidden;
+  - pictures stop when the product is taken off, and bad names are refused;
+  - New in store follows the 30-day rule and Always/Never;
+  - the website's address gets browser access to public data only;
+  - staff picture upload: owner only, type and size checks, cut-out must be PNG or WebP;
+  - product website settings;
+  - the security sweep now also proves every public address refuses POST, PUT, PATCH and DELETE.
+- **Checked in the browser:**
+  - on Anchor Roma 6A switch: ticked the box, set Try on to wall and saved;
+  - uploaded a 2400 × 1600 test picture: stored as a 1200 × 800 WebP (2.6 KB);
+  - `/api/public/products/10` returned only the public fields;
+  - the picture came back as `image/webp` and cacheable.
+
 ### 2026-10-18 — Website design: direction B chosen
 
 - **The owner chose direction B, "camera first".**

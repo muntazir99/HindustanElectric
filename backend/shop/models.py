@@ -25,6 +25,9 @@ class ShopSettings(models.Model):
     address = models.TextField(blank=True)
     phone = models.CharField(max_length=30, blank=True)
     email = models.EmailField(blank=True)
+    opening_hours = models.CharField(
+        max_length=120, blank=True, help_text='Shown on the website, e.g. "9 am – 9 pm, closed Sunday".'
+    )
 
     bank_name = models.CharField(max_length=120, blank=True)
     bank_branch = models.CharField(max_length=120, blank=True)

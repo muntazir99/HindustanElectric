@@ -67,6 +67,29 @@ class Product(models.Model):
     hsn_code = models.CharField("HSN code", max_length=8, blank=True, validators=[hsn_validator])
     gst_rate = models.DecimalField("GST %", max_digits=4, decimal_places=2, choices=GST_RATES, default=Decimal("18"))
     description = models.TextField(blank=True)
+
+    # The public website (plan §21.4). Only these fields, a variant's MRP and photos, and "in stock" go public.
+    class TryOn(models.TextChoices):
+        NONE = "", "No try-on"
+        WALL = "wall", "On a wall (switches, sockets, lights)"
+        CEILING = "ceiling", "On a ceiling (fans)"
+
+    class WebNew(models.TextChoices):
+        AUTO = "auto", "When a new lot arrives"
+        ALWAYS = "always", "Always"
+        NEVER = "never", "Never"
+
+    on_website = models.BooleanField(default=False, help_text="Show this product, with all its variants, on the website.")
+    web_description = models.TextField(
+        "Website description", blank=True, max_length=600, help_text="Public. A line or two for customers; no internal notes."
+    )
+    tryon_surface = models.CharField(
+        "Try on", max_length=8, blank=True, choices=TryOn.choices, help_text="Needs a cut-out photo on each variant."
+    )
+    web_new = models.CharField(
+        "Show in New in store", max_length=6, choices=WebNew.choices, default=WebNew.AUTO,
+        help_text="When a new lot arrives = for 30 days after a Goods Arrived bill.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -121,6 +144,9 @@ class Item(models.Model):
     )
 
     is_active = models.BooleanField(default=True)
+    # Website pictures, stored under random names and handed out only while the product is on the website.
+    web_photo = models.FileField(upload_to="website/", blank=True, editable=False)
+    tryon_image = models.FileField(upload_to="website/", blank=True, editable=False, help_text="Cut-out, see-through background.")
     counted_at = models.DateTimeField(null=True, blank=True, editable=False)
     needs_recount = models.BooleanField(default=False, editable=False)
 

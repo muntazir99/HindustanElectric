@@ -1,14 +1,19 @@
+import uuid
+
 from django.db import transaction
 from django.db.models import Q
+from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, mixins, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
+from rest_framework.parsers import JSONParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.access import ADD_ITEMS, EDIT_ITEMS
 from accounts.permissions import OPEN, can
+from core.files import attachment_kind
 from core.params import id_param
 
 from . import services
@@ -30,6 +35,8 @@ ITEMS = Item.objects.select_related("product__brand", "product__category").prefe
 
 
 ITEM_MAKERS = (ADD_ITEMS, EDIT_ITEMS)
+WEB_IMAGE_MAX_BYTES = 2 * 1024 * 1024
+WEB_IMAGE_TYPES = {"jpg": "image/jpeg", "png": "image/png", "webp": "image/webp"}
 
 
 class CategoryList(generics.ListCreateAPIView):
@@ -108,7 +115,10 @@ def create_variants(product, data):
 class ItemViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     serializer_class = ItemSerializer
     # Finding items is open to everyone: every job needs it.
-    access = {"list": OPEN, "retrieve": OPEN, "movements": OPEN, "partial_update": ITEM_MAKERS, "units": ITEM_MAKERS}
+    access = {
+        "list": OPEN, "retrieve": OPEN, "movements": OPEN, "partial_update": ITEM_MAKERS, "units": ITEM_MAKERS,
+        "web_image": EDIT_ITEMS,
+    }
 
     def get_queryset(self):
         if self.action == "list":
@@ -130,6 +140,40 @@ class ItemViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gen
             for field, value in data.items():
                 setattr(item, field, value)
             item.save()
+        return Response(ItemSerializer(ITEMS.get(pk=item.pk), context={"request": request}).data)
+
+    @action(detail=True, methods=["get", "post", "delete"], url_path="web-image/(?P<kind>photo|tryon)",
+            parser_classes=[MultiPartParser, JSONParser])
+    def web_image(self, request, pk=None, kind=None):
+        """
+        The variant's website photo, or its try-on cut-out (kind "tryon": PNG or WebP, see-through background).
+        GET shows it to staff; POST (field "file") replaces it; DELETE removes it. Stored under a random name.
+        """
+        item = self.get_object()
+        field = "web_photo" if kind == "photo" else "tryon_image"
+        current = getattr(item, field)
+        if request.method == "GET":
+            if not current:
+                raise NotFound("No picture yet.")
+            return FileResponse(current.open("rb"), content_type=WEB_IMAGE_TYPES[current.name.rsplit(".", 1)[-1]])
+        if request.method == "DELETE":
+            current.delete(save=False)
+            item.save(update_fields=[field, "updated_at"])
+            return Response(ItemSerializer(ITEMS.get(pk=item.pk), context={"request": request}).data)
+        upload = request.FILES.get("file")
+        if upload is None:
+            raise ValidationError({"file": "Choose a picture."})
+        if upload.size > WEB_IMAGE_MAX_BYTES:
+            raise ValidationError({"file": "Picture is larger than 2 MB. The app shrinks photos before sending; try again."})
+        ext = attachment_kind(upload)
+        allowed = (".png", ".webp") if kind == "tryon" else (".jpg", ".png", ".webp")
+        if ext not in allowed:
+            raise ValidationError({"file": "The cut-out must be PNG or WebP (see-through background)." if kind == "tryon"
+                                   else "Only JPG, PNG or WebP pictures."})
+        if current:
+            current.delete(save=False)
+        getattr(item, field).save(f"{uuid.uuid4().hex}{ext}", upload, save=False)
+        item.save(update_fields=[field, "updated_at"])
         return Response(ItemSerializer(ITEMS.get(pk=item.pk), context={"request": request}).data)
 
     @action(detail=True)

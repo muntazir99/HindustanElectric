@@ -73,6 +73,11 @@ def test_only_owner_removes_a_pack_size(staff_api, owner_api, wire):
 
 # The only addresses that answer without a login: logging in, and the health check.
 OPEN_WITHOUT_LOGIN = {"/api/auth/login", "/api/health"}
+# The public website's addresses (public/): anyone may read them, nobody may change anything through them.
+PUBLIC_READ_ONLY = {
+    "/api/public/shop", "/api/public/categories", "/api/public/products", "/api/public/products/1",
+    "/api/public/new", "/api/public/images/1",
+}
 
 
 def api_addresses():
@@ -92,7 +97,8 @@ def api_addresses():
     for raw in walk(get_resolver().url_patterns):
         if "format" in raw:  # the same address again with a ".json" ending
             continue
-        path = re.sub(r"\(\?P<[^>]+>[^)]*\)", "1", raw)  # router style: (?P<pk>[^/.]+)
+        path = re.sub(r"\(\?P<[^>]+>([a-z]+)(\|[a-z|]+)?\)", r"\1", raw)  # a choice, (?P<kind>photo|tryon): the first
+        path = re.sub(r"\(\?P<[^>]+>[^)]*\)", "1", path)  # router style: (?P<pk>[^/.]+)
         path = re.sub(r"<[^>]+>", "1", path)  # path() style: <int:pk>
         path = "/" + path.replace("^", "").replace("$", "").replace("/?", "")
         if path.startswith("/api/"):
@@ -106,6 +112,12 @@ def test_every_api_address_needs_a_login(api):
     let_through = []
     for path in addresses:
         if path in OPEN_WITHOUT_LOGIN:
+            continue
+        if path in PUBLIC_READ_ONLY:
+            for method in ("post", "put", "patch", "delete"):
+                code = getattr(api, method)(path, {}, format="json").status_code
+                if code != 405:
+                    let_through.append(f"{method.upper()} {path} -> {code}")
             continue
         for method in ("get", "post", "put", "patch", "delete"):
             code = getattr(api, method)(path, {}, format="json").status_code

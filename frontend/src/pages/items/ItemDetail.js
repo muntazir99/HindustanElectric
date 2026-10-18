@@ -12,6 +12,7 @@ import { BASE_UNITS, GST_RATES, dateTime, money, plain, signed } from "../../lib
 import { Alert, Button, Empty, Field, Input, Modal, NumberInput, Section, Select, Spinner, Table, td, th } from "../../ui/index.js";
 import { StatusBadges } from "./ItemList.js";
 import AdjustModal from "../stock/AdjustModal.js";
+import WebsiteSection from "./WebsiteSection.js";
 
 function Info({ label, children }) {
   return (
@@ -446,6 +447,7 @@ export default function ItemDetail() {
       </div>
 
       <Units item={item} canChange={canChange} canPrice={canPrice} onChanged={setData} />
+      {canPrice && <WebsiteSection key={item.id} item={item} onChanged={setData} />}
       <History itemId={item.id} canCost={canCost} version={version} />
 
       {modal === "item" && (

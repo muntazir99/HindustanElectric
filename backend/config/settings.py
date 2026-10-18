@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     "stock",
     "purchases",
     "sales",
+    "public",
 ]
 
 MIDDLEWARE = [
@@ -131,7 +132,8 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.ScopedRateThrottle",
     ],
     # Slows down password guessing on the login endpoint; keeps the help assistant inside free AI limits.
-    "DEFAULT_THROTTLE_RATES": {"login": "10/min", "help": "30/hour"},
+    # "public": the website's read-only addresses, per visitor's address.
+    "DEFAULT_THROTTLE_RATES": {"login": "10/min", "help": "30/hour", "public": "120/min"},
     # How many proxies (e.g. nginx) sit in front of Django. 0 = use the connecting address and ignore
     # X-Forwarded-For, which anyone can fake to dodge the login limit.
     "NUM_PROXIES": int(os.environ.get("DJANGO_NUM_PROXIES", "0")),
@@ -179,3 +181,5 @@ SIMPLE_JWT = {
 }
 
 CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS", "http://localhost:3000")
+# The public website's own address(es). Browsers there may call /api/public/ only (see public.apps).
+PUBLIC_SITE_ORIGINS = env_list("PUBLIC_SITE_ORIGINS", "http://localhost:5173")

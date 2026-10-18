@@ -575,6 +575,29 @@ Good to know:
   barcode and the pack price. A pack without one gets the loose label.
 - The price is printed on the sticker. After a price change, print new labels.
 
+### I9. Show a product on the shop's website
+**Words people use:** website pe dalna, online dikhana, website photo, try on photo, cut-out, naya maal website
+**Who:** **Change prices and items**.
+1. Open the item (**More → All Items**) and scroll to **On the website**.
+2. Tick **Show this product on the website**. It goes on with all its sizes and colours.
+3. **Try on:** **On a wall** for switches, sockets and lights; **On a ceiling** for fans; or **No try-on**.
+4. **Show in New in store:** **For 30 days after a new lot arrives** (from Goods Arrived), **Always**, or
+   **Never**.
+5. **Website description:** a line or two for customers. Everyone can read it, so no internal notes.
+6. Press **Save website settings**.
+7. **Photo:** press **Choose picture** and pick a clear photo of this variant. The app shrinks it before
+   sending.
+8. **Cut-out for try-on** (shown when Try on is set): a front view with a see-through background (PNG). Free
+   apps can remove a photo's background. Do this on each colour or variant that should appear in the try-on.
+
+What customers see: the name, brand, category, **MRP**, the pictures, the description, and whether it's in
+stock. Never the cost, your selling price, the stock count, barcodes or anything else in the app.
+
+Good to know:
+- A variant with no MRP shows no price on the website; set the MRP (I3).
+- Untick **Show this product on the website** to take it off at once; its pictures stop showing too.
+- A variant that's switched off (not sold any more) never shows.
+
 ---
 
 ## 7. Stock
@@ -805,7 +828,7 @@ straight away. Each row shows when they last logged in.
 **Words people use:** dukaan ki jankari, shop ka naam, GST number dalna, bank details, UPI ID, bill pe address
 **Who:** owner.
 1. **More → Shop Details** (opens the back office).
-2. Fill **Name**, **GSTIN**, state code (Bihar is 10), **Address**, **Phone**, **Email**, bank name, branch,
+2. Fill **Name**, **GSTIN**, state code (Bihar is 10), **Address**, **Phone**, **Email**, **Opening hours** (shown on the website), bank name, branch,
    account number and IFSC, **UPI ID** (bills with udhaar then show a UPI QR code), invoice prefix (e.g. HE),
    **Round off bills** (to the nearest rupee), and **Invoice terms** (printed at the bottom of every bill, one
    per line).
