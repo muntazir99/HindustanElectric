@@ -5,6 +5,28 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-18 — Public website: plan, design directions, project set up
+
+Plan: [PLAN.md §21](docs/PLAN.md) (proposed; the owner chooses a design direction next).
+
+**Added**
+- **Plan §21, the public website, phone first:**
+  - **Pages:** Home, Category, Product, Try on your wall (switches on a wall, fans on a ceiling, with the phone
+    camera or a photo), Rough estimate → WhatsApp, Visit us.
+  - **Products:** come from the shop app ("Show on website"). The public sees only website fields.
+  - **Cost:** a domain is the one cost.
+- **Design canvas:**
+  - **Home in three directions:** A Switchboard, B Camera first, C Shop-wall catalogue.
+  - **Screens in direction A:** Product, Try on wall, Try on ceiling, Estimate.
+  - **Guidance used:** the ui-ux-pro-max skill's design data and the 21st.dev skill's explore and review rules.
+    Both were read from their GitHub repos; ui-ux-pro-max's search script was checked first: standard library
+    only, no network.
+- **`website/`:** an empty React + Vite project with **motion** 14 (`npm install motion`) for the website build.
+  It holds a placeholder page only; the build output `website/dist/` is ignored by git.
+
+**Changed**
+- Plan §21.5: pages are pre-built HTML from React (was: made on the server), so the site can use motion.
+
 ### 2026-10-17 — Cost price column in the Excel upload
 
 Plan: [PLAN.md §20](docs/PLAN.md) (asked for and approved 2026-10-17).

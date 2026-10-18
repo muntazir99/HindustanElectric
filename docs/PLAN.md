@@ -36,7 +36,7 @@ Living document. Decisions are recorded here; individual changes go in [CHANGELO
 | **1. Catalogue & stock-in** | Products/variants, units & barcodes, Excel import, purchase bill entry, stock ledger, stock counts, adjustments, low-stock list | Done 2026-10-01 |
 | **2. Counter billing** | Scanner-friendly billing, GST-correct invoices, FY numbering, A4 print, customers & khata, payments, returns/credit notes, quotations | Done 2026-10-01 — CA confirmation pending before go-live |
 | **3. Back office & reports** | Day-end summary, sales & profit, GST summary for CA, supplier payables, expenses, reorder list → purchase orders, barcode label printing, Excel/DB exports & backups | Reports, purchase orders and labels done 2026-10-17 (§16, §18, §19); the rest later |
-| **4. Growth** | Public website, WhatsApp bills & reminders, read bill photos/PDFs into draft purchase entries automatically, electrician loyalty, demand forecasting | WhatsApp done 2026-10-17 (§12); the rest later |
+| **4. Growth** | Public website, WhatsApp bills & reminders, read bill photos/PDFs into draft purchase entries automatically, electrician loyalty, demand forecasting | WhatsApp done 2026-10-17 (§12); public website proposed (§21); the rest later |
 
 **First version = Phases 0–2.** Phase 1 ships first so catalogue entry (the slowest, human part) can start while Phase 2 is built.
 
@@ -841,3 +841,113 @@ purchase bill, so slow movers stay unknown.
 - **Who:** **See costs and profit** only. For anyone else the column is left out, and the preview says so.
 - **Past bills:** bills made before the upload stay "unknown". The app doesn't rewrite past bills.
 - **Opening stock:** a stock count posted after the upload records the cost with the stock.
+
+## 21. Public website, phone first (proposed 2026-10-18)
+
+The shop's own website: what's new in store, **try a switch or fan on your own wall** with the phone camera, and
+a **rough estimate** that ends in a WhatsApp message to the shop. It's designed for phones first; the desktop
+version is the same site laid out wider.
+
+### 21.1 Pages
+
+| Page | What's on it |
+|---|---|
+| **Home** | Shop name and a one-line promise; **New in store** (swipe); categories (switches, fans, lights, wires, MCBs); the two big actions, **Try on your wall** and **Rough estimate**; visit, call and WhatsApp |
+| **Category** | Products as a swipeable grid, brand chips to filter |
+| **Product** | Photos and colours, MRP, **Try on your wall** (switches, fans, lights), **Add to estimate**, **Ask on WhatsApp** |
+| **Try on your wall** | Full-screen camera with the product on top (21.2) |
+| **Estimate** | Items and quantities, a rough total, then **Send to shop on WhatsApp** or **Ask for a visit** (21.3) |
+| **Visit us** | Map link, hours, phone, WhatsApp |
+
+### 21.2 Try on your wall (like Lenskart's frames, for switches and fans)
+
+- **How it works:**
+  - open the camera and point it at the wall (or the ceiling, for fans);
+  - the product's cut-out photo sits on top;
+  - **swipe left/right** to change design or colour;
+  - **drag** to move it, **pinch** to resize, **two-finger turn** to straighten;
+  - **Snap** saves a photo to share on WhatsApp ("Is this one available?").
+- **No camera, or permission refused:** take or upload a photo of the wall instead; the same controls work on it.
+- **Privacy:** the camera picture never leaves the phone. Nothing is uploaded.
+- **Built with the browser's own camera and touch;** no paid AR service and no 3D models. Works on Android Chrome
+  and iPhone Safari.
+- **What it isn't:** true 3D AR that sticks to the wall as you move. That needs a 3D model of every product and
+  only works on some phones. It could come later for a few best sellers, if it proves useful.
+- **What each product needs:** a front-view photo with a transparent background (switch plates, a fan from
+  below, a light). Brand catalogue photos work, where the brand lets dealers use them. Free tools can cut out
+  the background.
+
+### 21.3 Rough estimate → WhatsApp
+
+- Add items from any product page, or search and add on the Estimate page; set quantities.
+- **The total says "Rough estimate"** and that the shop's price with discount comes on WhatsApp or at the shop.
+- **Send to shop on WhatsApp:** opens WhatsApp to the shop's number with the list and quantities typed in (as in
+  §12). Free, and nothing is stored on the server.
+- **Ask for a visit:** name, area and a good time go into the same WhatsApp message.
+- *Later, if useful:* a "whole house wiring" helper (rooms → typical points → wire, switches, MCBs).
+
+### 21.4 Where the products come from
+
+- **The shop app is the source.** On a product, the owner ticks **Show on website** and adds website photos,
+  the try-on cut-out and a short description.
+- **New in store:** items received on a Goods Arrived bill in the last 30 days that are shown on the website.
+  The owner can also pin or unpin items.
+- **What the public sees, and only this:** name, brand, category, colours or variants, photos, MRP (or the
+  price chosen in 21.7), "in stock" yes/no. Never costs, stock quantities, customers, bills or staff.
+- **Server:** read-only public addresses with a fixed list of fields, rate limits and their own security
+  tests. Nothing public can write to the database.
+
+### 21.5 Look and speed
+
+- **Phone first:**
+  - one thumb reaches everything;
+  - big tap targets and swipe rows;
+  - a bottom bar with Home, Try on, Estimate and WhatsApp.
+  Desktop gets the same content in wider rows.
+- **Minimal but its own:** not a generic template. The design proposes the style (§21.8).
+- **Fast on a budget phone and mobile data:**
+  - each page is built ahead as plain HTML (pre-rendered), so it shows at once and Google can read it;
+  - small images (WebP);
+  - the camera code loads only on Try on.
+- **Built with** React and Vite in `website/` (the same tools as the shop app), with **motion** for animation.
+  Animation stays short and purposeful (entrances, the design swipe, the estimate total) and switches off when
+  the phone's "reduce motion" setting is on. *(Changed 2026-10-18 from server-made pages, because the owner
+  chose motion.)*
+- **Language:** English with Hindi where it helps, or English and Hindi throughout (21.7).
+
+### 21.6 Hosting and cost
+
+- **Server:** the same Lightsail server and app, so there's nothing new to pay for hosting.
+- **The one cost: a domain**, e.g. hindustanelectric.in, about ₹500–1,000 a year. A public site can't use the
+  trial address. The domain also unlocks the WhatsApp bill link (§12.3).
+- **Free and recommended:** a **Google Business Profile** for the shop, linking to the site. Most local
+  customers find shops through Google Maps.
+- **Before launch:** the Paid AWS plan and the Mumbai move (§11). The site will be faster from Mumbai than
+  Sydney.
+
+### 21.7 To decide
+
+1. **Prices on the website:** MRP only (the discount comes on WhatsApp), the shop's price, or "price on
+   request".
+2. **Domain:** which name. Buy it from any registrar; I'll set it up.
+3. **Language:** English with Hindi words, or a full Hindi/English switch.
+4. **Product photos:** use brand catalogue photos where allowed, take our own, or both.
+
+### 21.8 Steps (one commit each)
+
+1. **Design:** phone and desktop screens for Home, Product, Try on your wall and Estimate. Owner approval.
+   *(2026-10-18: three Home directions on the design canvas: A Switchboard, B Camera first, C Shop-wall
+   catalogue. The owner picks one; then the rest of the screens and desktop follow it.)*
+2. **Shop app:** **Show on website**, website photos, try-on cut-out and description on products; public
+   read-only addresses with security tests.
+3. **Website pages:** Home, Category, Product, Visit us.
+4. **Try on your wall.**
+5. **Estimate and WhatsApp.**
+6. **Launch:** domain, HTTPS, Google Business Profile, a check on a budget Android phone and an iPhone.
+
+### 21.9 Done when
+
+- Pages load fast on a budget Android phone on mobile data.
+- **Try on your wall** works on Android Chrome and iPhone Safari, with live camera and with an uploaded photo.
+- An estimate opens WhatsApp to the shop with the right items.
+- A security sweep shows the public addresses give out only the fields in 21.4.

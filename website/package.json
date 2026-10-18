@@ -1,0 +1,21 @@
+{
+  "name": "hindustan-electric-website",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "The shop's public website, phone first (docs/PLAN.md §21).",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "motion": "^14.3.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.2.0",
+    "vite": "^7.3.7"
+  }
+}
