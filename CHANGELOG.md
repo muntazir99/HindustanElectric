@@ -5,6 +5,15 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-18 — Website design: direction B chosen
+
+- **The owner chose direction B, "camera first".**
+  - **On the canvas:** directions A and C are taken off. All screens are in B: Home, Product, Try on wall, Try
+    on ceiling, Estimate, Book an electrician, and a desktop Home that also works at phone width.
+  - **In the plan:** §21.8 records the choice, and §21.5a the private GitHub repo.
+- **Website repo:** private on GitHub, muntazir99/hindustanelectric-website. Its `DESIGN.md` holds the colours,
+  fonts and motion rules.
+
 ### 2026-10-18 — Website in its own repo; book an electrician
 
 **Changed**

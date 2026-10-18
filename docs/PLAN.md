@@ -937,8 +937,9 @@ shop app (21.5a).
 
 ### 21.5a A separate project (asked for 2026-10-18)
 
-- **Its own repo:** `hindustanelectric-website`, with its own build, deploy and changelog. It sits next to the
-  shop app on the Mac, and goes on GitHub when the owner says. It shares no code with the shop app.
+- **Its own repo:** `hindustanelectric-website`, with its own build, deploy and changelog. It is a **private**
+  GitHub repo (muntazir99/hindustanelectric-website), next to the shop app on the Mac. It shares no code with
+  the shop app.
 - **The only link is the public API:** the website reads products from the shop app's public, read-only
   addresses (21.4) over HTTPS. The API's address is set when the site is built.
 - **Why:** a problem on the website can't touch billing or stock. The website can be redesigned, rebuilt or
@@ -972,8 +973,9 @@ shop app (21.5a).
 ### 21.8 Steps (one commit each)
 
 1. **Design:** phone and desktop screens for Home, Product, Try on your wall and Estimate. Owner approval.
-   *(2026-10-18: three Home directions on the design canvas: A Switchboard, B Camera first, C Shop-wall
-   catalogue. The owner picks one; then the rest of the screens and desktop follow it.)*
+   *(2026-10-18: three Home directions were drawn: A Switchboard, B Camera first, C Shop-wall catalogue.
+   **The owner chose B, camera first**: dark, with the try-on as the hero and amber actions. Every screen and
+   the desktop Home now follow it. The look is written down in the website repo's `DESIGN.md`.)*
 2. **Shop app:** **Show on website**, website photos, try-on cut-out and description on products; public
    read-only addresses with security tests.
 3. **Website pages** (in the website repo): Home, Category, Product, Visit us.
