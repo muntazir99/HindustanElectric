@@ -844,19 +844,21 @@ purchase bill, so slow movers stay unknown.
 
 ## 21. Public website, phone first (proposed 2026-10-18)
 
-The shop's own website: what's new in store, **try a switch or fan on your own wall** with the phone camera, and
-a **rough estimate** that ends in a WhatsApp message to the shop. It's designed for phones first; the desktop
-version is the same site laid out wider.
+The shop's own website: what's new in store, **try a switch or fan on your own wall** with the phone camera, a
+**rough estimate** that ends in a WhatsApp message to the shop, and **book an electrician visit**. It's designed
+for phones first; the desktop version is the same site laid out wider. It is a **separate project** from the
+shop app (21.5a).
 
 ### 21.1 Pages
 
 | Page | What's on it |
 |---|---|
-| **Home** | Shop name and a one-line promise; **New in store** (swipe); categories (switches, fans, lights, wires, MCBs); the two big actions, **Try on your wall** and **Rough estimate**; visit, call and WhatsApp |
+| **Home** | Shop name and a one-line promise; **New in store** (swipe); categories (switches, fans, lights, wires, MCBs); the big actions, **Try on your wall**, **Rough estimate** and **Book an electrician**; visit, call and WhatsApp |
 | **Category** | Products as a swipeable grid, brand chips to filter |
 | **Product** | Photos and colours, MRP, **Try on your wall** (switches, fans, lights), **Add to estimate**, **Ask on WhatsApp** |
 | **Try on your wall** | Full-screen camera with the product on top (21.2) |
 | **Estimate** | Items and quantities, a rough total, then **Send to shop on WhatsApp** or **Ask for a visit** (21.3) |
+| **Book an electrician** | The job, the problem, area and address, a day and time; sent to the shop on WhatsApp (21.3a) |
 | **Visit us** | Map link, hours, phone, WhatsApp |
 
 ### 21.2 Try on your wall (like Lenskart's frames, for switches and fans)
@@ -886,6 +888,22 @@ version is the same site laid out wider.
 - **Ask for a visit:** name, area and a good time go into the same WhatsApp message.
 - *Later, if useful:* a "whole house wiring" helper (rooms → typical points → wire, switches, MCBs).
 
+### 21.3a Book an electrician visit (asked for 2026-10-18)
+
+- **What the customer fills in:**
+  - **Job:** fan fitting, switchboard or sockets, new wiring, MCB keeps tripping, lights, or something else;
+  - one line about the problem;
+  - area (mohalla), address and a landmark;
+  - **day** (today, tomorrow, or a date) and **time** (morning, afternoon or evening);
+  - name and phone.
+- **Book on WhatsApp:** opens WhatsApp to the shop with the booking typed in. The customer can add a photo of
+  the problem in WhatsApp before pressing Send. The shop confirms the time on WhatsApp. Free, and nothing is
+  stored on the server.
+- **On the screen:** the visit charge, that the final price comes after the electrician sees the work, and that
+  materials can come from the shop at the shop's price.
+- *Later, only if bookings grow:* keep them in the shop app (a **Visits** list: new, confirmed, done, which
+  electrician), with spam protection on the public form. Not in the first version.
+
 ### 21.4 Where the products come from
 
 - **The shop app is the source.** On a product, the owner ticks **Show on website** and adds website photos,
@@ -896,6 +914,8 @@ version is the same site laid out wider.
   price chosen in 21.7), "in stock" yes/no. Never costs, stock quantities, customers, bills or staff.
 - **Server:** read-only public addresses with a fixed list of fields, rate limits and their own security
   tests. Nothing public can write to the database.
+- **Only the website may call them from a browser:** the shop app allows the website's own domain (CORS) and no
+  other.
 
 ### 21.5 Look and speed
 
@@ -909,15 +929,28 @@ version is the same site laid out wider.
   - each page is built ahead as plain HTML (pre-rendered), so it shows at once and Google can read it;
   - small images (WebP);
   - the camera code loads only on Try on.
-- **Built with** React and Vite in `website/` (the same tools as the shop app), with **motion** for animation.
+- **Built with** React and Vite (the same tools as the shop app), with **motion** for animation.
   Animation stays short and purposeful (entrances, the design swipe, the estimate total) and switches off when
   the phone's "reduce motion" setting is on. *(Changed 2026-10-18 from server-made pages, because the owner
   chose motion.)*
 - **Language:** English with Hindi where it helps, or English and Hindi throughout (21.7).
 
+### 21.5a A separate project (asked for 2026-10-18)
+
+- **Its own repo:** `hindustanelectric-website`, with its own build, deploy and changelog. It sits next to the
+  shop app on the Mac, and goes on GitHub when the owner says. It shares no code with the shop app.
+- **The only link is the public API:** the website reads products from the shop app's public, read-only
+  addresses (21.4) over HTTPS. The API's address is set when the site is built.
+- **Why:** a problem on the website can't touch billing or stock. The website can be redesigned, rebuilt or
+  moved without a change to the shop app, and the other way round.
+
 ### 21.6 Hosting and cost
 
-- **Server:** the same Lightsail server and app, so there's nothing new to pay for hosting.
+- **Where the built website runs:** either way, nothing new to pay.
+  - **Option A (simplest to start):** the same Lightsail server serves the website's files through nginx, at
+    the website's own domain. No new account.
+  - **Option B:** a free static host (Cloudflare Pages or GitHub Pages), whose network is fast in India. It
+    needs a new free account.
 - **The one cost: a domain**, e.g. hindustanelectric.in, about ₹500–1,000 a year. A public site can't use the
   trial address. The domain also unlocks the WhatsApp bill link (§12.3).
 - **Free and recommended:** a **Google Business Profile** for the shop, linking to the site. Most local
@@ -932,6 +965,9 @@ version is the same site laid out wider.
 2. **Domain:** which name. Buy it from any registrar; I'll set it up.
 3. **Language:** English with Hindi words, or a full Hindi/English switch.
 4. **Product photos:** use brand catalogue photos where allowed, take our own, or both.
+5. **Electrician visits:** who goes (the shop's own electricians, or trusted electricians the shop sends), the
+   visit charge, and which areas are covered.
+6. **Hosting:** option A or B in 21.6.
 
 ### 21.8 Steps (one commit each)
 
@@ -940,14 +976,16 @@ version is the same site laid out wider.
    catalogue. The owner picks one; then the rest of the screens and desktop follow it.)*
 2. **Shop app:** **Show on website**, website photos, try-on cut-out and description on products; public
    read-only addresses with security tests.
-3. **Website pages:** Home, Category, Product, Visit us.
+3. **Website pages** (in the website repo): Home, Category, Product, Visit us.
 4. **Try on your wall.**
 5. **Estimate and WhatsApp.**
-6. **Launch:** domain, HTTPS, Google Business Profile, a check on a budget Android phone and an iPhone.
+6. **Book an electrician.**
+7. **Launch:** domain, HTTPS, Google Business Profile, a check on a budget Android phone and an iPhone.
 
 ### 21.9 Done when
 
 - Pages load fast on a budget Android phone on mobile data.
 - **Try on your wall** works on Android Chrome and iPhone Safari, with live camera and with an uploaded photo.
 - An estimate opens WhatsApp to the shop with the right items.
+- A booking opens WhatsApp to the shop with every detail filled in.
 - A security sweep shows the public addresses give out only the fields in 21.4.

@@ -5,6 +5,21 @@ Plans and decisions live in [docs/PLAN.md](docs/PLAN.md).
 
 ## [Unreleased]
 
+### 2026-10-18 — Website in its own repo; book an electrician
+
+**Changed**
+- **The public website is now a separate project,** as the owner asked:
+  - its own repo `hindustanelectric-website` beside this one, with its own changelog;
+  - `website/` is removed from this repo;
+  - it will only read the shop app's public API (plan §21.5a).
+- Plan §21:
+  - **Book an electrician visit** (21.3a): job, problem, address, day and time, sent to the shop on WhatsApp;
+  - the API allows only the website's domain (CORS);
+  - two free hosting options (21.6);
+  - new decisions: electrician visits and hosting.
+- **Design canvas:** new **Book an electrician** screen, and a way into it from each of the three Home
+  directions.
+
 ### 2026-10-18 — Public website: plan, design directions, project set up
 
 Plan: [PLAN.md §21](docs/PLAN.md) (proposed; the owner chooses a design direction next).
@@ -21,8 +36,8 @@ Plan: [PLAN.md §21](docs/PLAN.md) (proposed; the owner chooses a design directi
   - **Guidance used:** the ui-ux-pro-max skill's design data and the 21st.dev skill's explore and review rules.
     Both were read from their GitHub repos; ui-ux-pro-max's search script was checked first: standard library
     only, no network.
-- **`website/`:** an empty React + Vite project with **motion** 14 (`npm install motion`) for the website build.
-  It holds a placeholder page only; the build output `website/dist/` is ignored by git.
+- **Website project:** React + Vite with **motion** 14 (`npm install motion`), placeholder page only. It began
+  as `website/` here, then moved to its own repo the same day (below).
 
 **Changed**
 - Plan §21.5: pages are pre-built HTML from React (was: made on the server), so the site can use motion.

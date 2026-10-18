@@ -32,6 +32,3 @@ staticfiles/
 
 # Uploaded files in development
 backend/media/
-
-# Public website build output
-website/dist/
